@@ -36,5 +36,8 @@ delete). Requires GNU `sed` and `git` on `PATH`.
 
 ## Related
 
-- [`docs/tasks/`](../tasks/README.md) — step-by-step fix plan for the current build errors
-  (one task file per fix, linked from a checkbox TODO index).
+- [`../.agents/notes/`](../../.agents/notes/README.md) — RFC-style decision records and
+  proposals (Agent Notes) for the codebase, organized by lifecycle and class. The
+  `new-scheduler` fixes that were previously tracked as a task list now live there as
+  implemented notes (compilation, runtime execution/termination, test suite) plus proposed
+  follow-ups.

@@ -1,6 +1,6 @@
 # Agent Note: Give each CommUtility pair its own channel id
 
-Status: proposed
+Status: rejected — superseded by [collapse-source-traits](../../proposed/architecture/2026-08-22-collapse-source-traits.md): the frontier-merge completion removes the PartitionFinished protocol, so there is no shared comm channel to fix
 
 ## Problem
 

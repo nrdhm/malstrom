@@ -41,3 +41,5 @@ delete). Requires GNU `sed` and `git` on `PATH`.
   `new-scheduler` fixes that were previously tracked as a task list now live there as
   implemented notes (compilation, runtime execution/termination, test suite) plus proposed
   follow-ups.
+- [`docs/reviews/`](../reviews/README.md) — code reviews with remediation sketches
+  (currently: the `sources` module).

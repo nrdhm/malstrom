@@ -114,7 +114,7 @@ mod tests {
             output: &mut crate::channels::operator_io::Output<Msg>,
             ctx: &mut crate::stream::OperatorContext,
         ) {
-            output.send(Message::Data(data_message));
+            output.send(Message::Data(data_message)).await;
         }
 
         async fn on_epoch(

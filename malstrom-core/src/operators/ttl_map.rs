@@ -65,7 +65,8 @@ where
             msg.key,
             value,
             msg.timestamp,
-        )));
+        )))
+        .await;
         state
     }
 

@@ -42,12 +42,15 @@ where
         let mut operator_context = OperatorContext::new(build_ctx.worker_id, self.operator_id);
 
         let mut output_closed = self.output.get_closed_signal();
+        let mut no_receivers = self.output.no_receivers();
 
         loop {
             tokio::select! {
                 _ = logic.apply(&mut self.input, &mut self.output, &mut operator_context) => (),
                     // can not possibly process more messages
-                _ = output_closed.wait_for() => return
+                _ = output_closed.wait_for() => return,
+                // all downstream operators terminated — nobody will read this output anymore
+                _ = &mut no_receivers => return
             }
         }
     }

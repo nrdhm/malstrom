@@ -76,3 +76,9 @@ proof of concept than a production ready streaming framework.
 
 "Malstrom" is the German name for the [Moskstraumen](https://en.wikipedia.org/wiki/Moskstraumen)
 one of the strongest and fastest tidal currents in the world.
+
+# Repository overviews
+
+Concise, code-linked notes about the project, its branches and dependencies live in
+[`docs/overviews/`](docs/overviews/README.md). After notable changes, refresh their
+stamps and the dependency diff with `scripts/refresh-overviews.sh`.

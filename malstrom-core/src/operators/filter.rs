@@ -34,7 +34,7 @@ pub trait Filter<In: Kvt, FilterFunc>: Sealed {
     ///     .build(move |provider: &mut dyn StreamProvider| {
     ///         provider.new_stream()
     ///         .source("numbers", StatelessSource::new(SingleIteratorSource::new(0..100)))
-    ///         .filter("filter", |x| *x <= 42)
+    ///         .filter("filter", async |x| *x <= 42)
     ///         .sink("sink", StatelessSink::new(sink_clone));
     ///     })
     ///     .execute()

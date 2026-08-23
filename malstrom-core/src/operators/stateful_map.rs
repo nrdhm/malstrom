@@ -49,7 +49,7 @@ pub trait StatefulMap<In: Kvt, T: Data, Mapper, S>: Sealed {
     ///         .source("numbers", StatelessSource::new(SingleIteratorSource::new(0..10)))
     ///         .key_local("key_local", |_| 0)
     ///         .stateful_map(
-    ///             "statefule_map", |_key, value, state: i32| ((state + value), Some(state + value))
+    ///             "statefule_map", async |_key, value, state: i32| ((state + value), Some(state + value))
     ///         )
     ///         .sink("sink", StatelessSink::new(sink_clone));
     ///     })

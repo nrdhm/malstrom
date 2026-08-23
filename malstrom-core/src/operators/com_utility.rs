@@ -21,6 +21,12 @@ struct SenderReceiver<T> {
     receiver: OperatorCommReceiver<T>,
 }
 
+/// Channel id shared by the two sides of a CommUtility connection.
+/// NOTE: this means all CommUtility pairs on a worker share one channel; fine while only
+/// sources use it (one source per stream). A per-source id would be needed for multiple
+/// concurrent CommUtility users.
+const COMM_CHANNEL_ID: OperatorId = u64::MAX;
+
 impl<T> SenderReceiver<T>
 where
     T: Distributable,
@@ -28,13 +34,12 @@ where
     async fn new(
         comm: &Rc<dyn OperatorOperatorComm>,
         to_worker: WorkerId,
-        operator_id: OperatorId,
     ) -> Self {
-        let receiver = OperatorCommReceiver::new(to_worker, operator_id, &**comm)
+        let receiver = OperatorCommReceiver::new(to_worker, COMM_CHANNEL_ID, &**comm)
             .await
             .expect("Backend communication failed");
 
-        let sender = OperatorCommSender::new(to_worker, operator_id, &**comm)
+        let sender = OperatorCommSender::new(to_worker, COMM_CHANNEL_ID, &**comm)
             .await
             .expect("Backend communication failed");
         Self { sender, receiver }
@@ -53,12 +58,13 @@ where
 {
     pub async fn new(ctx: &BuildContext) -> Self {
         let comm = ctx.get_communication();
-        let mut remote_wids = ctx.get_worker_ids().to_owned();
-        remote_wids.swap_remove(&ctx.worker_id);
+        // connect to every worker, including ourselves — a CommUtility pair may live
+        // on the same worker (e.g. source partition-op and part-lister)
+        let worker_ids = ctx.get_worker_ids().to_owned();
 
-        let mut clients = HashMap::with_capacity(remote_wids.len());
-        for wid in remote_wids.iter() {
-            let sender_receiver = SenderReceiver::new(&comm, *wid, ctx.operator_id).await;
+        let mut clients = HashMap::with_capacity(worker_ids.len());
+        for wid in worker_ids.iter() {
+            let sender_receiver = SenderReceiver::new(&comm, *wid).await;
             clients.insert(*wid, sender_receiver);
         }
         let comm = Rc::clone(&comm);
@@ -116,7 +122,7 @@ where
         let existing_workers: IndexSet<WorkerId> = self.clients.keys().map(|x| *x).collect();
         let new_workers = all_workers.difference(&existing_workers);
         for wid in new_workers.into_iter() {
-            let sender_receiver = SenderReceiver::new(&self.comm, *wid, ctx.operator_id).await;
+            let sender_receiver = SenderReceiver::new(&self.comm, *wid).await;
             self.clients.insert(*wid, sender_receiver);
         }
     }

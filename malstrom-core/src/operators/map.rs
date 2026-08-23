@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_map() {
-        let input = ["hello", "world", "foo", "bar"];
+        let input = ["hello".to_string(), "world".to_string(), "foo".to_string(), "bar".to_string()];
         let expected = input.iter().map(|x| x.len()).collect_vec();
         let collector = VecSink::new();
 
@@ -103,7 +103,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new(input)),
+                    StatelessSource::new(SingleIteratorSource::new(input.clone())),
                 )
                 .map("get-len", async |x| x.len())
                 .sink("sink", StatelessSink::new(collector.clone()));

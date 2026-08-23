@@ -1,5 +1,5 @@
 //! A scaling program
-use malstrom::keyed::partitioners::rendezvous_select;
+use malstrom::keyed::rendezvous_select;
 use malstrom::operators::*;
 use malstrom::runtime::MultiThreadRuntime;
 use malstrom::snapshot::NoPersistence;

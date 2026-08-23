@@ -95,19 +95,24 @@ impl OperatorOperatorComm for InterThreadCommunication<Vec<u8>> {
     }
 }
 
+#[async_trait]
 impl com::WorkerCoordinatorComm for InterThreadCommunication<(Vec<u8>, oneshot::Sender<Vec<u8>>)> {
-    async fn worker_to_coordinator(&self) -> Result<ReqResReceiver, Box<dyn std::error::Error>> {
+    async fn worker_to_coordinator(
+        &self,
+    ) -> Result<Box<dyn com::ReqResReceiver>, Box<dyn std::error::Error + Send + Sync>> {
         let key = ConnectionKey::new(self.this_worker, WorkerId::MAX, 0);
         let rx = self.get_or_create_receiver(key);
-        Ok(ReqResReceiver::new(rx))
+        Ok(Box::new(ReqResReceiver::new(rx)))
     }
 
     async fn coordinator_to_worker(
         &self,
         to_worker: WorkerId,
-    ) -> Result<ReqResSender, Box<dyn std::error::Error>> {
-        let key = ConnectionKey::new(WorkerId::MAX, to_worker, 0);
+    ) -> Result<Box<dyn com::ReqResSender>, Box<dyn std::error::Error + Send + Sync>> {
+        // same key orientation as the worker's `worker_to_coordinator` so both sides
+        // of the connection land on the same channel
+        let key = ConnectionKey::new(to_worker, WorkerId::MAX, 0);
         let tx = self.get_or_create_sender(key);
-        Ok(ReqResSender::new(tx))
+        Ok(Box::new(ReqResSender::new(tx)))
     }
 }

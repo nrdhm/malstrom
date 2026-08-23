@@ -8,7 +8,7 @@ use crate::{
 use super::assign_timestamps::OnTimeLate;
 
 #[inline(always)]
-pub(super) fn handle_maybe_late_msg<In, Out>(
+pub(super) async fn handle_maybe_late_msg<In, Out>(
     prev_epoch: Option<&In::Timestamp>,
     d: DataMessage<In>,
     output: &mut Output<Out>,
@@ -26,7 +26,9 @@ pub(super) fn handle_maybe_late_msg<In, Out>(
         // prev epoch is None so the message can not be late
         OnTimeLate::OnTime(d.value)
     };
-    output.send(Message::Data(DataMessage::new(d.key, wrapped, d.timestamp)));
+    output
+        .send(Message::Data(DataMessage::new(d.key, wrapped, d.timestamp)))
+        .await;
 }
 
 pub(super) fn split_mixed_stream<T: MaybeData, In: Kvt<Value = OnTimeLate<T>>>(

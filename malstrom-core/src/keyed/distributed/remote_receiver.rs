@@ -148,8 +148,16 @@ where
     ) -> Option<VersionedMessage<M>> {
         match msg {
             Some(VersionedMessage::Other(Message::Epoch(e))) => {
-                let merged_epoch =
-                    merge_timestamps(self.remote_recvs.values().map(|x| &x.last_epoch));
+                // merge the incoming epoch with all remote frontiers that have reported
+                // one so far; remotes which have not emitted an epoch yet (e.g. workers
+                // without a source partition) do not block the epoch
+                let mut timestamps: Vec<Option<M::Timestamp>> = vec![Some(e.clone())];
+                for r in self.remote_recvs.values() {
+                    if let Some(le) = &r.last_epoch {
+                        timestamps.push(Some(le.clone()));
+                    }
+                }
+                let merged_epoch = merge_timestamps(timestamps.iter());
                 merged_epoch
                     .map(Message::Epoch)
                     .map(VersionedMessage::Other)

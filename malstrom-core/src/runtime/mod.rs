@@ -6,4 +6,4 @@ pub mod threaded;
 
 pub use communication::OperatorOperatorComm;
 pub use runtime_flavor::RuntimeFlavor;
-pub use threaded::{SingleThreadRuntime, SingleThreadRuntimeFlavor};
+pub use threaded::{MultiThreadRuntime, SingleThreadRuntime, SingleThreadRuntimeFlavor};

@@ -5,7 +5,7 @@ use chrono::{Datelike, NaiveDate, TimeDelta};
 use indexmap::IndexMap;
 use malstrom::{
     channels::operator_io::Output,
-    keyed::partitioners::rendezvous_select,
+    keyed::rendezvous_select,
     operators::*,
     runtime::SingleThreadRuntime,
     sinks::{StatelessSink, StdOutSink},

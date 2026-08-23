@@ -28,7 +28,7 @@ use crate::{
     },
 };
 
-struct Distributor<M>
+pub(crate) struct Distributor<M>
 where
     M: Kvt,
     M::Key: Distributable,

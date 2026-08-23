@@ -1,5 +1,7 @@
 use std::marker::PhantomData;
 
+use async_trait::async_trait;
+
 use crate::{
     runtime::communication::ReqResResponder,
     types::{WorkerId, distributable::Distributable},
@@ -9,6 +11,7 @@ use crate::{
 ///
 /// This trait defines the methods required to establish communication channels between
 /// workers and the coordinator.
+#[async_trait]
 pub trait WorkerCoordinatorComm {
     /// Establishes a connection from a worker to the coordinator.
     ///
@@ -17,7 +20,7 @@ pub trait WorkerCoordinatorComm {
     /// The future completes once the coordinator has accepted the connection.
     async fn worker_to_coordinator(
         &self,
-    ) -> Result<impl super::ReqResReceiver, Box<dyn std::error::Error>>;
+    ) -> Result<Box<dyn super::ReqResReceiver>, Box<dyn std::error::Error + Send + Sync>>;
 
     /// Establishes a connection from the coordinator to a specific worker.
     ///
@@ -26,7 +29,7 @@ pub trait WorkerCoordinatorComm {
     async fn coordinator_to_worker(
         &self,
         to_worker: WorkerId,
-    ) -> Result<impl super::ReqResSender, Box<dyn std::error::Error>>;
+    ) -> Result<Box<dyn super::ReqResSender>, Box<dyn std::error::Error + Send + Sync>>;
 }
 
 /// Client used by the Coordinator to communicate with workers.
@@ -43,12 +46,11 @@ impl CoordinatorClient {
     /// # Arguments
     /// * `to_worker` - The ID of the worker to communicate with.
     /// * `backend` - The backend implementing the `WorkerCoordinatorComm` trait.
-    pub(crate) async fn new<Backend: WorkerCoordinatorComm>(
+    pub(crate) async fn new<Backend: WorkerCoordinatorComm + Sync>(
         to_worker: WorkerId,
         backend: &Backend,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let sender = backend.coordinator_to_worker(to_worker).await?;
-        let sender = Box::new(sender);
         Ok(Self { sender })
     }
 
@@ -86,11 +88,10 @@ impl WorkerClient {
     ///
     /// # Returns
     /// A `Result` containing the `WorkerClient` or an error from the backend.
-    pub(crate) async fn new<Backend: WorkerCoordinatorComm>(
+    pub(crate) async fn new<Backend: WorkerCoordinatorComm + Sync>(
         backend: &Backend,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let receiver = backend.worker_to_coordinator().await?;
-        let receiver = Box::new(receiver);
         Ok(Self { receiver })
     }
 

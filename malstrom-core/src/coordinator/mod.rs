@@ -5,7 +5,7 @@
 mod api;
 #[allow(clippy::module_inception)] // I can't come up with a better name
 mod coordinator;
-pub use api::CoordinatorApi;
+pub use api::{ApiRequestError, CoordinatorApi};
 pub use coordinator::{Coordinator, CoordinatorExecutionError};
 mod cluster;
 pub(crate) mod messages;

@@ -86,8 +86,12 @@ where
 /// Usually it does not make sense to implement this trait directly. Consider using
 /// [malstrom::operators::StatefulLogic](StatefulLogic) instead.
 pub trait SafeLogic<M: Kvt, N: Kvt<Key = M::Key>>: Sized + 'static {
-    /// Called whenever this operator is scheduled by its worker
-    async fn on_schedule(&mut self, output: &mut Output<N>, ctx: &mut OperatorContext) {}
+    /// Called whenever this operator is scheduled by its worker.
+    /// Return `true` if this call performed work (e.g. emitted messages) — the
+    /// scheduler will keep calling until no more work remains.
+    async fn on_schedule(&mut self, output: &mut Output<N>, ctx: &mut OperatorContext) -> bool {
+        false
+    }
 
     /// Called for every data message reaching the operator
     async fn on_data(
@@ -200,7 +204,12 @@ where
         output: &mut Output<N>,
         ctx: &mut OperatorContext,
     ) {
-        self.implementation.on_schedule(output, ctx).await;
+        // pump the schedule until it makes no progress, then handle one input message
+        loop {
+            if !self.implementation.on_schedule(output, ctx).await {
+                break;
+            }
+        }
         match input.recv().await {
             Message::Data(data_message) => {
                 self.implementation.on_data(data_message, output, ctx).await

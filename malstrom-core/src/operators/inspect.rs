@@ -114,7 +114,7 @@ mod tests {
         let inspect_collector = VecSink::new();
         let output_collector = VecSink::new();
 
-        let input = vec!["hello", "world", "foo", "bar"];
+        let input = vec!["hello".to_string(), "world".to_string(), "foo".to_string(), "bar".to_string()];
         let expected = input.clone();
 
         let rt = get_test_rt(|provider| {

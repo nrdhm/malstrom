@@ -13,7 +13,7 @@ impl<K> Interrogate<K>
 where
     K: Distributable,
 {
-    pub(super) fn new() -> (Self, tokio::sync::mpsc::UnboundedReceiver<K>) {
+    pub(crate) fn new() -> (Self, tokio::sync::mpsc::UnboundedReceiver<K>) {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
         (
             Self {

@@ -21,8 +21,9 @@ use tokio::sync::{oneshot, watch};
 /// Operator Output
 pub struct Output<M: Kvt> {
     // Each sender in this Vec is essentially one outgoing
-    // edge from the operator
-    senders: Vec<spsc::Sender<Message<M>>>,
+    // edge from the operator. Wrapped in `Rc` so we can hand out
+    // owned receiver-liveness futures without borrowing the Output.
+    senders: Vec<Rc<spsc::Sender<Message<M>>>>,
     partitioner: Box<dyn OperatorPartitioner<M>>,
     frontier: Option<<M as Kvt>::Timestamp>,
     /// signal will be sent here if the Output gets closed,
@@ -55,7 +56,11 @@ impl<M: Kvt> Output<M> {
     where
         M: Clone,
     {
-        debug_assert!(!*self.closed_signal.borrow());
+        // a send may race with the output closing (e.g. an operator applying once more
+        // during shutdown); dropping the message is fine at that point
+        if *self.closed_signal.borrow() {
+            return;
+        }
         if let Message::Epoch(e) = &msg {
             if self.frontier.as_ref().is_some_and(|x| e > x) || self.frontier.is_none() {
                 self.frontier = Some(e.clone());
@@ -109,14 +114,36 @@ impl<M: Kvt> Output<M> {
         let sub = self.closed_signal.subscribe();
         ClosedSignal(sub)
     }
+
+    /// Mark this output as closed, causing downstream operators watching
+    /// [get_closed_signal] to stop.
+    pub(crate) fn close(&self) {
+        let _ = self.closed_signal.send(true);
+    }
+
+    /// Resolves once all receivers of this output's channels are gone, i.e. the
+    /// downstream operator(s) terminated. Only meaningful for outputs which
+    /// actually have senders (an unlinked output, like a sink's, never resolves).
+    /// Returns an owned future so it can be polled alongside `&mut` borrows of
+    /// the output.
+    pub(crate) fn no_receivers(&self) -> impl Future<Output = ()> + 'static {
+        if self.senders.is_empty() {
+            return futures::future::pending().boxed_local();
+        }
+        futures::future::join_all(self.senders.iter().cloned().map(|sender| async move {
+            sender.wait_receiver_gone().await;
+        }))
+        .map(|_| ())
+        .boxed_local()
+    }
 }
 
-struct ClosedSignal(watch::Receiver<bool>);
+pub(crate) struct ClosedSignal(watch::Receiver<bool>);
 
 impl ClosedSignal {
-    pub(crate) async fn wait_for(&mut self) -> impl Future<Output = ()> {
+    pub(crate) fn wait_for(&mut self) -> impl Future<Output = ()> + '_ {
         // can ignore result because Err just means Sender was dropped
-        async {
+        async move {
             let _ = self.0.wait_for(|x| *x).await;
         }
     }
@@ -195,6 +222,23 @@ where
     pub(crate) fn get_frontier(&self) -> Option<M::Timestamp> {
         self.last_epoch.clone()
     }
+
+    /// Non-blocking receive: returns a message if one is immediately available.
+    /// Polls with a no-op waker, so any registered waker on an empty channel may
+    /// be overwritten — only use where no other task waits on this input
+    /// (e.g. the single-threaded [crate::testing::OperatorTester]).
+    pub(crate) fn try_recv(&mut self) -> Option<Message<M>> {
+        let mut fut = std::pin::pin!(self.receivers.recv());
+        let waker = std::task::Waker::noop();
+        let mut cx = std::task::Context::from_waker(&waker);
+        match fut.as_mut().poll(&mut cx) {
+            std::task::Poll::Ready(AlignedValue::Unaligned((_, msg))) => Some(msg),
+            std::task::Poll::Ready(AlignedValue::Aligned(mut items)) => {
+                items.pop().map(|(_, msg)| msg)
+            }
+            std::task::Poll::Pending => None,
+        }
+    }
 }
 
 impl<M: Kvt> Input<M>
@@ -251,8 +295,9 @@ pub(crate) fn full_broadcast<T>(_: &T, outputs: &mut [bool]) {
 /// Link a Sender and receiver together
 pub(crate) fn link<M: Kvt>(sender: &mut Output<M>, receiver: &mut Input<M>) {
     let (tx, rx) = spsc::unbounded();
-    sender.senders.push(tx);
-    let next_key = receiver.receivers.keys().last().unwrap_or(&0) + 1;
+    sender.senders.push(Rc::new(tx));
+    // receiver keys are 0-based so they line up with `frontiers`
+    let next_key = receiver.receivers.keys().last().map_or(0, |k| k + 1);
     receiver.receivers.insert(next_key, rx);
     receiver.frontiers.push(None);
 }
@@ -277,71 +322,82 @@ pub(crate) fn merge_timestamps<'a, T: MaybeTime>(
 mod test {
     use crate::{
         snapshot::{NoPersistence, SnapshotBarrier},
-        types::{DataMessage, NoData, NoKey, NoTime, SuspendMarker},
+        types::{Barrier, DataMessage, NoData, NoKey, NoTime},
     };
 
     use super::*;
 
+    /// receive, returning `None` if nothing arrives within a short timeout
+    async fn recv_or_none<M: Kvt>(input: &mut Input<M>) -> Option<Message<M>> {
+        tokio::time::timeout(std::time::Duration::from_millis(10), input.recv())
+            .await
+            .ok()
+    }
+
     /// Check we only emit an epoch when it changes
-    #[test]
-    fn emit_epoch_on_change() {
+    #[tokio::test]
+    async fn emit_epoch_on_change() {
         let mut sender: Output<(NoKey, NoData, i32)> = Output::new_unlinked(full_broadcast);
         let mut sender2: Output<(NoKey, NoData, i32)> = Output::new_unlinked(full_broadcast);
         let mut receiver = Input::new_unlinked();
         link(&mut sender, &mut receiver);
         link(&mut sender2, &mut receiver);
 
-        sender.send(Message::Epoch(42));
+        sender.send(Message::Epoch(42)).await;
 
-        assert!(receiver.recv().is_none());
-        sender2.send(Message::Epoch(15));
-        assert!(matches!(receiver.recv(), Some(Message::Epoch(15))));
+        assert!(recv_or_none(&mut receiver).await.is_none());
+        sender2.send(Message::Epoch(15)).await;
+        assert!(matches!(recv_or_none(&mut receiver).await, Some(Message::Epoch(15))));
     }
 
     /// only issue a barrier once it is aligned
-    #[test]
-    fn aligns_barriers() {
+    #[tokio::test]
+    async fn aligns_barriers() {
         let mut sender: Output<(NoKey, NoData, i32)> = Output::new_unlinked(full_broadcast);
         let mut sender2: Output<(NoKey, NoData, i32)> = Output::new_unlinked(full_broadcast);
         let mut receiver = Input::new_unlinked();
         link(&mut sender, &mut receiver);
         link(&mut sender2, &mut receiver);
 
-        sender.send(Message::AbsBarrier(SnapshotBarrier::new(Box::new(
-            NoPersistence,
-        ))));
+        let (cb, _rx) = tokio::sync::mpsc::channel(1);
+        sender
+            .send(Message::AbsBarrier(Barrier::Snapshot(SnapshotBarrier::new(Box::new(NoPersistence), cb))))
+            .await;
 
-        let received = receiver.recv();
-        assert!(received.is_none(), "{received:?}");
-        sender2.send(Message::AbsBarrier(SnapshotBarrier::new(Box::new(
-            NoPersistence,
-        ))));
+        let received = recv_or_none(&mut receiver).await;
+        assert!(received.is_none());
+        let (cb, _rx) = tokio::sync::mpsc::channel(1);
+        sender2
+            .send(Message::AbsBarrier(Barrier::Snapshot(SnapshotBarrier::new(Box::new(NoPersistence), cb))))
+            .await;
 
-        assert!(matches!(receiver.recv(), Some(Message::AbsBarrier(_))));
+        assert!(matches!(recv_or_none(&mut receiver).await, Some(Message::AbsBarrier(_))));
     }
 
     /// should buffer messages if the channels if barred
-    #[test]
-    fn buffer_on_barriers() {
+    #[tokio::test]
+    async fn buffer_on_barriers() {
         let mut sender: Output<(NoKey, i32, NoTime)> = Output::new_unlinked(full_broadcast);
         let mut sender2: Output<(NoKey, i32, NoTime)> = Output::new_unlinked(full_broadcast);
         let mut receiver = Input::new_unlinked();
         link(&mut sender, &mut receiver);
         link(&mut sender2, &mut receiver);
 
-        sender.send(Message::AbsBarrier(SnapshotBarrier::new(Box::new(
-            NoPersistence,
-        ))));
+        let (cb, _rx) = tokio::sync::mpsc::channel(1);
+        sender
+            .send(Message::AbsBarrier(Barrier::Snapshot(SnapshotBarrier::new(Box::new(NoPersistence), cb))))
+            .await;
 
-        sender.send(Message::Data(DataMessage::new(NoKey, 42, NoTime)));
-        sender.send(Message::Data(DataMessage::new(NoKey, 177, NoTime)));
+        sender.send(Message::Data(DataMessage::new(NoKey, 42, NoTime))).await;
+        sender.send(Message::Data(DataMessage::new(NoKey, 177, NoTime))).await;
 
-        sender2.send(Message::AbsBarrier(SnapshotBarrier::new(Box::new(
-            NoPersistence,
-        ))));
-        assert!(matches!(receiver.recv(), Some(Message::AbsBarrier(_))));
+        let (cb, _rx) = tokio::sync::mpsc::channel(1);
+        sender2
+            .send(Message::AbsBarrier(Barrier::Snapshot(SnapshotBarrier::new(Box::new(NoPersistence), cb))))
+            .await;
+        assert!(matches!(recv_or_none(&mut receiver).await, Some(Message::AbsBarrier(_))));
 
-        let msg = receiver.recv();
+        let msg = recv_or_none(&mut receiver).await;
         assert!(
             matches!(
                 msg,
@@ -350,11 +406,10 @@ mod test {
                     value: 42,
                     timestamp: _
                 }))
-            ),
-            "{msg:?}"
+            )
         );
         assert!(matches!(
-            receiver.recv(),
+            recv_or_none(&mut receiver).await,
             Some(Message::Data(DataMessage {
                 key: _,
                 value: 177,
@@ -363,66 +418,48 @@ mod test {
         ));
     }
 
-    /// only issue shutdown markers once they are aligned
-    #[test]
-    fn aligns_shutdowns() {
-        let mut sender: Output<(NoKey, NoData, i32)> = Output::new_unlinked(full_broadcast);
-        let mut sender2: Output<(NoKey, NoData, i32)> = Output::new_unlinked(full_broadcast);
-        let mut receiver = Input::new_unlinked();
-        link(&mut sender, &mut receiver);
-        link(&mut sender2, &mut receiver);
-
-        sender.send(Message::SuspendMarker(SuspendMarker::default()));
-
-        let received = receiver.recv();
-        assert!(received.is_none(), "{received:?}");
-        sender2.send(Message::SuspendMarker(SuspendMarker::default()));
-
-        assert!(matches!(receiver.recv(), Some(Message::SuspendMarker(_))));
-    }
-
     /// Check the accessor for the largest sent epoch (frontier)
-    #[test]
-    fn observe_frontier() {
+    #[tokio::test]
+    async fn observe_frontier() {
         let mut sender: Output<(NoKey, NoData, i32)> = Output::new_unlinked(full_broadcast);
         let mut receiver = Input::new_unlinked();
         link(&mut sender, &mut receiver);
 
         assert_eq!(*sender.get_frontier(), None);
         // non-epoch messages should not influence this
-        sender.send(Message::Data(DataMessage::new(NoKey, NoData, 1337)));
+        sender.send(Message::Data(DataMessage::new(NoKey, NoData, 1337))).await;
         assert_eq!(*sender.get_frontier(), None);
 
-        sender.send(Message::Epoch(42));
+        sender.send(Message::Epoch(42)).await;
         assert_eq!(*sender.get_frontier(), Some(42));
-        sender.send(Message::Epoch(15));
+        sender.send(Message::Epoch(15)).await;
         assert_eq!(*sender.get_frontier(), Some(42));
-        sender.send(Message::Epoch(i32::MAX));
+        sender.send(Message::Epoch(i32::MAX)).await;
         assert_eq!(*sender.get_frontier(), Some(i32::MAX));
     }
 
-    #[test]
-    fn receiver_observe_frontier() {
+    #[tokio::test]
+    async fn receiver_observe_frontier() {
         let mut sender1: Output<(NoKey, NoData, i32)> = Output::new_unlinked(full_broadcast);
         let mut sender2: Output<(NoKey, NoData, i32)> = Output::new_unlinked(full_broadcast);
         let mut receiver = Input::new_unlinked();
         link(&mut sender1, &mut receiver);
         link(&mut sender2, &mut receiver);
 
-        sender1.send(Message::Epoch(42));
+        sender1.send(Message::Epoch(42)).await;
         // not yet aligned
-        receiver.recv();
-        assert_eq!(*receiver.get_frontier(), None);
+        let _ = recv_or_none(&mut receiver).await;
+        assert_eq!(receiver.get_frontier(), None);
 
-        sender2.send(Message::Epoch(78));
-        receiver.recv();
-        assert_eq!(*receiver.get_frontier(), Some(42));
+        sender2.send(Message::Epoch(78)).await;
+        let _ = recv_or_none(&mut receiver).await;
+        assert_eq!(receiver.get_frontier(), Some(42));
 
-        sender1.send(Message::Epoch(1337));
-        sender2.send(Message::Epoch(1337));
-        receiver.recv();
-        receiver.recv();
-        assert_eq!(*receiver.get_frontier(), Some(1337));
+        sender1.send(Message::Epoch(1337)).await;
+        sender2.send(Message::Epoch(1337)).await;
+        let _ = recv_or_none(&mut receiver).await;
+        let _ = recv_or_none(&mut receiver).await;
+        assert_eq!(receiver.get_frontier(), Some(1337));
     }
 
     #[test]
@@ -437,21 +474,16 @@ mod test {
     }
 
     /// Should just discard messages
-    #[test]
-    fn sender_without_sink_discards() {
+    #[tokio::test]
+    async fn sender_without_sink_discards() {
         let mut sender: Output<(&str, Rc<&str>, i32)> = Output::new_unlinked(full_broadcast);
         let elem = Rc::new("brox");
         // this should not panic
-        sender.send(Message::Data(DataMessage::new("Beeble", elem.clone(), 42)));
+        sender
+            .send(Message::Data(DataMessage::new("Beeble", elem.clone(), 42)))
+            .await;
         // if the sender had kept or sent the message somewhere this should panic
         Rc::try_unwrap(elem).unwrap();
     }
-
-    /// Output should be suspended after sending suspend marker
-    #[test]
-    fn output_suspended_after_marker() {
-        let mut sender: Output<(NoKey, NoData, NoTime)> = Output::new_unlinked(full_broadcast);
-        sender.send(Message::SuspendMarker(SuspendMarker::default()));
-        assert!(sender.is_suspended())
-    }
 }
+

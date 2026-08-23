@@ -148,8 +148,20 @@ where
 
     async fn build(self, ctx: &mut BuildContext) -> Self::Logic {
         let com_utility = CommUtility::new(ctx).await;
+        // only worker 0 lists the parts; the distribute step then hands them out
+        let mut parts = IndexSet::new();
+        if ctx.worker_id == 0 {
+            parts = self
+                .source_impl
+                .borrow_mut()
+                .list_parts()
+                .await
+                .into_iter()
+                .collect();
+        }
         PartLister {
-            parts: IndexSet::new(),
+            parts,
+            listed_parts: ctx.worker_id == 0,
             source_impl: self.source_impl,
             comm: com_utility,
         }
@@ -158,26 +170,11 @@ where
 
 struct PartLister<SrcImpl: StatefulSourceImpl> {
     parts: IndexSet<SrcImpl::Part>,
+    /// whether this part-lister actually listed the parts (only worker 0 does)
+    listed_parts: bool,
     source_impl: Rc<RefCell<SrcImpl>>,
     /// Communication to other Workers
     comm: CommUtility<PartitionFinished<SrcImpl::Part>>,
-}
-
-// NOTE: Bit hacky using the SrcImpl timestamp type here instead of OnceTime or similar,
-// but makes implementation a lot simpler because we can use SafeLogic for the PartitionOp
-impl<SrcImpl> LogicBuilder<(), (SrcImpl::Part, NoData, SrcImpl::Timestamp)> for PartLister<SrcImpl>
-where
-    SrcImpl: StatefulSourceImpl,
-{
-    type Logic = Self;
-
-    async fn build(mut self, ctx: &mut crate::stream::BuildContext) -> Self::Logic {
-        if ctx.worker_id == 0 {
-            let parts = (self.source_impl).borrow_mut().list_parts().await;
-            self.parts = parts.into_iter().collect();
-        }
-        self
-    }
 }
 impl<SrcImpl> Logic<(), (SrcImpl::Part, NoData, SrcImpl::Timestamp)> for PartLister<SrcImpl>
 where
@@ -210,12 +207,12 @@ where
                 }
             }
             part_finished = self.comm.recv() => {
-                // branch only active on worker 0 because messages are sent to there
-                debug_assert!(ctx.worker_id == 0);
+                // normally only worker 0 receives partition-finished messages, but a
+                // stray delivery on another worker must not panic — just ignore it
                 let part = part_finished.0;
                 self.parts.swap_remove(&part);
                 /// If all partitions are finished send MAX epoch to indicate computation finish
-                if self.parts.is_empty() {
+                if self.listed_parts && self.parts.is_empty() {
                     output.send(Message::Epoch(SrcImpl::Timestamp::MAX)).await;
                 }
             }
@@ -319,7 +316,7 @@ where
         &mut self,
         output: &mut Output<(SrcImpl::Part, SrcImpl::Value, SrcImpl::Timestamp)>,
         ctx: &mut OperatorContext,
-    ) {
+    ) -> bool {
         let mut polls: FuturesUnordered<_> = self
             .partitions
             .iter_mut()
@@ -331,7 +328,8 @@ where
             // fetched data
             Some((part, Some((data, timestamp)))) => {
                 let msg = DataMessage::new(part.clone(), data, timestamp);
-                output.send(Message::Data(msg)).await
+                output.send(Message::Data(msg)).await;
+                true
             }
             // partition finished
             Some((part, None)) => {
@@ -342,9 +340,10 @@ where
                 self.com_utility
                     .send(0, PartitionFinished(part.clone()))
                     .await;
+                true
             }
             // no partitions
-            None => (),
+            None => false,
         }
     }
 

@@ -21,10 +21,10 @@ fn build_dataflow(provider: &mut dyn StreamProvider) {
         .source(
             "words",
             StatelessSource::new(SingleIteratorSource::new([
-                "Look",
-                "ma'",
-                "I'm",
-                "streaming",
+                "Look".to_string(),
+                "ma'".to_string(),
+                "I'm".to_string(),
+                "streaming".to_string(),
             ])),
         )
         .map("upper", async |x| x.to_uppercase())

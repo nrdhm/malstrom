@@ -207,13 +207,15 @@ mod tests {
                     "sink-epochs".to_string(),
                     async move |input: &mut Input<Msg>,
                                 output: &mut Output<Msg>,
-                                _ctx: &mut OperatorContext| match input.recv() {
-                        Some(Message::Epoch(x)) => {
-                            sink.give(x.clone());
-                            output.send(Message::Epoch(x));
+                                _ctx: &mut OperatorContext| {
+                        let msg = input.recv().await;
+                        match msg {
+                            Message::Epoch(x) => {
+                                sink.give(x.clone());
+                                output.send(Message::Epoch(x)).await;
+                            }
+                            msg => output.send(msg).await,
                         }
-                        Some(msg) => output.send(msg),
-                        None => (),
                     },
                 ));
         });

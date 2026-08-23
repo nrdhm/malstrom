@@ -38,7 +38,7 @@ pub trait GenerateEpochs<Msg: Kvt>: Sealed {
     /// use malstrom::types::NoKey;
     /// use malstrom::stream::StreamBuilder;
     ///
-    /// let stream: StreamBuilder<NoKey, String, i64> = todo!();
+    /// let stream: StreamBuilder<(NoKey, String, i64)> = todo!();
     /// stream.generate_epochs("limit", limit_out_of_orderness(30));
     /// ```
     fn generate_epochs(
@@ -128,7 +128,7 @@ where
                 let new_epoch = (self.generator)(&d, &self.prev_epoch);
                 // send the message to the late stream if it is later than the previously
                 // issued epoch
-                handle_maybe_late_msg(self.prev_epoch.as_ref(), d, output);
+                handle_maybe_late_msg(self.prev_epoch.as_ref(), d, output).await;
 
                 self.prev_epoch = match (new_epoch, self.prev_epoch.take()) {
                     (None, None) => None,
@@ -140,7 +140,7 @@ where
                     (Some(x), Some(y)) => {
                         if x > y {
                             {
-                                output.send(Message::Epoch(x.clone()));
+                                output.send(Message::Epoch(x.clone())).await;
                                 Some(x)
                             }
                         } else {

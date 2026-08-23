@@ -1,5 +1,5 @@
 //! Using SlateDB as a persistence backend
-use malstrom::keyed::partitioners::rendezvous_select;
+use malstrom::keyed::rendezvous_select;
 use malstrom::operators::*;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::slatedb::object_store::{local::LocalFileSystem, path::Path};

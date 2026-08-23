@@ -30,9 +30,11 @@ pub trait FilterMap<In: Kvt, T: Data, Mapper>: Sealed {
     ///     .build(move |provider: &mut dyn StreamProvider| {
     ///         provider.new_stream()
     ///         .source("numbers", StatelessSource::new(
-    ///             SingleIteratorSource::new(["0", "one", "2", "3", "four"])
+    ///             SingleIteratorSource::new([
+    ///                 "0".to_string(), "one".to_string(), "2".to_string(), "3".to_string(), "four".to_string(),
+    ///             ])
     ///         ))
-    ///         .filter_map("filter_map", |x| x.parse::<i32>().ok())
+    ///         .filter_map("filter_map", async |x| x.parse::<i32>().ok())
     ///         .sink("sink", StatelessSink::new(sink_clone));
     ///     })
     ///     .execute()

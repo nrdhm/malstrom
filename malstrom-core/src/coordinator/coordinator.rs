@@ -51,7 +51,7 @@ impl Coordinator {
     /// Start this Coordinator
     pub fn execute<
         C: WorkerCoordinatorComm + Send + Sync + 'static,
-        P: PersistenceBackend + Send,
+        P: PersistenceBackend + Send + Clone,
     >(
         self,
         default_scale: u64,
@@ -63,7 +63,7 @@ impl Coordinator {
             .enable_time()
             .build()?;
 
-        let cluster = load_or_create_cluster_handle(persistence, default_scale);
+        let cluster = load_or_create_cluster_handle(persistence.clone(), default_scale);
 
         let main_loop = rt.spawn(
             coordinator_loop(cluster, self.req.1, communication, persistence)
@@ -98,7 +98,7 @@ async fn coordinator_loop<C, P>(
     mut persistence_backend: P,
 ) -> Result<(), CoordinatorError>
 where
-    C: Send + WorkerCoordinatorComm,
+    C: Send + Sync + WorkerCoordinatorComm,
     P: Send + PersistenceBackend,
 {
     let mut state = state

@@ -20,6 +20,13 @@ impl<K> Acquire<K>
 where
     K: Distributable + Clone,
 {
+    /// Create a new [Acquire] carrying state for the given key
+    pub(crate) fn new(key: K, collection: IndexMap<OperatorId, Vec<u8>>) -> Self {
+        Self {
+            inner: Rc::new(RefCell::new((key, collection))),
+        }
+    }
+
     /// Take the moved state for a given order from this [Acquire]
     pub fn take_state<S: Distributable>(&self, operator_id: &OperatorId) -> Option<(K, S)> {
         let mut inner = self.inner.borrow_mut();

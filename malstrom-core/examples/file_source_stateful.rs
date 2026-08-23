@@ -25,17 +25,19 @@ impl FileSource {
 }
 
 /// Implement the source emitting String values and usize timestamps
-impl StatefulSourceImpl<String, usize> for FileSource {
+impl StatefulSourceImpl for FileSource {
     // we will create one partition per path (String)
     type Part = String;
+    type Value = String;
+    type Timestamp = usize;
     type SourcePartition = FileSourcePartition;
     type PartitionState = usize;
 
-    fn list_parts(&self) -> Vec<Self::Part> {
+    async fn list_parts(&mut self) -> Vec<Self::Part> {
         self.paths.clone()
     }
 
-    fn build_part(
+    async fn build_part(
         &mut self,
         part: &Self::Part,
         state: Option<Self::PartitionState>,
@@ -62,9 +64,12 @@ impl FileSourcePartition {
     }
 }
 
-impl StatefulSourcePartition<String, usize> for FileSourcePartition {
+impl StatefulSourcePartition for FileSourcePartition {
     type PartitionState = usize;
-    async fn poll(&mut self) -> Option<(String, usize)> {
+    type Value = String;
+    type Timestamp = usize;
+
+    async fn poll(&mut self) -> Option<(Self::Value, Self::Timestamp)> {
         // open the file
         let file = self.file.get_or_insert_with(|| {
             BufReader::new(File::open(&self.path).unwrap())
@@ -79,11 +84,11 @@ impl StatefulSourcePartition<String, usize> for FileSourcePartition {
         })
     }
 
-    fn snapshot(&self) -> Self::PartitionState {
+    async fn snapshot(&self) -> Self::PartitionState {
         self.next_line
     }
 
-    fn collect(self) -> Self::PartitionState {
+    async fn collect(self) -> Self::PartitionState {
         self.next_line
     }
 }

@@ -61,51 +61,51 @@ pub trait StatelessSourcePartition<V, T> {
 /// NewType on which we can implement StatefulSourceImpl
 struct SourceWrapper<V, T, S: StatelessSourceImpl<V, T>>(S, PhantomData<(V, T)>);
 
-impl<V, T, S> StatefulSourceImpl<V, T> for SourceWrapper<V, T, S>
+impl<V, T, S> StatefulSourceImpl for SourceWrapper<V, T, S>
 where
-    V: Data,
-    T: Timestamp,
+    V: Distributable + Data,
+    T: Distributable + Timestamp,
     S: StatelessSourceImpl<V, T>,
     S::Part: Key,
 {
     type Part = S::Part;
+    type Value = V;
+    type Timestamp = T;
     type PartitionState = ();
-    type SourcePartition = PartitionWrapper<S::SourcePartition>;
+    type SourcePartition = PartitionWrapper<S::SourcePartition, V, T>;
 
-    fn list_parts(&self) -> Vec<Self::Part> {
+    async fn list_parts(&mut self) -> Vec<Self::Part> {
         self.0.list_parts()
     }
 
-    fn build_part(
+    async fn build_part(
         &mut self,
         part: &Self::Part,
         _part_state: Option<Self::PartitionState>,
     ) -> Self::SourcePartition {
-        PartitionWrapper(self.0.build_part(part))
+        PartitionWrapper(self.0.build_part(part), PhantomData)
     }
 }
 
-struct PartitionWrapper<S>(S);
+struct PartitionWrapper<S, V, T>(S, PhantomData<(V, T)>);
 
-impl<V, T, S> StatefulSourcePartition<V, T> for PartitionWrapper<S>
+impl<V, T, S> StatefulSourcePartition for PartitionWrapper<S, V, T>
 where
-    V: Data,
-    T: Timestamp,
+    V: Distributable + Data,
+    T: Distributable + Timestamp,
     S: StatelessSourcePartition<V, T>,
 {
     type PartitionState = ();
+    type Value = V;
+    type Timestamp = T;
 
-    async fn poll(&mut self) -> Option<(V, T)> {
+    async fn poll(&mut self) -> Option<(Self::Value, Self::Timestamp)> {
         self.0.poll().await
     }
 
-    fn snapshot(&self) -> Self::PartitionState {}
+    async fn snapshot(&self) -> Self::PartitionState {}
 
-    fn collect(mut self) -> Self::PartitionState {
-        self.0.suspend();
-    }
-
-    fn suspend(&mut self) {
+    async fn collect(mut self) -> Self::PartitionState {
         self.0.suspend();
     }
 
@@ -116,8 +116,8 @@ where
 
 impl<V, T, S> StreamSource<(S::Part, V, T)> for StatelessSource<V, T, S>
 where
-    V: Data,
-    T: Timestamp,
+    V: Distributable + Data,
+    T: Distributable + Timestamp,
     S: StatelessSourceImpl<V, T>,
     S::Part: Key,
 {
@@ -126,6 +126,6 @@ where
         name: &str,
         builder: InitialStreamBuilder,
     ) -> StreamBuilder<(S::Part, V, T)> {
-        builder.source(name, StatefulSource::<(S::Part, V, T), _>::new(self.0))
+        builder.source(name, StatefulSource::new(self.0))
     }
 }

@@ -113,7 +113,7 @@ where
         output: &mut Output<Msg>,
         ctx: &mut crate::stream::OperatorContext,
     ) {
-        output.send(Message::Data(data_message));
+        output.send(Message::Data(data_message)).await;
     }
 }
 
@@ -140,6 +140,7 @@ mod tests {
             );
             let [even, odd] = stream.const_split("const-split", |msg, outputs| {
                 let is_even = msg.value & 1 == 0;
+                println!("split got: {msg:?}");
                 *outputs = [is_even, !is_even];
             });
             even.sink("sink-even", StatelessSink::new(even_sink.clone()));

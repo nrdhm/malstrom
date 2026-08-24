@@ -1,10 +1,10 @@
 //! A basic example which runs a no-op dataflow
-use malstrom::operators::Source as _;
-use malstrom::operators::*;
+use malstrom_operators::operators::Source as _;
+use malstrom_operators::operators::*;
 use malstrom::runtime::SingleThreadRuntime;
-use malstrom::sinks::{StatelessSink, StdOutSink};
+use malstrom_operators::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;
-use malstrom::sources::Source;
+use malstrom_operators::sources::Source;
 use malstrom::worker::StreamProvider;
 
 fn main() {

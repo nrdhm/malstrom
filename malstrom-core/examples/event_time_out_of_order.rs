@@ -3,17 +3,17 @@ use std::u8;
 
 use chrono::{Datelike, NaiveDate, TimeDelta};
 use indexmap::IndexMap;
-use malstrom::{
-    channels::operator_io::Output,
-    keyed::rendezvous_select,
-    operators::Source as _,
-    operators::*,
-    runtime::SingleThreadRuntime,
-    sinks::{StatelessSink, StdOutSink},
-    snapshot::NoPersistence,
-    sources::Source,
-    types::{DataMessage, Message, Timestamp},
-    worker::StreamProvider,
+use {
+    malstrom::channels::operator_io::Output,
+    malstrom_operators::keyed::rendezvous_select,
+    malstrom_operators::operators::Source as _,
+    malstrom_operators::operators::*,
+    malstrom::runtime::SingleThreadRuntime,
+    malstrom_operators::sinks::{StatelessSink, StdOutSink},
+    malstrom::snapshot::NoPersistence,
+    malstrom_operators::sources::Source,
+    malstrom::types::{DataMessage, Message, Timestamp},
+    malstrom::worker::StreamProvider,
 };
 use serde::{Deserialize, Serialize};
 

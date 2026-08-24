@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     channels::operator_io::{Input, Output, full_broadcast},
-    keyed::distributed::{Acquire, Collect, Interrogate},
+    types::distributed::{Acquire, Collect, Interrogate},
     snapshot::SnapshotBarrier,
     stream::{OperatorContext, WorkerBuildContext},
     types::{

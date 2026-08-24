@@ -13,7 +13,7 @@ use super::spsc::Receiver;
 /// Messages satisfying the condition are not immediatly emitted, but instead all emitted once
 /// all receivers have met the condition. The order in which the paused messages are emitted is
 /// **not specified**
-pub(crate) struct AlignmentGroup<K, R: super::recv_trait::Receiver, F> {
+pub struct AlignmentGroup<K, R: super::recv_trait::Receiver, F> {
     receivers: IndexMap<K, AlignedReceiver<R>>,
     condition: F,
 }
@@ -147,7 +147,7 @@ where
     }
 }
 
-pub(crate) enum AlignedValue<K, T> {
+pub enum AlignedValue<K, T> {
     /// Individual value of T, does not need alignment
     /// and index of channel this value came from
     Unaligned((K, T)),

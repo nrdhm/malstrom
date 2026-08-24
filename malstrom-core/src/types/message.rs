@@ -9,7 +9,7 @@ use std::{cell::RefCell, fmt::Debug, rc::Rc};
 use tokio::sync::mpsc;
 
 use crate::{
-    keyed::distributed::{Acquire, Collect, Interrogate},
+    types::distributed::{Acquire, Collect, Interrogate},
     snapshot::SnapshotBarrier,
     types::{MaybeData, MaybeKey, MaybeTime, NoData, NoKey, NoTime, OperatorId},
 };

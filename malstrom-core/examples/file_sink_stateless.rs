@@ -1,13 +1,13 @@
 //! Example of a stateless sink writing to files on the local filesystem
-use malstrom::{
-    keyed::{KeyDistribute, rendezvous_select},
-    operators::{Map, Sink, Source as _},
-    runtime::SingleThreadRuntime,
-    sinks::{StatelessSink, StatelessSinkImpl},
-    snapshot::NoPersistence,
-    sources::Source,
-    types::{DataMessage, MaybeTime},
-    worker::StreamProvider,
+use {
+    malstrom_operators::keyed::{KeyDistribute, rendezvous_select},
+    malstrom_operators::operators::{Map, Sink, Source as _},
+    malstrom::runtime::SingleThreadRuntime,
+    malstrom_operators::sinks::{StatelessSink, StatelessSinkImpl},
+    malstrom::snapshot::NoPersistence,
+    malstrom_operators::sources::Source,
+    malstrom::types::{DataMessage, MaybeTime},
+    malstrom::worker::StreamProvider,
 };
 use std::{fs::OpenOptions, io::Write};
 // #region sink_impl

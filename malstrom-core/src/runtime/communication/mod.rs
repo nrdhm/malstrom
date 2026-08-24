@@ -18,7 +18,10 @@ pub use reqres::{ReqResReceiver, ReqResResponder, ReqResSender};
 pub use stream::{StreamReceiver, StreamSender};
 pub use worker_coordinator::WorkerCoordinatorComm;
 
-pub(crate) use operator_operator::{OperatorCommReceiver, OperatorCommSender};
+/// The sender side of an operator-to-operator channel, used by the distributed crate.
+pub use operator_operator::OperatorCommSender;
+/// The receiver side of an operator-to-operator channel, used by the distributed crate.
+pub use operator_operator::OperatorCommReceiver;
 pub(crate) use worker_coordinator::{CoordinatorClient, WorkerClient, WorkerResponder};
 
 /// A convinience method to broadcast a message to all available clients

@@ -74,7 +74,7 @@ where
     }
 }
 
-pub(crate) struct InnerRuntimeBuilder {
+pub struct InnerRuntimeBuilder {
     // build_ctx will be sent here once available
     // TODO: replace with [tokio::sync::OnceCell]
     build_ctx: tokio::sync::broadcast::Sender<WorkerBuildContext>,
@@ -108,7 +108,8 @@ impl InnerRuntimeBuilder {
         self.root_task = Some(task);
     }
 
-    pub(crate) fn add_operator<In, B, Out>(
+    /// Register an operator with the runtime; returns its id.
+    pub fn add_operator<In, B, Out>(
         &mut self,
         mut operator: Operator<In, B, Out>,
     ) -> OperatorId

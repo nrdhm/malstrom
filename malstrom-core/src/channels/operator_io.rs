@@ -117,7 +117,8 @@ impl<M: Kvt> Output<M> {
 
     /// Mark this output as closed, causing downstream operators watching
     /// [get_closed_signal] to stop.
-    pub(crate) fn close(&self) {
+    /// Mark this output as closed; further sends are dropped.
+    pub fn close(&self) {
         let _ = self.closed_signal.send(true);
     }
 
@@ -304,7 +305,7 @@ pub fn link<M: Kvt>(sender: &mut Output<M>, receiver: &mut Input<M>) {
 
 /// Small reducer hack, as we can't use iter::reduce because of ownership
 /// TODO: Move this somewhere else
-pub(crate) fn merge_timestamps<'a, T: MaybeTime>(
+pub fn merge_timestamps<'a, T: MaybeTime>(
     mut timestamps: impl Iterator<Item = &'a Option<T>>,
 ) -> Option<T> {
     let mut merged = timestamps.next()?.clone();

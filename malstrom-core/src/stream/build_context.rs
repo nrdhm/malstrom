@@ -71,7 +71,8 @@ impl BuildContext {
         &self.worker_ids
     }
 
-    pub(crate) fn get_communication(&self) -> Rc<dyn OperatorOperatorComm> {
+    /// Get this operator's communication backend.
+    pub fn get_communication(&self) -> Rc<dyn OperatorOperatorComm> {
         Rc::clone(&self.communication)
     }
 }

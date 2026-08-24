@@ -1,0 +1,20 @@
+[package]
+name = "malstrom-testkit"
+version = "0.1.0"
+edition = "2024"
+description = "Test utilities for Malstrom: an operator tester, in-memory comm backends and capture persistence."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/MalstromDevelopers/malstrom"
+
+[lints]
+workspace = true
+
+[dependencies]
+malstrom = { path = "../malstrom-core" }
+async-trait = "0.1.85"
+futures = "0.3.31"
+indexmap = { version = "2.1.0", features = ["serde"] }
+tokio = { version = "1.47.1", features = ["rt", "sync"] }
+
+[dev-dependencies]
+itertools = "0.11.0"

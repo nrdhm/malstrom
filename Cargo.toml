@@ -3,6 +3,9 @@ resolver = "2"
 members = [
     "malstrom-core",
     "malstrom-core/examples/*",
+    "malstrom-distributed",
+    "malstrom-operators",
+    "malstrom-testkit",
     "malstrom-k8s/artifact-downloader",
     "malstrom-k8s/artifact-manager",
     "malstrom-k8s/operator",

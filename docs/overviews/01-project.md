@@ -57,27 +57,30 @@ provider
     .sink("stdout", StatelessSink::new(StdOutSink));
 ```
 
-Key modules:
+Key modules (kernel; `malstrom-core/src/`; since 2026-08-24 the operators/sinks/sources/keyed
+layers live in the `malstrom-operators` / `malstrom-distributed` crates):
 
 - **`stream/`** — the stream builder and operator abstraction: `BuildableOperator`,
   `RunnableOperator`, contexts, and standard/chained operator plumbing. Custom operators can
-  be written via `stateful_op`/`stateless_op`.
-- **`operators/`** — built-in operators: `map`, `filter`, `filter_map`, `inspect`, `flatten`,
-  `split`, `cloned`, `stateful_map`, `ttl_map`, plus event-time operators
-  (`assign_timestamps`, `generate_epochs`, `inspect_frontier`).
-- **`sources/` & `sinks/`** — one unified `SourceImpl`/`SourcePartition` abstraction plus
-  `Source::from_*` constructors for iterators/streams/poll closures ("stateless" sources are
-  `SourceImpl` with `PartitionState = ()`), stateless/stateful sinks, stdout and in-memory vec
-  sinks. `malstrom-kafka` adds Kafka endpoints.
-- **`keyed/`** — keyed streams: key distribution across workers, partitioners, and a message
-  router that fans messages to the right worker/partition.
+  be written via `stateful_op`/`stateless_op` (in `malstrom-operators`).
+- **`operators/`** (now `malstrom-operators`) — built-in operators: `map`, `filter`,
+  `filter_map`, `inspect`, `flatten`, `split`, `cloned`, `stateful_map`, `ttl_map`, plus
+  event-time operators (`assign_timestamps`, `generate_epochs`, `inspect_frontier`).
+- **`sources/` & `sinks/`** (now `malstrom-operators`) — one unified
+  `SourceImpl`/`SourcePartition` abstraction plus `Source::from_*` constructors for
+  iterators/streams/poll closures ("stateless" sources are `SourceImpl` with
+  `PartitionState = ()`), stateless/stateful sinks, stdout and in-memory vec sinks.
+  `malstrom-kafka` adds Kafka endpoints.
+- **`keyed/`** (now `malstrom-distributed`) — keyed streams: key distribution across workers,
+  partitioners, and a message router that fans messages to the right worker/partition.
 - **`runtime/`** — runtime flavors: in-process `MultiThreadRuntime` (single- and
   multi-threaded) and the distributed gRPC backend. **Workers are the unit of parallelism** —
   the runtime spawns identical workers up to the configured parallelism.
 - **`coordinator/`** — the coordinator orchestrates workers (communication, watchmaps, state,
   rescaling).
-- **`snapshot/`** — persistence backends (`NoPersistence`, `slatedb` with cloud object
-  stores) plus the barrier mechanism that drives exactly-once snapshots.
+- **`snapshot/`** — persistence traits and the barrier mechanism that drives exactly-once
+  snapshots; the `slatedb`/cloud-store backend is the separate
+  `malstrom-snapshot-slatedb` crate.
 - **`channels/`** — internal operator I/O: SPSC channels, linking, merging, broadcast.
 - **`types/`** — core message types (`Message`, keys, timestamps, worker IDs, partitioners).
 

@@ -38,9 +38,9 @@ concrete issues:
 
 ## Decision
 
-The [redesign](../../../../docs/reviews/sources-module-redesign.md) was implemented, with two
-documented deviations (completion protocol, discovery message) and one rejected sub-proposal
-(`#[derive(StatelessSource)]`).
+The [redesign](../../../../docs/reviews/sources-module-redesign.md) was implemented, with three
+documented deviations (completion protocol, discovery message, untimed timestamp type) and one
+rejected sub-proposal (`#[derive(StatelessSource)]`).
 
 1. **One `SourceImpl`/`SourcePartition` pair** in `malstrom-core/src/sources/stateful.rs`.
    `SourceImpl` carries associated types `PartitionKey`/`Value`/`Timestamp`/
@@ -56,7 +56,10 @@ documented deviations (completion protocol, discovery message) and one rejected 
    `Source::from_iterator(…)` needs no turbofish):
    - `from_iterator` — untimed (`Timestamp = OnceTime`, records at `OnceTime::MIN`, finishes
      with `OnceTime::MAX`). Replaces `SingleIteratorSource`; **untimed by default** as the
-     redesign specified.
+     redesign specified — a **deviation from the redesign's `NoTime`**: `NoTime` implements
+     only `MaybeTime`, not `Timestamp`, and source completion emits `Epoch(Timestamp::MAX)`,
+     which needs a real `Timestamp`. `OnceTime` (bool: `MIN = false`, `MAX = true`) is the
+     minimal such type.
    - `from_enumerated_iterator` — `Timestamp = usize` index (the old `SingleIteratorSource`
      semantics, explicit).
    - `from_poll_fn` / `from_stream` — closure/`Stream`-driven sources.
@@ -106,6 +109,10 @@ documented deviations (completion protocol, discovery message) and one rejected 
 - **`Default`-seeded state** (`PartitionState: Default` with a default `snapshot() { () }`)
   — a default `snapshot() { () }` does not type-check once a source overrides
   `PartitionState = MyState`; the explicit `Option<PartitionState>` in `open` was chosen.
+- **`NoTime` for untimed sources** (the redesign's §1/§2 choice) — `NoTime` implements only
+  `MaybeTime`, not `Timestamp`; source completion emits `Epoch(Timestamp::MAX)` and needs a
+  real `Timestamp`. Untimed sources therefore use `OnceTime`, the minimal `Timestamp`
+  (bool: `MIN = false` per record, `MAX = true` as the final epoch).
 - **Frontier-merge completion (the redesign's step 4)** — the multi-worker ordering hazard
   described in Decision 4 made a reader-local MAX unsafe; the global worker-0 coordinator
   was kept. The redesign's frontier-merge path remains available to revisit if the
@@ -150,7 +157,12 @@ documented deviations (completion protocol, discovery message) and one rejected 
   (`look_ma_im_streaming`, `basic_stdout`, `ttl_map`, `multithreading`, `basic_operators`,
   `rescaling`, `split_streams`, `union_streams`, `cloned_streams`,
   `custom_stateless_operator`) smoke-run correctly. The doc-test count dropped 11 → 10
-  because the dead `testing/iterator_source.rs` doctest was deleted with the file.
+  because `sources/single_iterator.rs`'s `SingleIteratorSource` doctest was deleted with the
+  file (its coverage moved to `#[cfg(test)]` unit tests in `fn_source.rs`, which adds no
+  doctest). `testing/iterator_source.rs` had no runnable doctest.
+- **Untimed sources timestamp with `OnceTime`** — a real bool `Timestamp` rather than the
+  redesign's `NoTime`: untimed records carry a visible `OnceTime(false)` timestamp through
+  operators and into output (the README example prints `timestamp: OnceTime(false)`).
 - **Cost** — the `Source as _` idiom is a small ergonomic tax on consumer code; the
   discovery coordinator remains raw `Logic`; the redesign's step-4 frontier-merge completion
   and the `SourcePartitions` control message remain unimplemented (both documented above as

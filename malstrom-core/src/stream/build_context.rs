@@ -31,7 +31,9 @@ pub struct BuildContext {
 }
 
 impl BuildContext {
-    pub(crate) fn new(
+    /// Create a build context for the given worker/operator. External callers (e.g. the
+    /// operator testkit) use this to drive an operator's builder without a running worker.
+    pub fn new(
         worker_id: WorkerId,
         operator_id: OperatorId,
         operator_rt: Rc<LocalRuntime>,

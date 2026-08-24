@@ -203,7 +203,9 @@ pub struct RescaleMessage {
 }
 
 impl RescaleMessage {
-    pub(crate) fn new(
+    /// Create a rescale message for the given target worker set and version.
+    /// The callback is signalled when the rescale completes.
+    pub fn new(
         workers: IndexSet<WorkerId>,
         version: u64,
         callback: mpsc::Sender<()>,

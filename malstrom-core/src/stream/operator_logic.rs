@@ -57,7 +57,7 @@ where
 }
 
 /// Operator Logic with absolutely no safeguard, allows you to break keying and everything else
-pub(crate) trait Logic<M: Kvt, N: Kvt>: 'static {
+pub trait Logic<M: Kvt, N: Kvt>: 'static {
     async fn apply(
         &mut self,
         input: &mut Input<M>,

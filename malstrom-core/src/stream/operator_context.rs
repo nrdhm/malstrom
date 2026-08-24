@@ -21,7 +21,9 @@ pub struct OperatorContext {
 }
 
 impl OperatorContext {
-    pub(crate) fn new(worker_id: WorkerId, operator_id: OperatorId) -> Self {
+    /// Create a context for the given worker/operator. External callers (e.g. the
+    /// operator testkit) construct this to drive an operator's logic by hand.
+    pub fn new(worker_id: WorkerId, operator_id: OperatorId) -> Self {
         Self {
             worker_id,
             operator_id,

@@ -9,4 +9,7 @@ pub use broadcast::WorkerBroadcast;
 mod worker_partitioners;
 pub use worker_partitioners::{WorkerPartitioner, index_select, rendezvous_select};
 
-pub(crate) mod distributed;
+/// The distributed routing protocol: keyed state movement
+/// (`Acquire`/`Collect`/`Interrogate`) and the distributor/router machinery for
+/// cross-worker key placement.
+pub mod distributed;

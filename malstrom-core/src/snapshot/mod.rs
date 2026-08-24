@@ -16,11 +16,13 @@ use tokio::sync::oneshot;
 /// Version of a snapshot
 pub type SnapshotVersion = u64;
 
-pub(crate) fn serialize_state<S: Serialize>(state: &S) -> Vec<u8> {
+/// Serialize state with the framework's snapshot encoding (MessagePack).
+pub fn serialize_state<S: Serialize>(state: &S) -> Vec<u8> {
     rmp_serde::to_vec(state).expect("Error serializing state")
 }
 
-pub(crate) fn deserialize_state<S: DeserializeOwned>(state: Vec<u8>) -> S {
+/// Deserialize state with the framework's snapshot encoding (MessagePack).
+pub fn deserialize_state<S: DeserializeOwned>(state: Vec<u8>) -> S {
     rmp_serde::from_slice(&state).expect("Error deserializing state")
 }
 
@@ -70,7 +72,9 @@ impl Debug for SnapshotBarrier {
 }
 
 impl SnapshotBarrier {
-    pub(super) fn new(backend: Box<dyn PersistenceClient>, callback: mpsc::Sender<()>) -> Self {
+    /// Create a snapshot barrier over the given persistence client. The callback
+    /// is signalled when the last clone of the barrier is dropped.
+    pub fn new(backend: Box<dyn PersistenceClient>, callback: mpsc::Sender<()>) -> Self {
         Self {
             backend: Rc::new(RefCell::new(backend)),
             callback: Rc::new(RefCell::new(callback)),

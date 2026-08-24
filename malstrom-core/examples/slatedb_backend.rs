@@ -1,10 +1,11 @@
 //! Using SlateDB as a persistence backend
 use malstrom_operators::keyed::rendezvous_select;
+use malstrom_operators::operators::Source as _;
 use malstrom_operators::operators::*;
 use malstrom_operators::sinks::{StatelessSink, StdOutSink};
-use malstrom::snapshot::slatedb::object_store::{local::LocalFileSystem, path::Path};
+use malstrom_snapshot_slatedb::object_store::{local::LocalFileSystem, path::Path};
 use {
-    malstrom::runtime::SingleThreadRuntime, snapshot::SlateDbBackend, sources::Source, worker::StreamProvider,
+    malstrom::runtime::SingleThreadRuntime, malstrom_snapshot_slatedb::SlateDbBackend, malstrom_operators::sources::Source, malstrom::worker::StreamProvider,
 };
 use std::sync::Arc;
 use std::time::Duration;
@@ -26,7 +27,7 @@ fn build_dataflow(provider: &mut dyn StreamProvider) {
         .new_stream()
         .source("iter-source", Source::from_iterator(0..=100))
         .key_distribute("key-by-value", |x| x.value & 1 == 1, rendezvous_select)
-        .stateful_map("sum", |_key, value, state: i32| {
+        .stateful_map("sum", async |_key, value, state: i32| {
             let state = state + value;
             (state, Some(state))
         })

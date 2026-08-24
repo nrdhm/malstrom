@@ -1,11 +1,13 @@
-//! Snapshot storage on any cloud store or local filesystem with [SlateDB](https://slatedb.io/)
+//! Snapshot storage on any cloud store or local filesystem with [SlateDB](https://slatedb.io/).
+//!
+//! The [SlateDbBackend] implements `malstrom::snapshot::PersistenceBackend`.
 use std::{
     pin::pin,
     sync::{Arc, Mutex},
 };
 
-use super::{PersistenceBackend, PersistenceClient, SnapshotVersion};
-use crate::types::WorkerId;
+use malstrom::snapshot::{PersistenceBackend, PersistenceClient, SnapshotVersion};
+use malstrom::types::WorkerId;
 pub use object_store;
 use object_store::PutPayload;
 use object_store::{ObjectStore, path::Path};
@@ -203,14 +205,14 @@ impl SlateDbClient {
 }
 
 impl PersistenceClient for SlateDbClient {
-    fn load(&self, operator_id: &crate::types::OperatorId) -> Option<Vec<u8>> {
+    fn load(&self, operator_id: &malstrom::types::OperatorId) -> Option<Vec<u8>> {
         self.rt
             .block_on(self.db.get(&operator_id.to_be_bytes()))
             .unwrap()
             .map(|x| x.to_vec())
     }
 
-    fn persist(&mut self, state: &[u8], operator_id: &crate::types::OperatorId) {
+    fn persist(&mut self, state: &[u8], operator_id: &malstrom::types::OperatorId) {
         self.rt
             .block_on(self.db.put(&operator_id.to_be_bytes(), state))
             .unwrap()

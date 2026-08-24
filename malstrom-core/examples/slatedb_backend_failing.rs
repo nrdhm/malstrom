@@ -1,10 +1,11 @@
 //! Using SlateDB as a persistence backend
 use malstrom_operators::keyed::rendezvous_select;
+use malstrom_operators::operators::Source as _;
 use malstrom_operators::operators::*;
 use malstrom_operators::sinks::{StatelessSink, StdOutSink};
-use malstrom::snapshot::slatedb::object_store::{local::LocalFileSystem, path::Path};
+use malstrom_snapshot_slatedb::object_store::{local::LocalFileSystem, path::Path};
 use malstrom_operators::sources::{Source, SourceImpl, SourcePartition};
-use malstrom::{runtime::SingleThreadRuntime, snapshot::SlateDbBackend, worker::StreamProvider};
+use {malstrom::runtime::SingleThreadRuntime, malstrom_snapshot_slatedb::SlateDbBackend, malstrom::worker::StreamProvider};
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
@@ -36,15 +37,15 @@ fn build_dataflow(provider: &mut dyn StreamProvider) {
         .new_stream()
         .source("iter-source", Source::from_impl(StatefulNumberSource(0)))
         .key_distribute("key-by-value", |x| x.value & 1 == 1, rendezvous_select)
-        .stateful_map("sum", |_key, value, state: i32| {
+        .stateful_map("sum", async |_key, value, state: i32| {
             let state = state + value;
             (state, Some(state))
         })
-        .inspect("expensive-operation", |_msg, _ctx| {
+        .inspect("expensive-operation", async |_msg, _ctx| {
             // we need this to not overflow the sum before "crashing"
             sleep(Duration::from_millis(100))
         })
-        .inspect("fail-random", move |_msg, _ctx| {
+        .inspect("fail-random", async move |_msg, _ctx| {
             if Instant::now().duration_since(start_time) > fail_interval {
                 panic!("Oh no!")
             }

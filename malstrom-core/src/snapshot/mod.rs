@@ -2,13 +2,9 @@
 //! resuming computation after failures. Snapshots can also be utilized to enable statful job
 //! upgrades
 
-#[cfg(feature = "slatedb")]
-pub mod slatedb;
 use crate::types::{OperatorId, WorkerId};
 use futures::{FutureExt, SinkExt};
 use serde::{Serialize, de::DeserializeOwned};
-#[cfg(feature = "slatedb")]
-pub use slatedb::{SlateDbBackend, SlateDbClient, object_store};
 use std::{cell::RefCell, fmt::Debug, rc::Rc, sync::Mutex, task::Waker};
 use tokio::sync::mpsc;
 use tokio::sync::oneshot;

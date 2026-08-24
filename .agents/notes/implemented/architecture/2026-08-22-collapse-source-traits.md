@@ -9,7 +9,7 @@ The `sources` module's core smell: `stateless.rs` was a 130-line file whose enti
 (`SourceWrapper` + `PartitionWrapper`) confessed there was really only *one* source engine,
 with "stateless" bolted on top of it. The layering was `StatelessSource` → `SourceWrapper` →
 `StatefulSource` → `into_stream`. See the
-[module review](../../../docs/reviews/sources-module-review.md) for the full audit; the
+[module review](../../../../docs/reviews/sources-module-review.md) for the full audit; the
 concrete issues:
 
 1. **Two parallel trait hierarchies, two conventions** — `StatelessSourceImpl<V, T>` used
@@ -38,7 +38,7 @@ concrete issues:
 
 ## Decision
 
-The [redesign](../../../docs/reviews/sources-module-redesign.md) was implemented, with two
+The [redesign](../../../../docs/reviews/sources-module-redesign.md) was implemented, with two
 documented deviations (completion protocol, discovery message) and one rejected sub-proposal
 (`#[derive(StatelessSource)]`).
 

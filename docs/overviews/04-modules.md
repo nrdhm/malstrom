@@ -1,10 +1,11 @@
 # Malstrom Core — Module Map
 
-> **Last refreshed:** 2026-08-23 (new-scheduler @ a4c8fce)
+> **Last refreshed:** 2026-08-23 (new-scheduler @ a4c8fce; dead reference files deleted in `collapse-source-traits`)
 > **Scope:** how the top-level modules of `malstrom-core/src/*` connect to each other
 > **Method:** comment-stripped scan of every `crate::` reference (incl. multi-line `use crate::{…}` blocks)
-> over the **reachable** source tree; dead files excluded (`keyed_old/`, `*_old.rs`, `operator_io copy.rs`).
-> ~106 reachable files across 12 top-level modules.
+> over the **reachable** source tree; the dead reference files (`keyed_old/`, `*_old.rs`,
+> `operator_io copy.rs`, `testing/iterator_source.rs`) are deleted.
+> ~104 reachable files across 12 top-level modules.
 
 ## Ground-up: the layers
 
@@ -171,8 +172,9 @@ and state is flushed through `snapshot::PersistenceClient`.
   messages out of `types`; for now it's the price of in-band coordination.
 - **Barrier lives in `snapshot` but flows through `types` and `channels`**: snapshot
   coordination is woven into the message stream (this is what enables exactly-once barriers).
-- **`testing` is disabled** (`lib.rs` has `// #[cfg(test)] pub(crate) mod testing;`) — the
-  branch's test infra is currently dormant.
-- **Dead files skew the tree**: `keyed_old/`, `sources/stateful_old.rs`,
-  `coordinator/state_old.rs`, `channels/operator_io copy.rs` are not declared as modules —
-  they show up in directory listings but are not compiled.
+- **`testing` is active** (`lib.rs` has `pub(crate) mod testing;`) — the restored test
+  suite (50 unit + 10 doc tests) runs against it.
+- **Dead files removed** (2026-08-23, `collapse-source-traits`): the undeclared reference
+  copies `keyed_old/`, `sources/stateful_old.rs`, `coordinator/state_old.rs`,
+  `channels/operator_io copy.rs` and `testing/iterator_source.rs` no longer skew directory
+  listings.

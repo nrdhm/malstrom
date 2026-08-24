@@ -51,7 +51,7 @@
 ## Operators & helpers
 
 **itertools** — `itertools::repeat_n` (production), `Itertools` trait methods (mostly tests/examples)
-- production: `channels/operator_io.rs` (`Output::send` clones a message per recipient); tests/examples: `operators/{map,filter_map,flatten,inspect,stateful_map,ttl_map,time/assign_timestamps}`, `sources/single_iterator`, `testing/`, `keyed_old/*`; imports in `coordinator/coordinator.rs`, `stream/{build_context,operator_context}`, `operators/stateful_op.rs` are currently unused (WIP)
+- production: `channels/operator_io.rs` (`Output::send` clones a message per recipient); tests/examples: `operators/{map,filter_map,flatten,inspect,stateful_map,ttl_map,time/assign_timestamps}`, `sources/fn_source`, `testing/`; imports in `coordinator/coordinator.rs`, `stream/{build_context,operator_context}`, `operators/stateful_op.rs` are currently unused (WIP)
 
 **seahash** — `seahash::hash` (routing hashes), `seahash::SeaHasher::new` (partition assignment)
 - `keyed/distributed/remote_receiver`, `stream/operator`
@@ -86,7 +86,10 @@
 ## Findings & caveats
 
 - **`eyre` is dead** — declared in Cargo.toml, zero uses in the whole crate (src + examples). Remove candidate.
-- **Dead reference files** (not declared via `mod`, so not compiled; dependency uses inside them are aspirational/reference only): `keyed_old/`, `sources/stateful_old.rs`, `coordinator/state_old.rs`, `channels/operator_io copy.rs`
+- **Dead reference files removed** (2026-08-23, `collapse-source-traits`): the undeclared,
+  uncompiled reference copies `keyed_old/`, `sources/stateful_old.rs`,
+  `coordinator/state_old.rs`, `channels/operator_io copy.rs` (and `testing/iterator_source.rs`)
+  were deleted.
 - `futures::SinkExt` imported in `snapshot/mod.rs` with no call site yet (WIP)
 - Optional deps (`slatedb`, `object_store`, `tokio-stream`) are only active under the `slatedb` feature
 

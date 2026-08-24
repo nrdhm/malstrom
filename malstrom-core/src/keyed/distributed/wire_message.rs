@@ -40,3 +40,9 @@ impl<K> WireAcquire<K> {
         Self { key, collection }
     }
 }
+
+impl<K> From<WireAcquire<K>> for Acquire<K> {
+    fn from(value: WireAcquire<K>) -> Self {
+        Acquire::new(value.key, value.collection)
+    }
+}

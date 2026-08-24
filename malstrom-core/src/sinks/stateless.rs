@@ -4,7 +4,9 @@ use crate::{
     channels::operator_io::{Input, Output},
     operators::StreamSink,
     stream::{Logic, Malstrom as _, Operator, OperatorContext, StreamBuilder},
-    types::{Data, DataMessage, Kvt, MaybeKey, MaybeTime, Message, NoData, NoKey, NoTime, Timestamp},
+    types::{
+        Data, DataMessage, Kvt, MaybeKey, MaybeTime, Message, NoData, NoKey, NoTime, Timestamp,
+    },
 };
 
 /// A sink emitting records not hold any state (or only ephemeral state)

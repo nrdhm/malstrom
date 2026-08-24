@@ -1,6 +1,7 @@
 //! Operators for performing various operations on data in a job
 // public API operators
 mod cloned;
+mod com_utility;
 mod filter;
 mod filter_map;
 mod flatten;
@@ -14,7 +15,6 @@ mod stateful_op;
 mod time;
 mod ttl_map;
 mod union;
-mod com_utility;
 
 // Public Api operators reexported for convenience
 pub use crate::keyed::KeyDistribute;

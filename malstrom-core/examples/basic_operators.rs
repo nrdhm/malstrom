@@ -1,6 +1,6 @@
 //! A basic example which runs a no-op dataflow
-use malstrom::operators::*;
 use malstrom::operators::Source as _;
+use malstrom::operators::*;
 use malstrom::runtime::SingleThreadRuntime;
 use malstrom::snapshot::NoPersistence;
 use malstrom::sources::Source;

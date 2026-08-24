@@ -20,7 +20,7 @@ pub trait Filter<In: Kvt, FilterFunc>: Sealed {
     /// Only retain numbers <= 42
     /// ```rust
     /// use malstrom::operators::*;
-/// use malstrom::operators::Source as _;
+    /// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
     /// use malstrom::sources::Source;
@@ -88,8 +88,8 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
-        operators::*,
         operators::Source as _,
+        operators::*,
         sinks::StatelessSink,
         sources::Source,
         testing::{VecSink, get_test_rt},
@@ -101,10 +101,7 @@ mod tests {
         let rt = get_test_rt(|provider| {
             provider
                 .new_stream()
-                .source(
-                    "source",
-                    Source::from_iterator(0..100),
-                )
+                .source("source", Source::from_iterator(0..100))
                 .filter("less-than-42", async |x| *x < 42)
                 .sink("sink", StatelessSink::new(collector.clone()));
         });

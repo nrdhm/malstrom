@@ -33,7 +33,7 @@ pub trait StatefulMap<In: Kvt, T: Data, Mapper, S>: Sealed {
     ///
     /// ```rust
     /// use malstrom::operators::*;
-/// use malstrom::operators::Source as _;
+    /// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
     /// use malstrom::sources::Source;
@@ -134,10 +134,7 @@ mod test {
         let rt = get_test_rt(|provider| {
             provider
                 .new_stream()
-                .source(
-                    "source",
-                    Source::from_iterator(0..100),
-                )
+                .source("source", Source::from_iterator(0..100))
                 // calculate a running total split by odd and even numbers
                 .key_local("key-local", |x| (x.value & 1) == 1)
                 .stateful_map("add", async |_, i, s: i32| (s + i, Some(s + i)))

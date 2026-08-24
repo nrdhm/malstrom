@@ -1,6 +1,6 @@
 //! Combining multiple streams
-use malstrom::operators::*;
 use malstrom::operators::Source as _;
+use malstrom::operators::*;
 use malstrom::runtime::SingleThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;
@@ -16,14 +16,12 @@ fn main() {
 }
 
 fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
-    let numbers = provider.new_stream().source(
-        "iter-source",
-        Source::from_iterator(0..=10),
-    );
-    let more_numbers = provider.new_stream().source(
-        "other-iter-source",
-        Source::from_iterator(0..=10),
-    );
+    let numbers = provider
+        .new_stream()
+        .source("iter-source", Source::from_iterator(0..=10));
+    let more_numbers = provider
+        .new_stream()
+        .source("other-iter-source", Source::from_iterator(0..=10));
 
     numbers
         .union("union all", [more_numbers])

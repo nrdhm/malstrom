@@ -43,11 +43,11 @@ pub trait SourceImpl: 'static {
     type PartitionState: Distributable;
     /// The reader produced by [SourceImpl::open].
     type Partition: SourcePartition<
-        PartitionKey = Self::PartitionKey,
-        Value = Self::Value,
-        Timestamp = Self::Timestamp,
-        State = Self::PartitionState,
-    >;
+            PartitionKey = Self::PartitionKey,
+            Value = Self::Value,
+            Timestamp = Self::Timestamp,
+            State = Self::PartitionState,
+        >;
 
     /// Discover the partitions this source exposes.
     ///
@@ -197,8 +197,7 @@ where
     }
 }
 
-impl<SrcImpl>
-    LogicBuilder<(), (SrcImpl::PartitionKey, NoData, SrcImpl::Timestamp)>
+impl<SrcImpl> LogicBuilder<(), (SrcImpl::PartitionKey, NoData, SrcImpl::Timestamp)>
     for SourceCoordinatorBuilder<SrcImpl>
 where
     SrcImpl: SourceImpl,
@@ -365,11 +364,7 @@ where
         part_state: Option<SrcImpl::PartitionState>,
     ) {
         if !self.partitions.contains_key(&part) {
-            let partition = self
-                .part_builder
-                .borrow_mut()
-                .open(&part, part_state)
-                .await;
+            let partition = self.part_builder.borrow_mut().open(&part, part_state).await;
             self.partitions.insert(part, partition);
         }
     }

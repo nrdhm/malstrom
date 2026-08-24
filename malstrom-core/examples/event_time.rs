@@ -6,8 +6,8 @@ use indexmap::IndexMap;
 use malstrom::{
     channels::operator_io::Output,
     keyed::rendezvous_select,
-    operators::*,
     operators::Source as _,
+    operators::*,
     runtime::SingleThreadRuntime,
     sinks::{StatelessSink, StdOutSink},
     snapshot::NoPersistence,
@@ -72,10 +72,7 @@ fn main() {
 fn build_dataflow(provider: &mut dyn StreamProvider) {
     let (stream, _late) = provider
         .new_stream()
-        .source(
-            "iter-source",
-            Source::from_iterator(TRANSACTIONS.clone()),
-        )
+        .source("iter-source", Source::from_iterator(TRANSACTIONS.clone()))
         // key transactions by (year, month) to create monthly balances
         .key_distribute(
             "key-year-month",

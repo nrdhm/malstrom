@@ -4,10 +4,7 @@ use malstrom::operators::*;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::slatedb::object_store::{local::LocalFileSystem, path::Path};
 use malstrom::{
-    runtime::SingleThreadRuntime,
-    snapshot::SlateDbBackend,
-    sources::Source,
-    worker::StreamProvider,
+    runtime::SingleThreadRuntime, snapshot::SlateDbBackend, sources::Source, worker::StreamProvider,
 };
 use std::sync::Arc;
 use std::time::Duration;

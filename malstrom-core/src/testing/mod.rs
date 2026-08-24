@@ -85,7 +85,10 @@ pub(crate) fn test_forward_system_messages<
     In::Key: Key + Default,
 {
     let (cb_tx, _cb_rx) = tokio::sync::mpsc::channel(1);
-    let msg = Message::AbsBarrier(Barrier::Snapshot(SnapshotBarrier::new(Box::new(NoPersistence), cb_tx)));
+    let msg = Message::AbsBarrier(Barrier::Snapshot(SnapshotBarrier::new(
+        Box::new(NoPersistence),
+        cb_tx,
+    )));
     tester.send_local(msg);
     tester.step();
     assert!(matches!(
@@ -98,7 +101,6 @@ pub(crate) fn test_forward_system_messages<
     tester.send_local(msg);
     tester.step();
     assert!(matches!(tester.recv_local().unwrap(), Message::Rescale(_)));
-
 }
 
 #[cfg(test)]

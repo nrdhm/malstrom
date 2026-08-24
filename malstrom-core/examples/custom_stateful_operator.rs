@@ -1,8 +1,8 @@
 //! A basic example which runs a no-op dataflow
 use indexmap::IndexMap;
 use malstrom::channels::operator_io::Output;
-use malstrom::operators::*;
 use malstrom::operators::Source as _;
+use malstrom::operators::*;
 use malstrom::runtime::SingleThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;
@@ -68,10 +68,7 @@ fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
     let data = 0..=100;
     provider
         .new_stream()
-        .source(
-            "iter-source",
-            Source::from_iterator(data),
-        )
+        .source("iter-source", Source::from_iterator(data))
         .key_local("key-one", |_| ()) // only keyed streams can use state
         .stateful_op("batches", CustomBatching(5))
         .sink("stdout", StatelessSink::new(StdOutSink));

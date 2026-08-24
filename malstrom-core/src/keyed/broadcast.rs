@@ -13,7 +13,10 @@ use crate::{
 use super::KeyLocal;
 
 pub trait WorkerBroadcast<M: Kvt> {
-    fn worker_broadcast(self, name: &str) -> StreamBuilder<(WorkerId, (M::Key, M::Value), M::Timestamp)>;
+    fn worker_broadcast(
+        self,
+        name: &str,
+    ) -> StreamBuilder<(WorkerId, (M::Key, M::Value), M::Timestamp)>;
 }
 
 impl<M> WorkerBroadcast<M> for StreamBuilder<M>
@@ -23,13 +26,15 @@ where
     M::Value: Serialize + DeserializeOwned,
     M::Timestamp: Serialize + DeserializeOwned,
 {
-    fn worker_broadcast(self, name: &str) -> StreamBuilder<(WorkerId, (M::Key, M::Value), M::Timestamp)> {
+    fn worker_broadcast(
+        self,
+        name: &str,
+    ) -> StreamBuilder<(WorkerId, (M::Key, M::Value), M::Timestamp)> {
         self.then(Operator::built_by(
             format!("{name}-broadcast"),
             KeyByWid::default(),
         ))
         .distribute(format!("{name}-distribute"), wid_select)
-
     }
 }
 

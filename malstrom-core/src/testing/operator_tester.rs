@@ -57,9 +57,8 @@ where
         link(&mut output, &mut output_handle);
 
         let comm_shim = Rc::new(FakeCommunication::default());
-        let rt = Rc::new(
-            tokio::runtime::LocalRuntime::new().expect("Failed to create LocalRuntime"),
-        );
+        let rt =
+            Rc::new(tokio::runtime::LocalRuntime::new().expect("Failed to create LocalRuntime"));
         let mut build_ctx = BuildContext::new(
             worker_id,
             operator_id,
@@ -109,10 +108,11 @@ where
     /// Perform one execution step on the operator
     pub fn step(&mut self) {
         let mut op_ctx = OperatorContext::new(self.worker_id, self.operator_id);
-        futures::executor::block_on(
-            self.logic
-                .apply(&mut self.input, &mut self.output, &mut op_ctx),
-        );
+        futures::executor::block_on(self.logic.apply(
+            &mut self.input,
+            &mut self.output,
+            &mut op_ctx,
+        ));
     }
 }
 
@@ -225,11 +225,14 @@ where
 {
     async fn send(&self, msg: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
         let decoded: R = R::decode(&msg);
-        self.sent_by_operator.lock().unwrap().push_back(SentMessage {
-            to_worker: self.to_worker,
-            to_operator: self.to_operator,
-            msg: decoded,
-        });
+        self.sent_by_operator
+            .lock()
+            .unwrap()
+            .push_back(SentMessage {
+                to_worker: self.to_worker,
+                to_operator: self.to_operator,
+                msg: decoded,
+            });
         Ok(())
     }
 }

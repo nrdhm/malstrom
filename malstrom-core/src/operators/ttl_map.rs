@@ -61,12 +61,13 @@ where
         output: &mut Output<(In::Key, OutVal, In::Timestamp)>,
     ) -> Option<OpState> {
         let (value, state) = (self.mapper)(&msg.key, msg.value, &msg.timestamp, key_state).await;
-        output.send(Message::Data(DataMessage::new(
-            msg.key,
-            value,
-            msg.timestamp,
-        )))
-        .await;
+        output
+            .send(Message::Data(DataMessage::new(
+                msg.key,
+                value,
+                msg.timestamp,
+            )))
+            .await;
         state
     }
 
@@ -156,10 +157,7 @@ mod test {
         let rt = get_test_rt(|provider| {
             let (on_time, _late) = provider
                 .new_stream()
-                .source(
-                    "source",
-                    Source::from_enumerated_iterator(0..100),
-                )
+                .source("source", Source::from_enumerated_iterator(0..100))
                 .assign_timestamps("assigner", |msg| msg.timestamp)
                 .generate_epochs("generate", |_, t| t.to_owned());
 

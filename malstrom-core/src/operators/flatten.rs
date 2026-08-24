@@ -20,7 +20,7 @@ pub trait Flatten<In: Kvt>: Sealed {
     /// Only retain numbers <= 42
     /// ```rust
     /// use malstrom::operators::*;
-/// use malstrom::operators::Source as _;
+    /// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
     /// use malstrom::sources::Source;
@@ -104,8 +104,8 @@ mod tests {
     use itertools::Itertools;
 
     use crate::{
-        operators::*,
         operators::Source as _,
+        operators::*,
         sinks::StatelessSink,
         sources::Source,
         testing::{VecSink, get_test_rt},
@@ -119,11 +119,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    Source::from_iterator([
-                        vec![1, 2],
-                        vec![3, 4],
-                        vec![5],
-                    ]),
+                    Source::from_iterator([vec![1, 2], vec![3, 4], vec![5]]),
                 )
                 .flatten("flatten")
                 .sink("sink", StatelessSink::new(collector.clone()));
@@ -143,11 +139,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    Source::from_enumerated_iterator([
-                        vec![1, 2],
-                        vec![3, 4],
-                        vec![5],
-                    ]),
+                    Source::from_enumerated_iterator([vec![1, 2], vec![3, 4], vec![5]]),
                 )
                 .flatten("flatten")
                 .sink("sink", StatelessSink::new(collector.clone()));
@@ -171,11 +163,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    Source::from_iterator([
-                        vec![1, 2],
-                        vec![3, 4, 5],
-                        vec![6],
-                    ]),
+                    Source::from_iterator([vec![1, 2], vec![3, 4, 5], vec![6]]),
                 )
                 .key_local("key-local", |x| x.value.len())
                 .flatten("flatten")

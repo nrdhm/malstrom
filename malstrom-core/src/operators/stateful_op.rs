@@ -247,8 +247,8 @@ mod tests {
         keyed::distributed::{Acquire, Collect, Interrogate},
         snapshot::{PersistenceClient, SnapshotBarrier},
         testing::{CapturingPersistenceBackend, OperatorTester},
-        types::*,
         types::distributable::Distributable,
+        types::*,
     };
 
     use super::*;
@@ -474,12 +474,13 @@ mod tests {
                            state: i32,
                            output: &mut Output<(bool, i32, NoTime)>| {
             let new_value = state + msg.value;
-            output.send(Message::Data(DataMessage::new(
-                msg.key,
-                new_value,
-                msg.timestamp,
-            )))
-            .await;
+            output
+                .send(Message::Data(DataMessage::new(
+                    msg.key,
+                    new_value,
+                    msg.timestamp,
+                )))
+                .await;
             Some(new_value)
         };
         // keep a total per key
@@ -518,12 +519,13 @@ mod tests {
                            state: i32,
                            output: &mut Output<(bool, i32, NoTime)>| {
             let new_value = state + msg.value;
-            output.send(Message::Data(DataMessage::new(
-                msg.key,
-                new_value,
-                msg.timestamp,
-            )))
-            .await;
+            output
+                .send(Message::Data(DataMessage::new(
+                    msg.key,
+                    new_value,
+                    msg.timestamp,
+                )))
+                .await;
             Some(new_value)
         };
         // keep a total per key
@@ -535,10 +537,9 @@ mod tests {
 
         let backend = CapturingPersistenceBackend::default();
         let (cb, _cb_rx) = tokio::sync::mpsc::channel(1);
-        tester.send_local(Message::AbsBarrier(Barrier::Snapshot(SnapshotBarrier::new(
-            Box::new(backend.clone()),
-            cb,
-        ))));
+        tester.send_local(Message::AbsBarrier(Barrier::Snapshot(
+            SnapshotBarrier::new(Box::new(backend.clone()), cb),
+        )));
         tester.step();
 
         let state: IndexMap<bool, i32> = Distributable::decode(&backend.load(&42).unwrap());

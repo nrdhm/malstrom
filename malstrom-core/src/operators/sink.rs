@@ -13,7 +13,7 @@ pub trait Sink<M, S>: Sealed {
     ///
     /// ```
     /// use malstrom::operators::*;
-/// use malstrom::operators::Source as _;
+    /// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
     /// use malstrom::sources::Source;

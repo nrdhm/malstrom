@@ -18,7 +18,7 @@ pub trait Inspect<Msg: Kvt, Inspector>: Sealed {
     ///
     /// ```rust
     /// use malstrom::operators::*;
-/// use malstrom::operators::Source as _;
+    /// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
     /// use malstrom::sources::Source;
@@ -104,8 +104,8 @@ mod tests {
     use itertools::Itertools;
 
     use crate::{
-        operators::*,
         operators::Source as _,
+        operators::*,
         sinks::StatelessSink,
         sources::Source,
         testing::{VecSink, get_test_rt},
@@ -116,17 +116,19 @@ mod tests {
         let inspect_collector = VecSink::new();
         let output_collector = VecSink::new();
 
-        let input = vec!["hello".to_string(), "world".to_string(), "foo".to_string(), "bar".to_string()];
+        let input = vec![
+            "hello".to_string(),
+            "world".to_string(),
+            "foo".to_string(),
+            "bar".to_string(),
+        ];
         let expected = input.clone();
 
         let rt = get_test_rt(|provider| {
             let inspect_collector = inspect_collector.clone();
             provider
                 .new_stream()
-                .source(
-                    "source",
-                    Source::from_iterator(input.clone()),
-                )
+                .source("source", Source::from_iterator(input.clone()))
                 .inspect("inspect", async move |x, _| {
                     inspect_collector.give(x.value.to_owned())
                 })

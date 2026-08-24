@@ -45,10 +45,7 @@ fn build_dataflow(provider: &mut dyn StreamProvider) {
     std::fs::create_dir_all("/tmp/file-sink").unwrap();
     provider
         .new_stream()
-        .source(
-            "number",
-            Source::from_iterator(0..5),
-        )
+        .source("number", Source::from_iterator(0..5))
         .key_distribute(
             "key-by-value",
             |msg| msg.value.to_string(),

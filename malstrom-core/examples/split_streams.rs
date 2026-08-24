@@ -1,6 +1,6 @@
 //! Combining multiple streams
-use malstrom::operators::*;
 use malstrom::operators::Source as _;
+use malstrom::operators::*;
 use malstrom::runtime::SingleThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;
@@ -18,10 +18,7 @@ fn main() {
 fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
     let [even_nums, all_nums] = provider
         .new_stream()
-        .source(
-            "iter-source",
-            Source::from_iterator(0..=100),
-        )
+        .source("iter-source", Source::from_iterator(0..=100))
         .const_split("split-even-odd", |msg, outputs| {
             if msg.value & 1 == 0 {
                 // is even

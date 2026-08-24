@@ -347,7 +347,10 @@ mod test {
 
         assert!(recv_or_none(&mut receiver).await.is_none());
         sender2.send(Message::Epoch(15)).await;
-        assert!(matches!(recv_or_none(&mut receiver).await, Some(Message::Epoch(15))));
+        assert!(matches!(
+            recv_or_none(&mut receiver).await,
+            Some(Message::Epoch(15))
+        ));
     }
 
     /// only issue a barrier once it is aligned
@@ -361,17 +364,24 @@ mod test {
 
         let (cb, _rx) = tokio::sync::mpsc::channel(1);
         sender
-            .send(Message::AbsBarrier(Barrier::Snapshot(SnapshotBarrier::new(Box::new(NoPersistence), cb))))
+            .send(Message::AbsBarrier(Barrier::Snapshot(
+                SnapshotBarrier::new(Box::new(NoPersistence), cb),
+            )))
             .await;
 
         let received = recv_or_none(&mut receiver).await;
         assert!(received.is_none());
         let (cb, _rx) = tokio::sync::mpsc::channel(1);
         sender2
-            .send(Message::AbsBarrier(Barrier::Snapshot(SnapshotBarrier::new(Box::new(NoPersistence), cb))))
+            .send(Message::AbsBarrier(Barrier::Snapshot(
+                SnapshotBarrier::new(Box::new(NoPersistence), cb),
+            )))
             .await;
 
-        assert!(matches!(recv_or_none(&mut receiver).await, Some(Message::AbsBarrier(_))));
+        assert!(matches!(
+            recv_or_none(&mut receiver).await,
+            Some(Message::AbsBarrier(_))
+        ));
     }
 
     /// should buffer messages if the channels if barred
@@ -385,29 +395,38 @@ mod test {
 
         let (cb, _rx) = tokio::sync::mpsc::channel(1);
         sender
-            .send(Message::AbsBarrier(Barrier::Snapshot(SnapshotBarrier::new(Box::new(NoPersistence), cb))))
+            .send(Message::AbsBarrier(Barrier::Snapshot(
+                SnapshotBarrier::new(Box::new(NoPersistence), cb),
+            )))
             .await;
 
-        sender.send(Message::Data(DataMessage::new(NoKey, 42, NoTime))).await;
-        sender.send(Message::Data(DataMessage::new(NoKey, 177, NoTime))).await;
+        sender
+            .send(Message::Data(DataMessage::new(NoKey, 42, NoTime)))
+            .await;
+        sender
+            .send(Message::Data(DataMessage::new(NoKey, 177, NoTime)))
+            .await;
 
         let (cb, _rx) = tokio::sync::mpsc::channel(1);
         sender2
-            .send(Message::AbsBarrier(Barrier::Snapshot(SnapshotBarrier::new(Box::new(NoPersistence), cb))))
+            .send(Message::AbsBarrier(Barrier::Snapshot(
+                SnapshotBarrier::new(Box::new(NoPersistence), cb),
+            )))
             .await;
-        assert!(matches!(recv_or_none(&mut receiver).await, Some(Message::AbsBarrier(_))));
+        assert!(matches!(
+            recv_or_none(&mut receiver).await,
+            Some(Message::AbsBarrier(_))
+        ));
 
         let msg = recv_or_none(&mut receiver).await;
-        assert!(
-            matches!(
-                msg,
-                Some(Message::Data(DataMessage {
-                    key: _,
-                    value: 42,
-                    timestamp: _
-                }))
-            )
-        );
+        assert!(matches!(
+            msg,
+            Some(Message::Data(DataMessage {
+                key: _,
+                value: 42,
+                timestamp: _
+            }))
+        ));
         assert!(matches!(
             recv_or_none(&mut receiver).await,
             Some(Message::Data(DataMessage {
@@ -427,7 +446,9 @@ mod test {
 
         assert_eq!(*sender.get_frontier(), None);
         // non-epoch messages should not influence this
-        sender.send(Message::Data(DataMessage::new(NoKey, NoData, 1337))).await;
+        sender
+            .send(Message::Data(DataMessage::new(NoKey, NoData, 1337)))
+            .await;
         assert_eq!(*sender.get_frontier(), None);
 
         sender.send(Message::Epoch(42)).await;
@@ -486,4 +507,3 @@ mod test {
         Rc::try_unwrap(elem).unwrap();
     }
 }
-

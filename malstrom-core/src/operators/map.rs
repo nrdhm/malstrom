@@ -12,7 +12,7 @@ pub trait Map<In: Kvt, T: Data, Mapper>: Sealed {
     /// # Example
     /// ```rust
     /// use malstrom::operators::*;
-/// use malstrom::operators::Source as _;
+    /// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
     /// use malstrom::sources::Source;
@@ -95,17 +95,19 @@ mod tests {
 
     #[test]
     fn test_map() {
-        let input = ["hello".to_string(), "world".to_string(), "foo".to_string(), "bar".to_string()];
+        let input = [
+            "hello".to_string(),
+            "world".to_string(),
+            "foo".to_string(),
+            "bar".to_string(),
+        ];
         let expected = input.iter().map(|x| x.len()).collect_vec();
         let collector = VecSink::new();
 
         let rt = get_test_rt(|provider| {
             provider
                 .new_stream()
-                .source(
-                    "source",
-                    Source::from_iterator(input.clone()),
-                )
+                .source("source", Source::from_iterator(input.clone()))
                 .map("get-len", async |x| x.len())
                 .sink("sink", StatelessSink::new(collector.clone()));
         });

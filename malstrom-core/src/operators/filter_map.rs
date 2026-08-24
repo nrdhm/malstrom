@@ -16,7 +16,7 @@ pub trait FilterMap<In: Kvt, T: Data, Mapper>: Sealed {
     /// Only retain numeric strings
     /// ```rust
     /// use malstrom::operators::*;
-/// use malstrom::operators::Source as _;
+    /// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
     /// use malstrom::sources::Source;
@@ -97,10 +97,7 @@ mod tests {
         let rt = get_test_rt(|provider| {
             provider
                 .new_stream()
-                .source(
-                    "source",
-                    Source::from_iterator(0..100),
-                )
+                .source("source", Source::from_iterator(0..100))
                 .filter_map(
                     "less-than-42",
                     async |x| if x < 42 { Some(x * 2) } else { None },

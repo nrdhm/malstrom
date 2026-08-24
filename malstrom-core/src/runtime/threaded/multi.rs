@@ -8,7 +8,9 @@ use crate::{
     coordinator::{ApiRequestError, Coordinator, CoordinatorApi, CoordinatorExecutionError},
     runtime::{
         OperatorOperatorComm, RuntimeFlavor,
-        communication::{ReqResReceiver, ReqResSender, StreamReceiver, StreamSender, WorkerCoordinatorComm},
+        communication::{
+            ReqResReceiver, ReqResSender, StreamReceiver, StreamSender, WorkerCoordinatorComm,
+        },
     },
     snapshot::PersistenceBackend,
     types::{OperatorId, WorkerId},
@@ -131,8 +133,11 @@ where
         std::thread::Builder::new()
             .name(format!("worker-{thread_id}"))
             .spawn(move || {
-                let flavor =
-                    MultiThreadRuntimeFlavor::new(operator_channels, coordinator_channels, thread_id);
+                let flavor = MultiThreadRuntimeFlavor::new(
+                    operator_channels,
+                    coordinator_channels,
+                    thread_id,
+                );
                 let mut worker_builder = WorkerBuilder::new(flavor, persistence);
                 build_fn(&mut worker_builder);
                 worker_builder.execute().map_err(ExecutionError::Worker)
@@ -185,10 +190,7 @@ impl RuntimeFlavor for MultiThreadRuntimeFlavor {
         &mut self,
     ) -> Result<Self::Communication, Box<dyn std::error::Error + Send + Sync>> {
         Ok(InterThreadCommunication {
-            operator: OperatorCommunication::new(
-                self.operator_channels.clone(),
-                self.worker_id,
-            ),
+            operator: OperatorCommunication::new(self.operator_channels.clone(), self.worker_id),
             coordinator: CoordinatorCommunication::new(
                 self.coordinator_channels.clone(),
                 self.worker_id,

@@ -12,9 +12,10 @@ pub trait Map<In: Kvt, T: Data, Mapper>: Sealed {
     /// # Example
     /// ```rust
     /// use malstrom::operators::*;
+/// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
-    /// use malstrom::sources::{SingleIteratorSource, StatelessSource};
+    /// use malstrom::sources::Source;
     /// use malstrom::worker::StreamProvider;
     /// use malstrom::sinks::{VecSink, StatelessSink};
     ///
@@ -25,7 +26,7 @@ pub trait Map<In: Kvt, T: Data, Mapper>: Sealed {
     ///     .persistence(NoPersistence)
     ///     .build(move |provider: &mut dyn StreamProvider| {
     ///         provider.new_stream()
-    ///         .source("numbers", StatelessSource::new(SingleIteratorSource::new(0..100)))
+    ///         .source("numbers", Source::from_iterator(0..100))
     ///         .map("map", async |x| x * 2)
     ///         .sink("sink", StatelessSink::new(sink_clone));
     ///     })
@@ -86,9 +87,9 @@ mod tests {
     use itertools::Itertools;
 
     use crate::{
-        operators::{Sink, map::Map, source::Source},
+        operators::{Sink, map::Map, source::Source as _},
         sinks::StatelessSink,
-        sources::{SingleIteratorSource, StatelessSource},
+        sources::Source,
         testing::{VecSink, get_test_rt},
     };
 
@@ -103,7 +104,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new(input.clone())),
+                    Source::from_iterator(input.clone()),
                 )
                 .map("get-len", async |x| x.len())
                 .sink("sink", StatelessSink::new(collector.clone()));

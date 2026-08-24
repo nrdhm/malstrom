@@ -1,9 +1,10 @@
 //! A stateful program
 use malstrom::keyed::rendezvous_select;
 use malstrom::operators::*;
+use malstrom::operators::Source as _;
 use malstrom::runtime::SingleThreadRuntime;
 use malstrom::snapshot::NoPersistence;
-use malstrom::sources::{SingleIteratorSource, StatelessSource};
+use malstrom::sources::Source;
 use malstrom::worker::StreamProvider;
 use std::time::Duration;
 
@@ -21,7 +22,7 @@ fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
         .new_stream()
         .source(
             "iter-source",
-            StatelessSource::new(SingleIteratorSource::new(0..=100)),
+            Source::from_iterator(0..=100),
         )
         .key_distribute("key-by-value", |_| 0, rendezvous_select)
         .stateful_map("sum", async |_key, value, state: i32| {

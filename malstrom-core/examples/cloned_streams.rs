@@ -1,9 +1,10 @@
 //! Combining multiple streams
 use malstrom::operators::*;
+use malstrom::operators::Source as _;
 use malstrom::runtime::SingleThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;
-use malstrom::sources::{SingleIteratorSource, StatelessSource};
+use malstrom::sources::Source;
 use malstrom::worker::StreamProvider;
 
 fn main() {
@@ -19,7 +20,7 @@ fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
         .new_stream()
         .source(
             "iter-source",
-            StatelessSource::new(SingleIteratorSource::new(0..=100)),
+            Source::from_iterator(0..=100),
         )
         .const_cloned("clone-values");
 

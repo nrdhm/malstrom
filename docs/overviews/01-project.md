@@ -52,8 +52,8 @@ Supporting material: `website/` (VitePress documentation site), `.github/workflo
 ```rust
 provider
     .new_stream()
-    .source("words", StatelessSource::new(SingleIteratorSource::new([...])))
-    .map("upper", |x| x.to_uppercase())
+    .source("words", Source::from_iterator(["Look".to_string(), "ma'".to_string(), "I'm".to_string(), "streaming".to_string()]))
+    .map("upper", async |x| x.to_uppercase())
     .sink("stdout", StatelessSink::new(StdOutSink));
 ```
 
@@ -65,8 +65,10 @@ Key modules:
 - **`operators/`** — built-in operators: `map`, `filter`, `filter_map`, `inspect`, `flatten`,
   `split`, `cloned`, `stateful_map`, `ttl_map`, plus event-time operators
   (`assign_timestamps`, `generate_epochs`, `inspect_frontier`).
-- **`sources/` & `sinks/`** — stateless/stateful sources and sinks, single-iterator sources,
-  stdout and in-memory vec sinks. `malstrom-kafka` adds Kafka endpoints.
+- **`sources/` & `sinks/`** — one unified `SourceImpl`/`SourcePartition` abstraction plus
+  `Source::from_*` constructors for iterators/streams/poll closures ("stateless" sources are
+  `SourceImpl` with `PartitionState = ()`), stateless/stateful sinks, stdout and in-memory vec
+  sinks. `malstrom-kafka` adds Kafka endpoints.
 - **`keyed/`** — keyed streams: key distribution across workers, partitioners, and a message
   router that fans messages to the right worker/partition.
 - **`runtime/`** — runtime flavors: in-process `MultiThreadRuntime` (single- and

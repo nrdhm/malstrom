@@ -122,8 +122,9 @@ mod tests {
     use super::*;
     use crate::{
         operators::*,
+        operators::Source as _,
         sinks::StatelessSink,
-        sources::{SingleIteratorSource, StatelessSource},
+        sources::Source,
         testing::{VecSink, get_test_rt},
     };
 
@@ -136,7 +137,7 @@ mod tests {
         let rt = get_test_rt(|provider| {
             let stream = provider.new_stream().source(
                 "source",
-                StatelessSource::new(SingleIteratorSource::new(0..10u64)),
+                Source::from_iterator(0..10u64),
             );
             let [even, odd] = stream.const_split("const-split", |msg, outputs| {
                 let is_even = msg.value & 1 == 0;
@@ -166,7 +167,7 @@ mod tests {
         let rt = get_test_rt(|provider| {
             let stream = provider.new_stream().source(
                 "source",
-                StatelessSource::new(SingleIteratorSource::new(0..10u64)),
+                Source::from_iterator(0..10u64),
             );
             let mut streams = stream.split(
                 "split",

@@ -13,9 +13,10 @@ pub trait Source<M: Kvt, S>: Sealed {
     ///
     /// ```
     /// use malstrom::operators::*;
+    /// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
-    /// use malstrom::sources::{SingleIteratorSource, StatelessSource};
+    /// use malstrom::sources::Source;
     /// use malstrom::worker::StreamProvider;
     /// use malstrom::sinks::{VecSink, StatelessSink};
     ///
@@ -26,7 +27,7 @@ pub trait Source<M: Kvt, S>: Sealed {
     ///     .persistence(NoPersistence)
     ///     .build(move |provider: &mut dyn StreamProvider| {
     ///         provider.new_stream()
-    ///         .source("numbers", StatelessSource::new(SingleIteratorSource::new(0..10)))
+    ///         .source("numbers", Source::from_iterator(0..10))
     ///         .sink("sink", StatelessSink::new(sink_clone));
     ///     })
     ///     .execute()
@@ -38,8 +39,8 @@ pub trait Source<M: Kvt, S>: Sealed {
     fn source(self, name: &str, source: S) -> StreamBuilder<(M::Key, M::Value, M::Timestamp)>;
 }
 
-#[diagnostic::on_unimplemented(message = "Not a Source: 
-    You might need to wrap this in `StatefulSource::new` or `StatelessSource::new`")]
+#[diagnostic::on_unimplemented(message = "Not a Source:
+    You might need to wrap this in `Source::from_impl`, `Source::from_iterator` or one of the other `Source::from_*` constructors")]
 /// A stream input which produces messages, usually reading them from some external system.
 /// For users it is normally not necessary to implement this trait unless they are writing
 /// custom inputs for sources which Malstrom does not (yet) support.

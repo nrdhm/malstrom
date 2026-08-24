@@ -7,10 +7,11 @@ use malstrom::{
     channels::operator_io::Output,
     keyed::rendezvous_select,
     operators::*,
+    operators::Source as _,
     runtime::SingleThreadRuntime,
     sinks::{StatelessSink, StdOutSink},
     snapshot::NoPersistence,
-    sources::{SingleIteratorSource, StatelessSource},
+    sources::Source,
     types::{DataMessage, Message, Timestamp},
     worker::StreamProvider,
 };
@@ -73,7 +74,7 @@ fn build_dataflow(provider: &mut dyn StreamProvider) {
         .new_stream()
         .source(
             "iter-source",
-            StatelessSource::new(SingleIteratorSource::new(TRANSACTIONS.clone())),
+            Source::from_iterator(TRANSACTIONS.clone()),
         )
         .key_distribute(
             "key-year-month",

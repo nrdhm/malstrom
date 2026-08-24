@@ -21,12 +21,6 @@ struct SenderReceiver<T> {
     receiver: OperatorCommReceiver<T>,
 }
 
-/// Channel id shared by the two sides of a CommUtility connection.
-/// NOTE: this means all CommUtility pairs on a worker share one channel; fine while only
-/// sources use it (one source per stream). A per-source id would be needed for multiple
-/// concurrent CommUtility users.
-const COMM_CHANNEL_ID: OperatorId = u64::MAX;
-
 impl<T> SenderReceiver<T>
 where
     T: Distributable,
@@ -34,12 +28,13 @@ where
     async fn new(
         comm: &Rc<dyn OperatorOperatorComm>,
         to_worker: WorkerId,
+        channel_id: OperatorId,
     ) -> Self {
-        let receiver = OperatorCommReceiver::new(to_worker, COMM_CHANNEL_ID, &**comm)
+        let receiver = OperatorCommReceiver::new(to_worker, channel_id, &**comm)
             .await
             .expect("Backend communication failed");
 
-        let sender = OperatorCommSender::new(to_worker, COMM_CHANNEL_ID, &**comm)
+        let sender = OperatorCommSender::new(to_worker, channel_id, &**comm)
             .await
             .expect("Backend communication failed");
         Self { sender, receiver }
@@ -50,26 +45,34 @@ pub struct CommUtility<T> {
     clients: HashMap<WorkerId, SenderReceiver<T>>,
     /// Communication backend for inter-operator communication
     comm: Rc<dyn OperatorOperatorComm>,
+    /// channel id this CommUtility pair is keyed by (used when rescaling adds workers)
+    channel_id: OperatorId,
 }
 
 impl<T> CommUtility<T>
 where
     T: Distributable,
 {
-    pub async fn new(ctx: &BuildContext) -> Self {
+    /// Connect to every worker (including ourselves — a CommUtility pair may live on
+    /// the same worker, e.g. a source's reader op and its discovery coordinator).
+    /// `channel_id` must be shared by the two sides of the pair; give each pair its
+    /// own id so concurrent users do not collide.
+    pub async fn new(ctx: &BuildContext, channel_id: OperatorId) -> Self {
         let comm = ctx.get_communication();
-        // connect to every worker, including ourselves — a CommUtility pair may live
-        // on the same worker (e.g. source partition-op and part-lister)
         let worker_ids = ctx.get_worker_ids().to_owned();
 
         let mut clients = HashMap::with_capacity(worker_ids.len());
         for wid in worker_ids.iter() {
-            let sender_receiver = SenderReceiver::new(&comm, *wid).await;
+            let sender_receiver = SenderReceiver::new(&comm, *wid, channel_id).await;
             clients.insert(*wid, sender_receiver);
         }
         let comm = Rc::clone(&comm);
 
-        Self { clients, comm }
+        Self {
+            clients,
+            comm,
+            channel_id,
+        }
     }
 
     pub async fn recv(&mut self) -> T {
@@ -122,7 +125,7 @@ where
         let existing_workers: IndexSet<WorkerId> = self.clients.keys().map(|x| *x).collect();
         let new_workers = all_workers.difference(&existing_workers);
         for wid in new_workers.into_iter() {
-            let sender_receiver = SenderReceiver::new(&self.comm, *wid).await;
+            let sender_receiver = SenderReceiver::new(&self.comm, *wid, self.channel_id).await;
             self.clients.insert(*wid, sender_receiver);
         }
     }

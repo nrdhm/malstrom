@@ -11,7 +11,7 @@ use crate::{
 
 /// Acquire encapsulates state which has moved to the current worker from another worker due to
 /// a reconfiguration
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Acquire<K> {
     inner: Rc<RefCell<(K, IndexMap<OperatorId, Vec<u8>>)>>,
 }

@@ -2,10 +2,11 @@
 use expiremap::ExpireMap;
 use malstrom::keyed::KeyLocal;
 use malstrom::operators::*;
+use malstrom::operators::Source as _;
 use malstrom::runtime::SingleThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;
-use malstrom::sources::{SingleIteratorSource, StatelessSource};
+use malstrom::sources::Source;
 use malstrom::worker::StreamProvider;
 use std::time::Duration;
 
@@ -31,7 +32,7 @@ fn build_running_total_dataflow(provider: &mut dyn StreamProvider) {
         .new_stream()
         .source(
             "source",
-            StatelessSource::new(SingleIteratorSource::new(1..=25)),
+            Source::from_enumerated_iterator(1..=25),
         )
         .key_local("key-local", |x| ()) // only one key
         .assign_timestamps("assigner", |msg| msg.timestamp)

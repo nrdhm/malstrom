@@ -91,9 +91,9 @@ where
 mod tests {
     use crate::{
         channels::operator_io::{Input, Output},
-        operators::{GenerateEpochs, Sink, Source},
+        operators::{GenerateEpochs, Sink, Source as _},
         sinks::StatelessSink,
-        sources::{SingleIteratorSource, StatelessSource},
+        sources::Source,
         stream::{DirectLogic, Operator, OperatorContext, SafeLogicWrapper},
         testing::{VecSink, get_test_rt},
         types::{MaybeData, MaybeTime, Message, NoKey},
@@ -146,7 +146,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new(0..10)),
+                    Source::from_enumerated_iterator(0..10),
                 )
                 .assign_timestamps("ts-double-value", |x| x.value * 2)
                 .generate_epochs("no-epochs", |_x, _y| None);
@@ -173,7 +173,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new(0..10)),
+                    Source::from_enumerated_iterator(0..10),
                 )
                 .assign_timestamps("ts-from-value", |x| x.value)
                 .generate_epochs("add-epoch", |msg, epoch| {
@@ -204,7 +204,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new(0..10)),
+                    Source::from_enumerated_iterator(0..10),
                 )
                 .generate_epochs("monotonic-epoch", |msg, _| Some(msg.timestamp));
 
@@ -235,7 +235,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new(1..4)),
+                    Source::from_enumerated_iterator(1..4),
                 )
                 .assign_timestamps("value-as-ts", |x| x.value)
                 .generate_epochs("monotonic", |msg, _epoch| Some(msg.timestamp));
@@ -280,7 +280,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new((5..10).chain(0..5))),
+                    Source::from_enumerated_iterator((5..10).chain(0..5)),
                 )
                 .assign_timestamps("value-ts", |x| x.value)
                 .generate_epochs("monotonic", |msg, _epoch| Some(msg.timestamp));
@@ -313,7 +313,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new(0..6)),
+                    Source::from_enumerated_iterator(0..6),
                 )
                 .generate_epochs("out-of-order", |msg, _epoch| {
                     match msg.timestamp {

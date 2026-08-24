@@ -6,7 +6,7 @@ use malstrom::snapshot::slatedb::object_store::{local::LocalFileSystem, path::Pa
 use malstrom::{
     runtime::SingleThreadRuntime,
     snapshot::SlateDbBackend,
-    sources::{SingleIteratorSource, StatelessSource},
+    sources::Source,
     worker::StreamProvider,
 };
 use std::sync::Arc;
@@ -27,10 +27,7 @@ fn main() {
 fn build_dataflow(provider: &mut dyn StreamProvider) {
     provider
         .new_stream()
-        .source(
-            "iter-source",
-            StatelessSource::new(SingleIteratorSource::new(0..=100)),
-        )
+        .source("iter-source", Source::from_iterator(0..=100))
         .key_distribute("key-by-value", |x| x.value & 1 == 1, rendezvous_select)
         .stateful_map("sum", |_key, value, state: i32| {
             let state = state + value;

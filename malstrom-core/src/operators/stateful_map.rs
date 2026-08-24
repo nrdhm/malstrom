@@ -33,9 +33,10 @@ pub trait StatefulMap<In: Kvt, T: Data, Mapper, S>: Sealed {
     ///
     /// ```rust
     /// use malstrom::operators::*;
+/// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
-    /// use malstrom::sources::{SingleIteratorSource, StatelessSource};
+    /// use malstrom::sources::Source;
     /// use malstrom::worker::StreamProvider;
     /// use malstrom::sinks::{VecSink, StatelessSink};
     ///
@@ -46,7 +47,7 @@ pub trait StatefulMap<In: Kvt, T: Data, Mapper, S>: Sealed {
     ///     .persistence(NoPersistence)
     ///     .build(move |provider: &mut dyn StreamProvider| {
     ///         provider.new_stream()
-    ///         .source("numbers", StatelessSource::new(SingleIteratorSource::new(0..10)))
+    ///         .source("numbers", Source::from_iterator(0..10))
     ///         .key_local("key_local", |_| 0)
     ///         .stateful_map(
     ///             "statefule_map", async |_key, value, state: i32| ((state + value), Some(state + value))
@@ -116,11 +117,11 @@ mod test {
 
     use itertools::Itertools;
 
-    use crate::operators::source::Source;
+    use crate::operators::source::Source as _;
     use crate::operators::{KeyLocal, Sink};
 
     use crate::sinks::StatelessSink;
-    use crate::sources::{SingleIteratorSource, StatelessSource};
+    use crate::sources::Source;
     use crate::testing::{VecSink, get_test_rt};
 
     use super::StatefulMap;
@@ -135,7 +136,7 @@ mod test {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new(0..100)),
+                    Source::from_iterator(0..100),
                 )
                 // calculate a running total split by odd and even numbers
                 .key_local("key-local", |x| (x.value & 1) == 1)
@@ -166,9 +167,9 @@ mod test {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new(
+                    Source::from_iterator(
                         ["foo", "bar", "hello", "world", "baz"].map(|x| x.to_string()),
-                    )),
+                    ),
                 )
                 // concat the words
                 .key_local("key-local", |x| x.value.len())

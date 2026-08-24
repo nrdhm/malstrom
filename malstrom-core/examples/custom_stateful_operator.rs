@@ -2,10 +2,11 @@
 use indexmap::IndexMap;
 use malstrom::channels::operator_io::Output;
 use malstrom::operators::*;
+use malstrom::operators::Source as _;
 use malstrom::runtime::SingleThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;
-use malstrom::sources::{SingleIteratorSource, StatelessSource};
+use malstrom::sources::Source;
 use malstrom::types::{Data, DataMessage, Key, Kvt, Message, Timestamp};
 use malstrom::worker::StreamProvider;
 
@@ -69,7 +70,7 @@ fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
         .new_stream()
         .source(
             "iter-source",
-            StatelessSource::new(SingleIteratorSource::new(data)),
+            Source::from_iterator(data),
         )
         .key_local("key-one", |_| ()) // only keyed streams can use state
         .stateful_op("batches", CustomBatching(5))

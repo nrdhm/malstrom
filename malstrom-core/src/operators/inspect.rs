@@ -18,9 +18,10 @@ pub trait Inspect<Msg: Kvt, Inspector>: Sealed {
     ///
     /// ```rust
     /// use malstrom::operators::*;
+/// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
-    /// use malstrom::sources::{SingleIteratorSource, StatelessSource};
+    /// use malstrom::sources::Source;
     /// use malstrom::worker::StreamProvider;
     /// use malstrom::sinks::{VecSink, StatelessSink};
     ///
@@ -33,7 +34,7 @@ pub trait Inspect<Msg: Kvt, Inspector>: Sealed {
     ///     .persistence(NoPersistence)
     ///     .build(move |provider: &mut dyn StreamProvider| {
     ///         provider.new_stream()
-    ///         .source("numbers", StatelessSource::new(SingleIteratorSource::new(0..100)))
+    ///         .source("numbers", Source::from_iterator(0..100))
     ///         .
     /// inspect("inspect", async move |msg, _ctx| sink_insepct.give(msg.clone()))
     ///         .sink("sink", StatelessSink::new(sink_output));
@@ -104,8 +105,9 @@ mod tests {
 
     use crate::{
         operators::*,
+        operators::Source as _,
         sinks::StatelessSink,
-        sources::{SingleIteratorSource, StatelessSource},
+        sources::Source,
         testing::{VecSink, get_test_rt},
     };
 
@@ -123,7 +125,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new(input.clone())),
+                    Source::from_iterator(input.clone()),
                 )
                 .inspect("inspect", async move |x, _| {
                     inspect_collector.give(x.value.to_owned())

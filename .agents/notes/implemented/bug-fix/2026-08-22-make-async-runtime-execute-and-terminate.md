@@ -67,7 +67,8 @@ Eleven fixes, in roughly dependency order:
   (`multithreading` at parallelism 4, values distributed across workers) now execute and
   terminate cleanly; the coordinator's completion poll adds ~5s of shutdown latency.
 - The shared `COMM_CHANNEL_ID` (u64::MAX) can collide when multiple sources run concurrently
-  on one worker — see the proposed [per-source comm channels](../../proposed/bug-fix/2026-08-22-per-source-comm-channels.md).
+  on one worker — fixed by per-source comm channel ids in the
+  [source-trait collapse](../architecture/2026-08-22-collapse-source-traits.md).
 - `Output::send` on a closed output silently drops — a deliberate shutdown-race tolerance.
 - `Input::try_recv` (noop-waker poll) exists for single-threaded test harnesses; the
   noop waker may clobber a real one, so it must not be used where other tasks wait.

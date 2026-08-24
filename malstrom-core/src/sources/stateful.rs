@@ -1,6 +1,11 @@
-use std::{cell::RefCell, marker::PhantomData, rc::Rc};
+//! The source engine: one `SourceImpl` abstraction plus the operator graph that
+//! discovers, distributes and reads partitions. "Stateless" sources are simply
+//! `SourceImpl` implementations with `PartitionState = ()` — see the
+//! `Source::from_*` constructors in [`crate::sources::fn_source`].
 
-use futures::{StreamExt, channel::oneshot::Cancellation, stream::FuturesUnordered};
+use std::{cell::RefCell, rc::Rc};
+
+use futures::{StreamExt, stream::FuturesUnordered};
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 
@@ -17,201 +22,262 @@ use crate::{
         OperatorContext, SafeLogic, SafeLogicWrapper, StreamBuilder,
     },
     types::{
-        Barrier, Data, DataMessage, Key, Kvt, Message, NoData, OnceTime, Timestamp, WorkerId,
+        Barrier, Data, DataMessage, Key, Kvt, Message, NoData, Timestamp, WorkerId,
         distributable::Distributable,
     },
 };
 
-/// Implementation of a stateful source.
-pub trait StatefulSourceImpl: 'static {
-    /// A `Part` of a partition is a key by which any partition of the source is
-    /// uniquely identified. It is perfectly valid for a source to only have a single part and in
-    /// turn only a single partition, though this may not be very useful.
-    type Part: Distributable + Key;
-    /// Values emitted by this source
+/// A partitioned, possibly stateful source.
+///
+/// Stateless sources set `PartitionState = ()` (or use the `Source::from_*`
+/// constructors) and implement `snapshot`/`collect` as no-ops.
+pub trait SourceImpl: 'static {
+    /// Identifies a partition (one shard / split / file / topic-partition / …).
+    type PartitionKey: Distributable + Key;
+    /// Values this source emits.
     type Value: Distributable + Data;
-    /// Timestamps emitted by this source
+    /// Timestamps this source emits.
     type Timestamp: Distributable + Timestamp;
-    /// State for a partition of this source. The state is persisted across job restarts
-    /// and moved with the partition to a different worker when the jobs worker set changes.
+    /// Per-partition state persisted across restarts and moved on rescale.
+    /// `()` = stateless.
     type PartitionState: Distributable;
-    /// A partition of this source. Each partition must be able to read unique values.
-    /// Partitions may be moved to different workers, when the jobs worker set changes. Usually
-    /// partitions will directly relate to some partitioning used by the external system providing
-    /// the data.
-    type SourcePartition: StatefulSourcePartition<
-            Value = Self::Value,
-            Timestamp = Self::Timestamp,
-            PartitionState = Self::PartitionState,
-        >;
+    /// The reader produced by [SourceImpl::open].
+    type Partition: SourcePartition<
+        PartitionKey = Self::PartitionKey,
+        Value = Self::Value,
+        Timestamp = Self::Timestamp,
+        State = Self::PartitionState,
+    >;
 
-    /// List all partitions for this source
-    async fn list_parts(&mut self) -> Vec<Self::Part>;
+    /// Discover the partitions this source exposes.
+    ///
+    /// Called by the framework at build time (worker 0) and again on rescale.
+    /// May perform I/O (list a bucket, query a broker, …).
+    async fn discover(&mut self) -> Vec<Self::PartitionKey>;
 
-    /// Build the partition for the given part
-    async fn build_part(
+    /// Open a reader for `key`, resuming from `state` if one was persisted.
+    ///
+    /// The framework calls this for each discovered (or restored) partition.
+    async fn open(
         &mut self,
-        part: &Self::Part,
-        part_state: Option<Self::PartitionState>,
-    ) -> Self::SourcePartition;
+        key: &Self::PartitionKey,
+        state: Option<Self::PartitionState>,
+    ) -> Self::Partition;
 }
 
-/// A source which provides records for processing and holds some persistent state.
-pub struct StatefulSource<SrcImpl: StatefulSourceImpl>(SrcImpl);
+/// One partition reader. The framework owns its lifecycle.
+pub trait SourcePartition {
+    /// Identifies this partition.
+    type PartitionKey: Distributable + Key;
+    /// Values this partition emits.
+    type Value: Distributable + Data;
+    /// Timestamps this partition emits.
+    type Timestamp: Distributable + Timestamp;
+    /// Resume state captured by [SourcePartition::snapshot].
+    type State: Distributable;
 
-impl<SrcImpl> StatefulSource<SrcImpl>
-where
-    SrcImpl: StatefulSourceImpl,
-{
-    /// Create a new stateful source from the given source implementation.
-    pub fn new(source: SrcImpl) -> Self {
-        Self(source)
+    /// Poll this partition; return `None` once no further records will be
+    /// produced by it. MUST be cancel-safe.
+    async fn poll(&mut self) -> Option<(Self::Value, Self::Timestamp)>;
+
+    /// Capture the state to resume from later.
+    async fn snapshot(&self) -> Self::State;
+
+    /// Shut down and return the final state (moves to another worker / job end).
+    async fn collect(self) -> Self::State;
+}
+
+/// A source providing records for processing. Wrap a [SourceImpl] with one of the
+/// `Source::from_*` constructors (from [crate::sources::fn_source]) or
+/// [Source::from_impl].
+pub struct Source<SrcImpl>(SrcImpl);
+
+/// The `from_*` constructors. `Source<()>` is only a carrier so the methods can be
+/// called as `Source::from_iterator(…)`; the actual source is `Source<SrcImpl>`.
+impl Source<()> {
+    /// Create a source from a [SourceImpl] implementation.
+    pub fn from_impl<SrcImpl: SourceImpl>(source: SrcImpl) -> Source<SrcImpl> {
+        Source(source)
+    }
+
+    /// An untimed source reading from an iterator. Every record is timestamped
+    /// [`OnceTime(false)`](crate::types::OnceTime); the stream finishes with
+    /// `OnceTime(true)`. For index timestamps see
+    /// [Source::from_enumerated_iterator].
+    pub fn from_iterator<V>(
+        iter: impl IntoIterator<Item = V> + 'static,
+    ) -> Source<crate::sources::fn_source::FromIteratorSource<V>>
+    where
+        V: Distributable + Data,
+    {
+        Source(crate::sources::fn_source::FromIteratorSource::new(iter))
+    }
+
+    /// A source reading from an iterator, timestamping each record with its index.
+    pub fn from_enumerated_iterator<V>(
+        iter: impl IntoIterator<Item = V> + 'static,
+    ) -> Source<crate::sources::fn_source::FromEnumeratedIteratorSource<V>>
+    where
+        V: Distributable + Data,
+    {
+        Source(crate::sources::fn_source::FromEnumeratedIteratorSource::new(iter))
+    }
+
+    /// A source built from a poll closure returning `Option<(Value, Timestamp)>`.
+    pub fn from_poll_fn<V, T, Fut>(
+        f: impl FnMut() -> Fut + 'static,
+    ) -> Source<crate::sources::fn_source::PollSource<V, T, impl FnMut() -> Fut>>
+    where
+        V: Distributable + Data,
+        T: Distributable + Timestamp,
+        Fut: std::future::Future<Output = Option<(V, T)>>,
+    {
+        Source(crate::sources::fn_source::PollSource::new(f))
+    }
+
+    /// A source reading from a `Stream` of `(value, timestamp)` pairs.
+    pub fn from_stream<V, T, S>(
+        stream: S,
+    ) -> Source<crate::sources::fn_source::FromStreamSource<V, T, S>>
+    where
+        V: Distributable + Data,
+        T: Distributable + Timestamp,
+        S: futures::Stream<Item = (V, T)> + 'static,
+    {
+        Source(crate::sources::fn_source::FromStreamSource::new(stream))
     }
 }
-impl<SrcImpl> StreamSource<(SrcImpl::Part, SrcImpl::Value, SrcImpl::Timestamp)>
-    for StatefulSource<SrcImpl>
+
+impl<SrcImpl> StreamSource<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>
+    for Source<SrcImpl>
 where
-    SrcImpl: StatefulSourceImpl,
+    SrcImpl: SourceImpl,
 {
     fn into_stream(
         self,
         name: &str,
         builder: InitialStreamBuilder,
-    ) -> StreamBuilder<(SrcImpl::Part, SrcImpl::Value, SrcImpl::Timestamp)> {
+    ) -> StreamBuilder<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)> {
         let src_impl = Rc::new(RefCell::new(self.0));
-        let part_lister = PartListerBuilder::new(Rc::clone(&src_impl));
-        let partition_op = StatefulSourcePartitionOpBuilder::new(src_impl);
+        // a per-source comm channel id so concurrent sources on one worker do not collide
+        let comm_channel = seahash::hash(name.as_bytes());
+        let coordinator = SourceCoordinatorBuilder::new(Rc::clone(&src_impl), comm_channel);
+        let reader = SourcePartitionOpBuilder::new(src_impl, comm_channel);
         builder
-            // this thing also emits the max epoch once all partitions on the worker are finished,
-            // the distribute then makes sure the MAX epoch is only emitted downstream once it is
-            // aligned across workers
+            // worker 0 discovers the partitions once and hands them to the distribute step
             .then(Operator::built_by(
                 format!("{name}-list-partitions"),
-                part_lister,
+                coordinator,
             ))
             .distribute(format!("{name}-distribute-partitions"), rendezvous_select)
-            .then(Operator::built_by(
-                format!("{name}-partition"),
-                partition_op,
-            ))
+            .then(Operator::built_by(format!("{name}-partition"), reader))
     }
 }
 
-/// A single partition of a statefull source. A partition is the smallest unit of a source and may
-/// be moved to a different worker when the job's worker set changes.
-pub trait StatefulSourcePartition {
-    /// Persistent state of this partition. This state will be retained across job restarts and
-    /// moved along with the partition if the jobs worker set changes
-    type PartitionState;
-    /// Values emitted by this partition
-    type Value: Distributable + Data;
-    /// Timestamps emitted by this partition
-    type Timestamp: Distributable + Timestamp;
-
-    /// Poll this partition, return None if no further records
-    /// will be returned by this partition
-    /// NOTE: This operation MUST BE cancel safe
-    async fn poll(&mut self) -> Option<(Self::Value, Self::Timestamp)>;
-
-    /// Return true if this parition is finished and can be removed
-    // fn is_finished(&mut self) -> bool;
-
-    /// snapshot the current state of this partition
-    async fn snapshot(&self) -> Self::PartitionState;
-
-    /// collect and shutdown this partition
-    /// this gets called when the partition is moved to another worker
-    async fn collect(self) -> Self::PartitionState;
-}
-
-struct PartitionsFinished;
-
-struct PartListerBuilder<SrcImpl: StatefulSourceImpl> {
+/// The discovery coordinator. On worker 0 it discovers the partitions once, hands
+/// them to the distribute step, and emits the final `Epoch(MAX)` once every
+/// partition has reported finished (via per-source comm channels). Keeping the
+/// global part set here is what makes the MAX epoch correct across workers —
+/// a reader emitting MAX on its own exhaustion would race with partitions still
+/// in flight through the distribute step.
+struct SourceCoordinatorBuilder<SrcImpl: SourceImpl> {
     source_impl: Rc<RefCell<SrcImpl>>,
+    comm_channel: u64,
 }
 
-impl<SrcImpl> PartListerBuilder<SrcImpl>
+impl<SrcImpl> SourceCoordinatorBuilder<SrcImpl>
 where
-    SrcImpl: StatefulSourceImpl,
+    SrcImpl: SourceImpl,
 {
-    fn new(source_impl: Rc<RefCell<SrcImpl>>) -> Self {
-        Self { source_impl }
+    fn new(source_impl: Rc<RefCell<SrcImpl>>, comm_channel: u64) -> Self {
+        Self {
+            source_impl,
+            comm_channel,
+        }
     }
 }
 
-impl<SrcImpl> LogicBuilder<(), (SrcImpl::Part, NoData, SrcImpl::Timestamp)>
-    for PartListerBuilder<SrcImpl>
+impl<SrcImpl>
+    LogicBuilder<(), (SrcImpl::PartitionKey, NoData, SrcImpl::Timestamp)>
+    for SourceCoordinatorBuilder<SrcImpl>
 where
-    SrcImpl: StatefulSourceImpl,
+    SrcImpl: SourceImpl,
 {
-    type Logic = PartLister<SrcImpl>;
+    type Logic = SourceCoordinator<SrcImpl>;
 
     async fn build(self, ctx: &mut BuildContext) -> Self::Logic {
-        let com_utility = CommUtility::new(ctx).await;
-        // only worker 0 lists the parts; the distribute step then hands them out
+        let comm = CommUtility::new(ctx, self.comm_channel).await;
+        // only worker 0 discovers; the distribute step then hands the parts out
         let mut parts = IndexSet::new();
         if ctx.worker_id == 0 {
             parts = self
                 .source_impl
                 .borrow_mut()
-                .list_parts()
+                .discover()
                 .await
                 .into_iter()
                 .collect();
         }
-        PartLister {
+        SourceCoordinator {
             parts,
             listed_parts: ctx.worker_id == 0,
+            sent: false,
             source_impl: self.source_impl,
-            comm: com_utility,
+            comm,
         }
     }
 }
 
-struct PartLister<SrcImpl: StatefulSourceImpl> {
-    parts: IndexSet<SrcImpl::Part>,
-    /// whether this part-lister actually listed the parts (only worker 0 does)
+struct SourceCoordinator<SrcImpl: SourceImpl> {
+    parts: IndexSet<SrcImpl::PartitionKey>,
+    /// whether this coordinator discovered the parts (only worker 0 does)
     listed_parts: bool,
+    /// whether the parts have been handed to the distribute step yet
+    sent: bool,
     source_impl: Rc<RefCell<SrcImpl>>,
-    /// Communication to other Workers
-    comm: CommUtility<PartitionFinished<SrcImpl::Part>>,
+    /// communication to the reader ops on all workers
+    comm: CommUtility<PartitionFinished<SrcImpl::PartitionKey>>,
 }
-impl<SrcImpl> Logic<(), (SrcImpl::Part, NoData, SrcImpl::Timestamp)> for PartLister<SrcImpl>
+
+impl<SrcImpl> Logic<(), (SrcImpl::PartitionKey, NoData, SrcImpl::Timestamp)>
+    for SourceCoordinator<SrcImpl>
 where
-    SrcImpl: StatefulSourceImpl,
+    SrcImpl: SourceImpl,
 {
     async fn apply(
         &mut self,
         input: &mut Input<()>,
-        output: &mut Output<(SrcImpl::Part, NoData, SrcImpl::Timestamp)>,
+        output: &mut Output<(SrcImpl::PartitionKey, NoData, SrcImpl::Timestamp)>,
         ctx: &mut OperatorContext,
     ) {
-        // only happens on worker 0 because the builder only populates parts there
-        for part in self.parts.iter() {
-            debug_assert!(ctx.worker_id == 0);
-            let msg = DataMessage::new(part.clone(), NoData, SrcImpl::Timestamp::MIN);
-            output.send(Message::Data(msg)).await;
+        // hand the discovered partitions to the distribute step exactly once
+        if !self.sent {
+            self.sent = true;
+            for part in &self.parts {
+                debug_assert!(ctx.worker_id == 0);
+                let msg = DataMessage::new(part.clone(), NoData, SrcImpl::Timestamp::MIN);
+                output.send(Message::Data(msg)).await;
+            }
         }
 
         tokio::select! {
             msg = input.recv() => {
                 match msg {
-                Message::Data(_) => (),
-                Message::Epoch(_) => (),
-                Message::AbsBarrier(x) => output.send(Message::AbsBarrier(x)).await,
-                Message::Rescale(x) => output.send(Message::Rescale(x)).await,
-                Message::ReconfigComplete(x) => output.send(Message::ReconfigComplete(x)).await,
-                Message::Interrogate(x) => (),
-                Message::Collect(x) => (),
-                Message::Acquire(x) => (),
+                    Message::Data(_) => (),
+                    Message::Epoch(_) => (),
+                    Message::AbsBarrier(x) => output.send(Message::AbsBarrier(x)).await,
+                    Message::Rescale(x) => output.send(Message::Rescale(x)).await,
+                    Message::ReconfigComplete(x) => output.send(Message::ReconfigComplete(x)).await,
+                    Message::Interrogate(x) => (),
+                    Message::Collect(x) => (),
+                    Message::Acquire(x) => (),
                 }
             }
             part_finished = self.comm.recv() => {
-                // normally only worker 0 receives partition-finished messages, but a
-                // stray delivery on another worker must not panic — just ignore it
                 let part = part_finished.0;
                 self.parts.swap_remove(&part);
-                /// If all partitions are finished send MAX epoch to indicate computation finish
+                // only emit the MAX epoch once every globally-known partition has finished;
+                // this avoids emitting it too early when a rescale later assigns new partitions
                 if self.listed_parts && self.parts.is_empty() {
                     output.send(Message::Epoch(SrcImpl::Timestamp::MAX)).await;
                 }
@@ -220,65 +286,70 @@ where
     }
 }
 
-/// Marker we send to advise, that a partition has finished.
-/// We need this to avoid an edge case where all local partitions finish and we send the MAX time,
-/// but then get assigned a new unfinished partition due to a rescale.
-/// So we broadcast partition info to only emit MAX time when all partitions globally are finished
+/// Marker a reader op sends to the discovery coordinator once a partition is exhausted.
 #[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Clone)]
-struct PartitionFinished<Part>(Part);
+struct PartitionFinished<PartitionKey>(PartitionKey);
 
-struct StatefulSourcePartitionOp<SrcImpl: StatefulSourceImpl> {
-    partitions: IndexMap<SrcImpl::Part, SrcImpl::SourcePartition>,
+struct SourcePartitionOp<SrcImpl: SourceImpl> {
+    partitions: IndexMap<SrcImpl::PartitionKey, SrcImpl::Partition>,
     part_builder: Rc<RefCell<SrcImpl>>,
-    /// com to part lister
-    com_utility: CommUtility<PartitionFinished<SrcImpl::Part>>,
+    /// communication to the discovery coordinator (worker 0)
+    com_utility: CommUtility<PartitionFinished<SrcImpl::PartitionKey>>,
 }
 
-/// Builds [StatefulSourcePartitionOp]
-struct StatefulSourcePartitionOpBuilder<SrcImpl: StatefulSourceImpl> {
+struct SourcePartitionOpBuilder<SrcImpl: SourceImpl> {
     src_impl: Rc<RefCell<SrcImpl>>,
+    comm_channel: u64,
 }
+
+impl<SrcImpl> SourcePartitionOpBuilder<SrcImpl>
+where
+    SrcImpl: SourceImpl,
+{
+    fn new(src_impl: Rc<RefCell<SrcImpl>>, comm_channel: u64) -> Self {
+        Self {
+            src_impl,
+            comm_channel,
+        }
+    }
+}
+
 impl<SrcImpl>
     LogicBuilder<
-        (SrcImpl::Part, NoData, SrcImpl::Timestamp),
-        (SrcImpl::Part, SrcImpl::Value, SrcImpl::Timestamp),
-    > for StatefulSourcePartitionOpBuilder<SrcImpl>
+        (SrcImpl::PartitionKey, NoData, SrcImpl::Timestamp),
+        (SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp),
+    > for SourcePartitionOpBuilder<SrcImpl>
 where
-    SrcImpl: StatefulSourceImpl,
+    SrcImpl: SourceImpl,
 {
-    type Logic = SafeLogicWrapper<StatefulSourcePartitionOp<SrcImpl>>;
+    type Logic = SafeLogicWrapper<SourcePartitionOp<SrcImpl>>;
 
     async fn build(self, ctx: &mut BuildContext) -> Self::Logic {
-        StatefulSourcePartitionOp::new(ctx, self.src_impl)
+        SourcePartitionOp::new(ctx, self.src_impl, self.comm_channel)
             .await
             .into_logic()
     }
 }
 
-impl<SrcImpl> StatefulSourcePartitionOpBuilder<SrcImpl>
+impl<SrcImpl> SourcePartitionOp<SrcImpl>
 where
-    SrcImpl: StatefulSourceImpl,
+    SrcImpl: SourceImpl,
 {
-    fn new(src_impl: Rc<RefCell<SrcImpl>>) -> Self {
-        Self { src_impl }
-    }
-}
-
-impl<SrcImpl> StatefulSourcePartitionOp<SrcImpl>
-where
-    SrcImpl: StatefulSourceImpl,
-{
-    async fn new(ctx: &mut BuildContext, part_builder: Rc<RefCell<SrcImpl>>) -> Self {
+    async fn new(
+        ctx: &mut BuildContext,
+        part_builder: Rc<RefCell<SrcImpl>>,
+        comm_channel: u64,
+    ) -> Self {
         let partitions = IndexMap::default();
-        let com_utility = CommUtility::new(ctx).await;
-        let mut this = StatefulSourcePartitionOp {
+        let com_utility = CommUtility::new(ctx, comm_channel).await;
+        let mut this = SourcePartitionOp {
             partitions,
             part_builder,
             com_utility,
         };
 
         if let Some(state) = ctx
-            .load_state::<IndexMap<SrcImpl::Part, SrcImpl::PartitionState>>()
+            .load_state::<IndexMap<SrcImpl::PartitionKey, SrcImpl::PartitionState>>()
             .await
         {
             for (k, v) in state.into_iter() {
@@ -290,14 +361,14 @@ where
 
     async fn add_partition(
         &mut self,
-        part: SrcImpl::Part,
+        part: SrcImpl::PartitionKey,
         part_state: Option<SrcImpl::PartitionState>,
     ) {
         if !self.partitions.contains_key(&part) {
             let partition = self
                 .part_builder
                 .borrow_mut()
-                .build_part(&part, part_state)
+                .open(&part, part_state)
                 .await;
             self.partitions.insert(part, partition);
         }
@@ -306,15 +377,15 @@ where
 
 impl<SrcImpl>
     SafeLogic<
-        (SrcImpl::Part, NoData, SrcImpl::Timestamp),
-        (SrcImpl::Part, SrcImpl::Value, SrcImpl::Timestamp),
-    > for StatefulSourcePartitionOp<SrcImpl>
+        (SrcImpl::PartitionKey, NoData, SrcImpl::Timestamp),
+        (SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp),
+    > for SourcePartitionOp<SrcImpl>
 where
-    SrcImpl: StatefulSourceImpl,
+    SrcImpl: SourceImpl,
 {
     async fn on_schedule(
         &mut self,
-        output: &mut Output<(SrcImpl::Part, SrcImpl::Value, SrcImpl::Timestamp)>,
+        output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
         ctx: &mut OperatorContext,
     ) -> bool {
         let mut polls: FuturesUnordered<_> = self
@@ -349,8 +420,8 @@ where
 
     async fn on_data(
         &mut self,
-        data_message: DataMessage<(SrcImpl::Part, NoData, SrcImpl::Timestamp)>,
-        output: &mut Output<(SrcImpl::Part, SrcImpl::Value, SrcImpl::Timestamp)>,
+        data_message: DataMessage<(SrcImpl::PartitionKey, NoData, SrcImpl::Timestamp)>,
+        output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
         ctx: &mut OperatorContext,
     ) {
         let partition_key = data_message.key;
@@ -359,8 +430,8 @@ where
 
     async fn on_acquire(
         &mut self,
-        acquire: &mut Acquire<SrcImpl::Part>,
-        output: &mut Output<(SrcImpl::Part, SrcImpl::Value, SrcImpl::Timestamp)>,
+        acquire: &mut Acquire<SrcImpl::PartitionKey>,
+        output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
         ctx: &mut OperatorContext,
     ) {
         if let Some((part, part_state)) = acquire.take_state(&ctx.operator_id) {
@@ -371,10 +442,11 @@ where
     async fn on_barrier(
         &mut self,
         barrier: &mut Barrier,
-        output: &mut Output<(SrcImpl::Part, SrcImpl::Value, SrcImpl::Timestamp)>,
+        output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
         ctx: &mut OperatorContext,
     ) {
-        let mut snapshot: IndexMap<SrcImpl::Part, SrcImpl::PartitionState> = IndexMap::with_capacity(self.partitions.len());
+        let mut snapshot: IndexMap<SrcImpl::PartitionKey, SrcImpl::PartitionState> =
+            IndexMap::with_capacity(self.partitions.len());
         for (k, v) in self.partitions.iter() {
             let state = v.snapshot().await;
             snapshot.insert(k.clone(), state);
@@ -384,8 +456,8 @@ where
 
     async fn on_collect(
         &mut self,
-        collect: &mut Collect<SrcImpl::Part>,
-        output: &mut Output<(SrcImpl::Part, SrcImpl::Value, SrcImpl::Timestamp)>,
+        collect: &mut Collect<SrcImpl::PartitionKey>,
+        output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
         ctx: &mut OperatorContext,
     ) {
         let part = collect.get_key();
@@ -397,8 +469,8 @@ where
 
     async fn on_interrogate(
         &mut self,
-        interrogate: &mut Interrogate<SrcImpl::Part>,
-        output: &mut Output<(SrcImpl::Part, SrcImpl::Value, SrcImpl::Timestamp)>,
+        interrogate: &mut Interrogate<SrcImpl::PartitionKey>,
+        output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
         ctx: &mut OperatorContext,
     ) {
         interrogate.add_keys(self.partitions.keys().cloned());

@@ -1,9 +1,10 @@
 //! Stream processing can be easy!
 use malstrom::operators::*;
+use malstrom::operators::Source as _;
 use malstrom::runtime::MultiThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;
-use malstrom::sources::{SingleIteratorSource, StatelessSource};
+use malstrom::sources::Source;
 use malstrom::worker::StreamProvider;
 
 fn main() {
@@ -20,12 +21,12 @@ fn build_dataflow(provider: &mut dyn StreamProvider) {
         .new_stream()
         .source(
             "words",
-            StatelessSource::new(SingleIteratorSource::new([
+            Source::from_iterator([
                 "Look".to_string(),
                 "ma'".to_string(),
                 "I'm".to_string(),
                 "streaming".to_string(),
-            ])),
+            ]),
         )
         .map("upper", async |x| x.to_uppercase())
         .sink("stdout", StatelessSink::new(StdOutSink));

@@ -1,9 +1,10 @@
 //! A multithreaded program
 use malstrom::keyed::rendezvous_select;
 use malstrom::operators::*;
+use malstrom::operators::Source as _;
 use malstrom::runtime::{MultiThreadRuntime, SingleThreadRuntime};
 use malstrom::snapshot::NoPersistence;
-use malstrom::sources::{SingleIteratorSource, StatelessSource};
+use malstrom::sources::Source;
 use malstrom::worker::StreamProvider;
 
 fn main() {
@@ -22,7 +23,7 @@ fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
         .new_stream()
         .source(
             "iter-source",
-            StatelessSource::new(SingleIteratorSource::new(0..=10)),
+            Source::from_iterator(0..=10),
         )
         // .key_distribute("key-by-value", |x| x.value, rendezvous_select)
         // .map("double", async |x| x * 2)

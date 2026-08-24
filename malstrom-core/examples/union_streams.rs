@@ -1,9 +1,10 @@
 //! Combining multiple streams
 use malstrom::operators::*;
+use malstrom::operators::Source as _;
 use malstrom::runtime::SingleThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;
-use malstrom::sources::{SingleIteratorSource, StatelessSource};
+use malstrom::sources::Source;
 use malstrom::worker::StreamProvider;
 
 fn main() {
@@ -17,11 +18,11 @@ fn main() {
 fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
     let numbers = provider.new_stream().source(
         "iter-source",
-        StatelessSource::new(SingleIteratorSource::new(0..=10)),
+        Source::from_iterator(0..=10),
     );
     let more_numbers = provider.new_stream().source(
         "other-iter-source",
-        StatelessSource::new(SingleIteratorSource::new(0..=10)),
+        Source::from_iterator(0..=10),
     );
 
     numbers

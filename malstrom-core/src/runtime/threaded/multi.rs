@@ -24,9 +24,10 @@ use super::communication::{
 /// # Example
 /// ```rust
 /// use malstrom::operators::*;
+/// use malstrom::operators::Source as _;
 /// use malstrom::runtime::MultiThreadRuntime;
 /// use malstrom::snapshot::NoPersistence;
-/// use malstrom::sources::{SingleIteratorSource, StatelessSource};
+/// use malstrom::sources::Source;
 /// use malstrom::worker::StreamProvider;
 /// use malstrom::keyed::rendezvous_select;
 ///
@@ -36,7 +37,7 @@ use super::communication::{
 ///     .persistence(NoPersistence)
 ///     .build(|provider: &mut dyn StreamProvider| {
 ///         provider.new_stream()
-///         .source("numbers", StatelessSource::new(SingleIteratorSource::new(0..100)))
+///         .source("numbers", Source::from_iterator(0..100))
 ///         .key_distribute("key-by-value", |x| x.value, rendezvous_select)
 ///         .inspect("print", async |x, ctx| {
 ///             println!("{x:?} @ Worker {}", ctx.worker_id)

@@ -39,7 +39,9 @@ A Cargo workspace (`Cargo.toml`) with the following members:
 | `malstrom-k8s/artifact-downloader/` | — | Sidecar that downloads job binaries into pods |
 | `malstrom-k8s/artifact-manager/` | — | Service that serves job artifacts (Rocket) |
 | `malstrom-kafka/` | `malstrom-kafka` | Kafka protocol sources and sinks (via `rdkafka`) |
-| `malstrom-core/examples/*` | — | ~25 runnable examples (basic, stateful, event-time, TTL, SlateDB, …) |
+| `malstrom-operators/examples/*` | — | runnable operator/sink/source examples (basic, custom, event-time, TTL, keyed, …) |
+| `malstrom-core/examples/*` | — | framework-level examples: `basic_noop`, `multithreading`, `rescaling`, `stateful_programs`, `stateful_program_multiple_keys` |
+| `malstrom-snapshot-slatedb/examples/*` | — | the SlateDB persistence examples |
 
 Supporting material: `website/` (VitePress documentation site), `.github/workflows/`
 (CI: container images via `ghcr.yaml`, docs site via `pages.yaml`), `malstrom-k8s/dev-scripts/`
@@ -118,9 +120,9 @@ the Kubernetes guide.
 ## Quick start
 
 ```bash
-cargo run --example look_ma_im_streaming        # simplest example
-cargo run --example basic_operators             # operators tour
-cargo run --example stateful_programs           # state + snapshots
+cargo run -p malstrom-operators --example look_ma_im_streaming   # simplest example
+cargo run -p malstrom-operators --example basic_operators        # operators tour
+cargo run -p malstrom --example stateful_programs                # state + snapshots (kernel)
 # SlateDB persistence examples: cargo run -p malstrom-snapshot-slatedb --example slatedb_backend
 ```
 

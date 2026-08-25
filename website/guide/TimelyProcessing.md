@@ -65,7 +65,7 @@ The method of generating Epochs in this example is very verbose, see the next ex
 method.
 :::
 
-<<< @../../malstrom-core/examples/event_time.rs
+<<< @../../malstrom-operators/examples/event_time.rs
 
 ::: info Output
 ```
@@ -106,7 +106,7 @@ In the code example we are simply ignoring the late stream.
 
 Strategy 2 is usually more useful for any practical applications. Malstrom comes with a prebuilt utility for this:
 
-<<< @../../malstrom-core/examples/event_time_out_of_order.rs{87}
+<<< @../../malstrom-operators/examples/event_time_out_of_order.rs{87}
 
 ::: info Output
 ```

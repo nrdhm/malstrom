@@ -39,7 +39,7 @@ We then use this provider to create datastreams.
 
 A core concept of Malstrom are operators. Operators are the nodes of our execution graph and in the most general sense they do ✨something✨ with our data. Malstrom comes with many pre-built operators (though you can create your [own](CustomOperators)). Let's import them and use the `.source` operator to add some data to our program.
 
-<<< @../../malstrom-core/examples/basic_operators.rs
+<<< @../../malstrom-operators/examples/basic_operators.rs
 
 If you now run this code you'll see every second number from 0 to 200 printed to the console. Let's look at what we did:
 

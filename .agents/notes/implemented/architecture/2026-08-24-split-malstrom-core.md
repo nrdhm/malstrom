@@ -80,7 +80,12 @@ Split `malstrom-core` along the kernel / stdlib / protocol boundary, with the ke
    `slatedb`/`object_store`/`tokio-stream` stack left the kernel; `console-subscriber` became
    a dev-dependency (multithreading example); the `slatedb` feature and its `[[example]]`
    feature gates were removed.
-10. **The slatedb examples live in `malstrom-snapshot-slatedb`** — moved out of the kernel
+10. **Example placement** — the operator-flavored examples live in
+    `malstrom-operators/examples/` (basic/custom operators, sinks, sources, event-time, TTL,
+    keyed, split/union, hello-world); the kernel keeps only framework-level examples
+    (`basic_noop`, `multithreading`, `rescaling`, `stateful_programs`,
+    `stateful_program_multiple_keys`); the slatedb examples live in
+    `malstrom-snapshot-slatedb/examples/`. — moved out of the kernel
     package right after the split (`malstrom-snapshot-slatedb/examples/`), so the connector
     crate owns its examples. They had been feature-gated and never compiled against the async
     operator API; their closures are `async` now, and they import `SlateDbBackend` from the

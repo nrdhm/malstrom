@@ -43,7 +43,7 @@ StatelessSink::new(FileSink::new("/path/to/the/directory".to_string()))
 To turn any type into a source, we need to implement the `StatelessSinkImpl` trait on it.
 Example:
 
-<<< @../../malstrom-core/examples/file_sink_stateless.rs#sink_impl
+<<< @../../malstrom-operators/examples/file_sink_stateless.rs#sink_impl
 
 Let's see what is going on here:
 
@@ -63,7 +63,7 @@ And that's it. That is a fully functioning sink!
 You can find the fully functional, runnable example code below:
 
 ::: details Full code
-<<< @../../malstrom-core/examples/file_sink_stateless.rs
+<<< @../../malstrom-operators/examples/file_sink_stateless.rs
 :::
 
 ## Custom Stateful Sinks
@@ -79,7 +79,7 @@ Note that you could achieve the same with a `stateful_map` before a stateless si
 
 Instead of `StatelessSinkImpl` we must implement `StatefulSinkImpl` for our sink type:
 
-<<< @../../malstrom-core/examples/file_sink_stateful.rs#sink_impl
+<<< @../../malstrom-operators/examples/file_sink_stateful.rs#sink_impl
 
 There is a lot more going on here than in the stateless version.
 First we must understand that stateful sinks in Malstrom are explicitely partitioned. This means,
@@ -108,7 +108,7 @@ Next we need to implement the partition itself
 The trait `StatefulSinkPartition` is what our sinks partitions must implement. Let's look at the
 implementation for our example:
 
-<<< @../../malstrom-core/examples/file_sink_stateful.rs#partition
+<<< @../../malstrom-operators/examples/file_sink_stateful.rs#partition
 
 What is happening in this code?
 
@@ -135,5 +135,5 @@ Think carefully about the state being persisted and how it is used in `build_par
 You can find the full code and usage below.
 
 ::: details Full code
-<<< @../../malstrom-core/examples/file_sink_stateful.rs
+<<< @../../malstrom-operators/examples/file_sink_stateful.rs
 :::

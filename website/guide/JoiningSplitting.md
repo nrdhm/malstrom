@@ -10,14 +10,14 @@ If you run this example, you'll see we get each number twice. The `union` operat
 
 For multiple outputs we can split our stream just as easily:
 
-<<< @../../malstrom-core/examples/cloned_streams.rs
+<<< @../../malstrom-operators/examples/cloned_streams.rs
 
 Here the `const_cloned` operator will clone each message into a fixed number of output streams.
 There is also the `cloned` operator, which allows determining the number of output streams at runtime.
 
 If we want to select into which output stream a message goes, we can use the `const_split` and `split` operators:
 
-<<< @../../malstrom-core/examples/split_streams.rs
+<<< @../../malstrom-operators/examples/split_streams.rs
 
 The `split` and `const_split` operators take a function as a parameter which determines where messages are routed.
 The function receives a mutable slice of booleans representing the split outputs.

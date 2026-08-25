@@ -45,13 +45,13 @@ stream
 
 This example shows how to calculate a running total that resets when the TTL expires:
 
-<<< @../../malstrom-core/examples/ttl_map_example.rs#build_running_total_dataflow
+<<< @../../malstrom-operators/examples/ttl_map.rs#build_running_total_dataflow
 
 ## Example: Sliding Window Concatenation
 
 This example demonstrates how to maintain a sliding window of recent values:
 
-<<< @../../malstrom-core/examples/ttl_map_example.rs#build_sliding_window_dataflow
+<<< @../../malstrom-operators/examples/ttl_map.rs#build_sliding_window_dataflow
 
 ## State Expiration
 

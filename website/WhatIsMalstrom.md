@@ -24,7 +24,7 @@ Zero-downtime upgradability of deployments is on the roadmap.
 
 # Code Example
 
-<<< @../../malstrom-core/examples/look_ma_im_streaming.rs
+<<< @../../malstrom-operators/examples/look_ma_im_streaming.rs
 
 This outputs
 

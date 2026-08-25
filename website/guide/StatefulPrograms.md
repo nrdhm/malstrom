@@ -88,7 +88,7 @@ Just like this, we have made our programs state persistent. Let's review the cha
 
 Unfortunately right now we have too little data, the program will finish before even taking the first snapshot. Let's take more data and introduce some failures:
 
-<<< @../../malstrom-core/examples/slatedb_backend_failing.rs
+<<< @../../malstrom-snapshot-slatedb/examples/slatedb_backend_failing.rs
 
 Our program will now "fail" and restart every 10 seconds. You may observe some duplicate outputs,
 but the running total calculated remains correct, i.e. every integer is added **exactly once**.

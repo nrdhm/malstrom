@@ -23,7 +23,7 @@ As an example we will re-implement the `.flatten` operator. Our implementation w
 of any inner type on the input side and output each element of the `Vec` as an individual
 message.
 
-<<< @../../malstrom-core/examples/custom_stateless_operator.rs#custom_impl
+<<< @../../malstrom-operators/examples/custom_stateless_operator.rs#custom_impl
 
 What does this do?
 
@@ -48,7 +48,7 @@ always using the exact same key and timestamp we got from the input message.
 
 That's it. Let's see how we can now use our custom operator.
 
-<<< @../../malstrom-core/examples/custom_stateless_operator.rs#usage
+<<< @../../malstrom-operators/examples/custom_stateless_operator.rs#usage
 
 ### Full Code
 
@@ -56,7 +56,7 @@ You can find the full code below. This example is very close to how the built-in
 is defined.
 
 ::: details Full code
-<<< @../../malstrom-core/examples/file_sink_stateless.rs
+<<< @../../malstrom-operators/examples/file_sink_stateless.rs
 :::
 
 ## Implementing a Custom Stateful Operator
@@ -67,7 +67,7 @@ into a `Vec` of configurable size and emit these `Vec`s as messages.
 
 Let's see the code:
 
-<<< @../../malstrom-core/examples/custom_stateful_operator.rs#custom_impl
+<<< @../../malstrom-operators/examples/custom_stateful_operator.rs#custom_impl
 
 ::: warning
 Please do not copy this code. Read the next section regarding caveats.
@@ -111,7 +111,7 @@ of value `T::MAX` (`T` is the timestamp type).
 
 Let's look at the implementation
 
-<<< @../../malstrom-core/examples/custom_stateful_operator.rs#on_epoch
+<<< @../../malstrom-operators/examples/custom_stateful_operator.rs#on_epoch
 
 We simply check if the epoch received is the `MAX` value and if so, send all batches we still hold
 into our output.
@@ -121,14 +121,14 @@ as an excercise to the reader ;)
 
 Let's take a look at the usage of the operator we built:.
 
-<<< @../../malstrom-core/examples/custom_stateful_operator.rs#usage
+<<< @../../malstrom-operators/examples/custom_stateful_operator.rs#usage
 
 ### Full Code
 
 You can find the full code below.
 
 ::: details Full code
-<<< @../../malstrom-core/examples/custom_stateful_operator.rs
+<<< @../../malstrom-operators/examples/custom_stateful_operator.rs
 :::
 
 [^1]: To un-key a stream you can call `.key_local("name", |_| NoKey)`

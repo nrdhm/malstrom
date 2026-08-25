@@ -52,8 +52,9 @@ Added a `ci.yaml` workflow and made the correctness gate meaningful:
    workspace lints; without `-Awarnings` it is now actually enforced). The 5 real
    correctness errors that surfaced — ignored `File::write` results (`unused_must_use`) in
    `file_sink_stateful.rs`/`file_sink_stateless.rs` — were fixed (`write` → `write_all`).
-   Widening to `-D warnings` is a tracked follow-up (the cleanup is documented in
-   `.cargo/config.toml`).
+   Widening to `-D warnings` is a tracked follow-up — see
+   [fix-warning-backlog](../../proposed/process/2026-08-25-fix-warning-backlog.md) (the
+   cleanup is also documented in `.cargo/config.toml`).
 4. **Pinned the toolchain** — `rust-toolchain.toml` with `channel = "1.97.1"` (exact stable)
    + `rustfmt`/`clippy` components, matching the workflow action.
 5. **Fork-PR trigger nuance** — for `pull_request` from a fork, GitHub runs the workflow from

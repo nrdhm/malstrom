@@ -28,9 +28,9 @@ use super::communication::{
 /// [`Logic`](crate::stream::Logic) operators wired via
 /// [`Operator::built_by`](crate::stream::Operator), no `malstrom-operators` needed.
 #[derive(Builder)]
-pub struct MultiThreadRuntime<P> {
+pub struct MultiThreadRuntime<P, F> {
     #[builder(finish_fn)]
-    build: fn(&mut dyn StreamProvider) -> (),
+    build: F,
     persistence: P,
     snapshots: Option<Duration>,
     parrallelism: u64,
@@ -40,9 +40,10 @@ pub struct MultiThreadRuntime<P> {
     rescale_req: (std::sync::mpsc::Sender<u64>, std::sync::mpsc::Receiver<u64>),
 }
 
-impl<P> MultiThreadRuntime<P>
+impl<P, F> MultiThreadRuntime<P, F>
 where
     P: PersistenceBackend + Clone + Send + Sync,
+    F: Fn(&mut dyn StreamProvider) + Clone + Send + 'static,
 {
     /// Start job execution an all workers in this runtime.
     pub fn execute(self) -> Result<(), WorkerExecutionError> {
@@ -70,7 +71,7 @@ where
 
         for i in 0..self.parrallelism {
             let thread = Self::spawn_worker(
-                self.build,
+                self.build.clone(),
                 self.persistence.clone(),
                 Arc::clone(&operator_channels),
                 Arc::clone(&coord_channels),
@@ -85,7 +86,7 @@ where
                 if desired > actual {
                     for i in actual..desired {
                         let thread = Self::spawn_worker(
-                            self.build,
+                            self.build.clone(),
                             self.persistence.clone(),
                             Arc::clone(&operator_channels),
                             Arc::clone(&coord_channels),
@@ -103,7 +104,7 @@ where
     }
 
     fn spawn_worker(
-        build_fn: fn(&mut dyn StreamProvider) -> (),
+        build_fn: F,
         persistence: P,
         operator_channels: OperatorChannels,
         coordinator_channels: CoordinatorChannels,
@@ -249,7 +250,6 @@ impl MultiThreadRuntimeApiHandle {
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
-    use std::sync::OnceLock;
 
     use crate::{
         channels::operator_io::{Input, Output},
@@ -259,14 +259,6 @@ mod tests {
         types::{DataMessage, Message},
         worker::StreamProvider,
     };
-
-    /// The channel through which each worker's `RecordWorker` reports the values it
-    /// sees. A `static` (rather than a closure capture) because
-    /// `MultiThreadRuntime::builder().build(..)` takes a `fn` pointer — no captures.
-    static REPORTED: OnceLock<(
-        flume::Sender<(u64, usize)>,
-        flume::Receiver<(u64, usize)>,
-    )> = OnceLock::new();
 
     /// A minimal source with operator state: every `apply` call emits exactly one
     /// record (advancing the counter), so the runtime's repeated-`apply` loop drives
@@ -314,17 +306,18 @@ mod tests {
 
     /// Every worker runs the same dataflow, so the four workers each emit `0..5`;
     /// grouping the reported `(worker, value)` pairs by worker shows exactly `0..5`
-    /// per worker.
+    /// per worker. The reporting channel is captured directly in the build closure —
+    /// `MultiThreadRuntime::build` accepts closures, like `SingleThreadRuntime`'s.
     /// Exercises the kernel's public extension API end-to-end (no `malstrom-operators`).
     #[test]
     fn multi_thread_runtime_runs_dataflow_on_all_workers() {
-        let (_, rx) = REPORTED.get_or_init(flume::unbounded);
-        rx.drain();
+        let (tx, rx) = flume::unbounded();
 
         MultiThreadRuntime::builder()
             .parrallelism(4)
             .persistence(NoPersistence)
-            .build(|provider: &mut dyn StreamProvider| {
+            .build(move |provider: &mut dyn StreamProvider| {
+                let tx = tx.clone();
                 provider
                     .new_stream()
                     .then(Operator::built_by(
@@ -333,9 +326,7 @@ mod tests {
                     ))
                     .then(Operator::built_by(
                         "record-worker".to_string(),
-                        |_ctx: &mut BuildContext| async {
-                            RecordWorker(REPORTED.get_or_init(flume::unbounded).0.clone())
-                        },
+                        move |_ctx: &mut BuildContext| async move { RecordWorker(tx) },
                     ));
             })
             .execute()
@@ -355,7 +346,11 @@ mod tests {
         );
         for (worker, mut values) in by_worker {
             values.sort_unstable();
-            assert_eq!(values, vec![0, 1, 2, 3, 4], "worker {worker} saw every value");
+            assert_eq!(
+                values,
+                vec![0, 1, 2, 3, 4],
+                "worker {worker} saw every value"
+            );
         }
     }
 }

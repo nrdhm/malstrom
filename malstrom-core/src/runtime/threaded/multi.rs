@@ -248,7 +248,7 @@ impl MultiThreadRuntimeApiHandle {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex, OnceLock};
+    use std::sync::OnceLock;
 
     use crate::{
         channels::operator_io::{Input, Output},
@@ -259,29 +259,14 @@ mod tests {
         worker::StreamProvider,
     };
 
-    /// A registry of each `RecordWorker` instance's own state. Every worker builds its
-    /// own `RecordWorker` (the build closure is a `fn` pointer, so it cannot capture a
-    /// shared vector), and each instance registers the buffer it owns here at
-    /// construction — real per-operator state, observable from the test afterwards.
-    static WORKER_BUFFERS: OnceLock<Mutex<Vec<Arc<Mutex<Vec<usize>>>>>> = OnceLock::new();
-
-    fn new_worker_buffer() -> Arc<Mutex<Vec<usize>>> {
-        let buffer = Arc::new(Mutex::new(Vec::new()));
-        WORKER_BUFFERS
-            .get_or_init(|| Mutex::new(Vec::new()))
-            .lock()
-            .unwrap()
-            .push(buffer.clone());
-        buffer
-    }
-
-    /// How many times the source operator's `apply` was called across all workers —
-    /// proves the runtime drives the state machine over multiple `apply` calls.
-    static APPLY_CALLS: OnceLock<Mutex<usize>> = OnceLock::new();
-
-    fn apply_calls() -> &'static Mutex<usize> {
-        APPLY_CALLS.get_or_init(|| Mutex::new(0))
-    }
+    /// Per-worker final states, delivered by each `RecordWorker` when its stream
+    /// finishes. A channel rather than a shared `Vec`, and a `static` rather than a
+    /// closure capture: `MultiThreadRuntime::builder().build(..)` takes a `fn`
+    /// pointer, so no captures are possible.
+    static WORKER_STATES: OnceLock<(
+        flume::Sender<(u64, Vec<usize>)>,
+        flume::Receiver<(u64, Vec<usize>)>,
+    )> = OnceLock::new();
 
     /// A minimal source with operator state: every `apply` call emits exactly one
     /// record (advancing the counter), so the runtime's repeated-`apply` loop drives
@@ -296,7 +281,6 @@ mod tests {
             output: &mut Output<(usize, usize, usize)>,
             _ctx: &mut OperatorContext,
         ) {
-            *apply_calls().lock().unwrap() += 1;
             let Numbers(next, max) = self;
             if *next < *max {
                 output
@@ -309,9 +293,10 @@ mod tests {
         }
     }
 
-    /// A pass-through operator with its own per-instance state: a `Vec` of the values
-    /// it saw, registered at construction so the test can verify each worker's state.
-    struct RecordWorker(Arc<Mutex<Vec<usize>>>);
+    /// A pass-through operator with its own state: a `Vec` of the values it saw,
+    /// accumulated across `apply` calls and shipped to the test once its stream
+    /// finishes.
+    struct RecordWorker(Vec<usize>);
     impl Logic<(usize, usize, usize), (usize, usize, usize)> for RecordWorker {
         async fn apply(
             &mut self,
@@ -320,28 +305,30 @@ mod tests {
             ctx: &mut OperatorContext,
         ) {
             let msg = input.recv().await;
+            let finished = matches!(&msg, Message::Epoch(_));
             if let Message::Data(d) = &msg {
                 println!("{} @ Worker {}", d.value, ctx.worker_id);
-                self.0.lock().unwrap().push(d.value);
+                self.0.push(d.value);
             }
             output.send(msg).await;
+            if finished {
+                WORKER_STATES
+                    .get_or_init(flume::unbounded)
+                    .0
+                    .send((ctx.worker_id, self.0.clone()))
+                    .unwrap();
+            }
         }
     }
 
-    /// Every worker runs the same dataflow, so the four workers each emit `0..5`:
-    /// each worker's `RecordWorker` instance accumulates exactly `0..5` in its own
-    /// state, and across workers every value is observed once per worker. Also asserts
-    /// the source's `apply` was driven repeatedly by the runtime loop (at least one
-    /// call per emitted record plus the finishing `Epoch(MAX)` call, per worker).
+    /// Every worker runs the same dataflow, so the four workers each emit `0..5`;
+    /// each worker's `RecordWorker` accumulates exactly `0..5` in its own state,
+    /// which also proves the runtime drove `apply` repeatedly.
     /// Exercises the kernel's public extension API end-to-end (no `malstrom-operators`).
     #[test]
     fn multi_thread_runtime_runs_dataflow_on_all_workers() {
-        WORKER_BUFFERS
-            .get_or_init(|| Mutex::new(Vec::new()))
-            .lock()
-            .unwrap()
-            .clear();
-        *apply_calls().lock().unwrap() = 0;
+        let (_, rx) = WORKER_STATES.get_or_init(flume::unbounded);
+        rx.drain();
 
         MultiThreadRuntime::builder()
             .parrallelism(4)
@@ -355,45 +342,19 @@ mod tests {
                     ))
                     .then(Operator::built_by(
                         "record-worker".to_string(),
-                        |_ctx: &mut BuildContext| async { RecordWorker(new_worker_buffer()) },
+                        |_ctx: &mut BuildContext| async { RecordWorker(Vec::new()) },
                     ));
             })
             .execute()
             .unwrap();
 
-        // one RecordWorker instance per worker, each with its own accumulated state
-        let buffers: Vec<Vec<usize>> = WORKER_BUFFERS
-            .get_or_init(|| Mutex::new(Vec::new()))
-            .lock()
-            .unwrap()
-            .iter()
-            .map(|b| {
-                let mut v = b.lock().unwrap().clone();
-                v.sort_unstable();
-                v
-            })
-            .collect();
-        assert_eq!(buffers.len(), 4, "one operator instance per worker");
-        for (i, buf) in buffers.iter().enumerate() {
-            assert_eq!(buf, &vec![0, 1, 2, 3, 4], "worker {i}'s operator state");
+        let mut states: Vec<(u64, Vec<usize>)> = rx.drain().collect();
+        states.sort_by_key(|(worker, _)| *worker);
+        let workers: Vec<u64> = states.iter().map(|(worker, _)| *worker).collect();
+        assert_eq!(workers, vec![0, 1, 2, 3], "all four workers participated");
+        for (worker, mut values) in states {
+            values.sort_unstable();
+            assert_eq!(values, vec![0, 1, 2, 3, 4], "worker {worker}'s operator state");
         }
-
-        // across workers: every value observed exactly once per worker
-        let mut collected: Vec<usize> = buffers.iter().flatten().copied().collect();
-        assert_eq!(collected.len(), 4 * 5, "4 workers × 5 records each");
-        collected.sort_unstable();
-        for value in 0..5 {
-            assert_eq!(
-                &collected[value * 4..(value + 1) * 4],
-                &[value; 4],
-                "value {value} should be observed once per worker"
-            );
-        }
-
-        // at least 5 data emits + 1 finishing Epoch(MAX) apply per worker
-        assert!(
-            *apply_calls().lock().unwrap() >= 4 * (5 + 1),
-            "the runtime must drive the source's apply repeatedly, not once"
-        );
     }
 }

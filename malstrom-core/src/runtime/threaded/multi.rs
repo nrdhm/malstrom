@@ -248,6 +248,7 @@ impl MultiThreadRuntimeApiHandle {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
     use std::sync::OnceLock;
 
     use crate::{
@@ -259,13 +260,12 @@ mod tests {
         worker::StreamProvider,
     };
 
-    /// Per-worker final states, delivered by each `RecordWorker` when its stream
-    /// finishes. A channel rather than a shared `Vec`, and a `static` rather than a
-    /// closure capture: `MultiThreadRuntime::builder().build(..)` takes a `fn`
-    /// pointer, so no captures are possible.
-    static WORKER_STATES: OnceLock<(
-        flume::Sender<(u64, Vec<usize>)>,
-        flume::Receiver<(u64, Vec<usize>)>,
+    /// The channel through which each worker's `RecordWorker` reports the values it
+    /// sees. A `static` (rather than a closure capture) because
+    /// `MultiThreadRuntime::builder().build(..)` takes a `fn` pointer — no captures.
+    static REPORTED: OnceLock<(
+        flume::Sender<(u64, usize)>,
+        flume::Receiver<(u64, usize)>,
     )> = OnceLock::new();
 
     /// A minimal source with operator state: every `apply` call emits exactly one
@@ -293,10 +293,9 @@ mod tests {
         }
     }
 
-    /// A pass-through operator with its own state: a `Vec` of the values it saw,
-    /// accumulated across `apply` calls and shipped to the test once its stream
-    /// finishes.
-    struct RecordWorker(Vec<usize>);
+    /// A pass-through operator whose state is its reporting channel: every record it
+    /// sees is forwarded and reported as `(worker, value)`.
+    struct RecordWorker(flume::Sender<(u64, usize)>);
     impl Logic<(usize, usize, usize), (usize, usize, usize)> for RecordWorker {
         async fn apply(
             &mut self,
@@ -305,29 +304,21 @@ mod tests {
             ctx: &mut OperatorContext,
         ) {
             let msg = input.recv().await;
-            let finished = matches!(&msg, Message::Epoch(_));
             if let Message::Data(d) = &msg {
                 println!("{} @ Worker {}", d.value, ctx.worker_id);
-                self.0.push(d.value);
+                self.0.send((ctx.worker_id, d.value)).unwrap();
             }
             output.send(msg).await;
-            if finished {
-                WORKER_STATES
-                    .get_or_init(flume::unbounded)
-                    .0
-                    .send((ctx.worker_id, self.0.clone()))
-                    .unwrap();
-            }
         }
     }
 
     /// Every worker runs the same dataflow, so the four workers each emit `0..5`;
-    /// each worker's `RecordWorker` accumulates exactly `0..5` in its own state,
-    /// which also proves the runtime drove `apply` repeatedly.
+    /// grouping the reported `(worker, value)` pairs by worker shows exactly `0..5`
+    /// per worker.
     /// Exercises the kernel's public extension API end-to-end (no `malstrom-operators`).
     #[test]
     fn multi_thread_runtime_runs_dataflow_on_all_workers() {
-        let (_, rx) = WORKER_STATES.get_or_init(flume::unbounded);
+        let (_, rx) = REPORTED.get_or_init(flume::unbounded);
         rx.drain();
 
         MultiThreadRuntime::builder()
@@ -342,19 +333,29 @@ mod tests {
                     ))
                     .then(Operator::built_by(
                         "record-worker".to_string(),
-                        |_ctx: &mut BuildContext| async { RecordWorker(Vec::new()) },
+                        |_ctx: &mut BuildContext| async {
+                            RecordWorker(REPORTED.get_or_init(flume::unbounded).0.clone())
+                        },
                     ));
             })
             .execute()
             .unwrap();
 
-        let mut states: Vec<(u64, Vec<usize>)> = rx.drain().collect();
-        states.sort_by_key(|(worker, _)| *worker);
-        let workers: Vec<u64> = states.iter().map(|(worker, _)| *worker).collect();
+        let mut by_worker: BTreeMap<u64, Vec<usize>> = BTreeMap::new();
+        for (worker, value) in rx.drain() {
+            by_worker.entry(worker).or_default().push(value);
+        }
+
+        let workers: Vec<u64> = by_worker.keys().copied().collect();
         assert_eq!(workers, vec![0, 1, 2, 3], "all four workers participated");
-        for (worker, mut values) in states {
+        assert_eq!(
+            by_worker.values().map(|v| v.len()).sum::<usize>(),
+            4 * 5,
+            "4 workers × 5 records each"
+        );
+        for (worker, mut values) in by_worker {
             values.sort_unstable();
-            assert_eq!(values, vec![0, 1, 2, 3, 4], "worker {worker}'s operator state");
+            assert_eq!(values, vec![0, 1, 2, 3, 4], "worker {worker} saw every value");
         }
     }
 }

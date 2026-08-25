@@ -3,6 +3,14 @@
 use serde::{Deserialize, Serialize};
 
 /// Trait implemented by all types usable as timestamps in JetStream
+///
+/// # Example
+/// ```
+/// use malstrom_core::types::Timestamp;
+///
+/// // numeric timestamps merge to the minimum (the lowest common timestamp)
+/// assert_eq!(5u64.merge(&3), 3);
+/// ```
 pub trait Timestamp: PartialOrd + Ord + Clone + std::fmt::Debug + 'static {
     /// Maximum or final value of this type. This is the last possible timestamp.
     const MAX: Self;

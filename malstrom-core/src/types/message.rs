@@ -54,6 +54,16 @@ macro_rules! msg {
 
 /// A message which gets processed in Malstrom
 /// Messages always include a timestamp and content.
+///
+/// # Example
+/// ```
+/// use malstrom_core::types::DataMessage;
+///
+/// let msg = DataMessage::<(u64, String, u64)>::new(1, "value".to_string(), 2);
+/// assert_eq!(msg.key, 1);
+/// assert_eq!(msg.value, "value");
+/// assert_eq!(msg.timestamp, 2);
+/// ```
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DataMessage<M: Kvt> {
     /// The key of the message. The message key controls how a message is distributed in a job
@@ -124,6 +134,15 @@ where
 /// Most messages will be of the data flavour, i.e. data to be processed,
 /// however JetStream also uses its data channels to coordinate snapshoting
 /// and rescaling
+///
+/// # Example
+/// ```
+/// use malstrom_core::types::{DataMessage, Message};
+///
+/// let data: Message<(u64, u64, u64)> =
+///     Message::Data(DataMessage::new(1, 2, 3));
+/// assert!(matches!(data, Message::Data(_)));
+/// ```
 #[derive(Clone)]
 pub enum Message<M: Kvt> {
     /// A data record flowing through the data stream

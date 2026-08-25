@@ -57,6 +57,25 @@ where
 }
 
 /// Operator Logic with absolutely no safeguard, allows you to break keying and everything else
+///
+/// # Example
+/// ```
+/// use malstrom_core::channels::operator_io::{Input, Output};
+/// use malstrom_core::stream::{Logic, OperatorContext};
+///
+/// struct PassThrough;
+/// impl Logic<(u64, u64, u64), (u64, u64, u64)> for PassThrough {
+///     async fn apply(
+///         &mut self,
+///         input: &mut Input<(u64, u64, u64)>,
+///         output: &mut Output<(u64, u64, u64)>,
+///         _ctx: &mut OperatorContext,
+///     ) {
+///         let msg = input.recv().await;
+///         output.send(msg).await;
+///     }
+/// }
+/// ```
 pub trait Logic<M: Kvt, N: Kvt>: 'static {
     async fn apply(
         &mut self,
@@ -85,6 +104,31 @@ where
 /// This trait provides a way to implement logic with no risk of breaking internal messaging invariants.
 /// Usually it does not make sense to implement this trait directly. Consider using
 /// [malstrom::operators::StatefulLogic](StatefulLogic) instead.
+///
+/// # Example
+/// ```
+/// use malstrom_core::channels::operator_io::Output;
+/// use malstrom_core::stream::{OperatorContext, SafeLogic};
+/// use malstrom_core::types::{DataMessage, Message};
+///
+/// struct Doubler;
+/// impl SafeLogic<(u64, u64, u64), (u64, u64, u64)> for Doubler {
+///     async fn on_data(
+///         &mut self,
+///         data: DataMessage<(u64, u64, u64)>,
+///         output: &mut Output<(u64, u64, u64)>,
+///         _ctx: &mut OperatorContext,
+///     ) {
+///         output
+///             .send(Message::Data(DataMessage::new(
+///                 data.key,
+///                 data.value * 2,
+///                 data.timestamp,
+///             )))
+///             .await;
+///     }
+/// }
+/// ```
 pub trait SafeLogic<M: Kvt, N: Kvt<Key = M::Key>>: Sized + 'static {
     /// Called whenever this operator is scheduled by its worker.
     /// Return `true` if this call performed work (e.g. emitted messages) — the

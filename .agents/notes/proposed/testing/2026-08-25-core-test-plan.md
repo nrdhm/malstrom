@@ -150,6 +150,31 @@ after a rescale) would never reach the dataflow. Candidate for a follow-up.
 - 4: the 10 regression tests from the table.
 - 5: doc examples on the public extension surface.
 
+### Layer 5 — DONE (2026-08-25)
+
+`///` examples added on the extension surface, all running under `cargo test --doc`
+(8 doc tests): `Distributable` (encode/decode round-trip), `Timestamp` (merge),
+`DataMessage` (construction + fields), `Message` (variant construction), `OperatorContext`
+(fields), `Logic` (minimal impl), `SafeLogic` (minimal impl), and `Operator::built_by`
+(a kernel-only single-thread job end-to-end: raw `Logic` source + `then` + `Epoch(MAX)`
+termination — the "public API is usable" anchor).
+
+The verbose trait impls (`RuntimeFlavor`, `OperatorOperatorComm`, `WorkerCoordinatorComm`,
+`BuildContext`, `StreamBuilder`) are covered as contract tests instead — the in-process
+mock in `tests/common/mod.rs` is the running usage example, and a doc example would
+duplicate it with ~30 lines of boilerplate.
+
+## Plan complete — all five layers implemented (2026-08-25)
+
+Final state: 57 kernel unit tests (incl. proptest), 4 integration binaries (7 tests),
+8 doc tests, 3 facade tests. Total 75 tests, up from 19. Kernel bugs found and fixed
+while writing the plan's tests: three in the rescale/terminal path (Layer 1a), the
+closed-signal no-op on unsubscribed outputs (Layer 4). Two pre-existing issues observed
+and left for follow-up: stateful downscale stalls in the keyed state-movement machinery
+(and removed workers are never shut down), and a `NoTime` output (e.g. the root
+operator) auto-closes after its first send so a second coordination message would not
+reach the dataflow.
+
 ## Problem
 
 The kernel is the foundation every other crate builds on, and its public surface was just

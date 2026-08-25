@@ -3,6 +3,15 @@ use serde::{Serialize, de::DeserializeOwned};
 use crate::types::Kvt;
 
 /// A type which can be sent (distributed) between workers
+///
+/// # Example
+/// ```
+/// use malstrom_core::types::distributable::Distributable;
+///
+/// let value = 42u64;
+/// let encoded = value.clone().encode();
+/// assert_eq!(u64::decode(&encoded), value);
+/// ```
 pub trait Distributable: Serialize + DeserializeOwned + 'static {
     fn encode(self) -> Vec<u8>;
 

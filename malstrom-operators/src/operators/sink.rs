@@ -1,7 +1,6 @@
 use malstrom_core::stream::{Malstrom, StreamBuilder};
 use malstrom_core::types::{Data, Kvt, MaybeKey, Sealed, Timestamp};
 
-
 /// Output messages from a Malstrom stream somewhere
 pub trait Sink<M, S>: Sealed {
     /// Sink all messages in this stream to the given output.

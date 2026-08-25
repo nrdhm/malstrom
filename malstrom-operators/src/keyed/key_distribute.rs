@@ -6,7 +6,6 @@ use crate::keyed::{WorkerPartitioner, distributed::distributor::DistributorBuild
 use malstrom_core::stream::{BuildContext, Logic, LogicBuilder, Malstrom, Operator, StreamBuilder};
 use malstrom_core::types::{DataMessage, Key, Kvt, MaybeKey, distributable::Distributable};
 
-
 use super::KeyLocal;
 
 /// Key a stream and distribute message to workers according to their key

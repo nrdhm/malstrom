@@ -1,16 +1,16 @@
 //! Example of a stateful source reading from files on the local filesystem
 use core::iter::Enumerate;
+use std::{
+    fs::File,
+    io::{BufRead as _, BufReader, Lines},
+    iter::{Peekable, Skip},
+};
 use {
     malstrom::operators::Source as _,
     malstrom::runtime::SingleThreadRuntime,
     malstrom::snapshot::NoPersistence,
     malstrom::sources::{Source, SourceImpl, SourcePartition},
     malstrom::worker::StreamProvider,
-};
-use std::{
-    fs::File,
-    io::{BufRead as _, BufReader, Lines},
-    iter::{Peekable, Skip},
 };
 // #region source_impl
 /// Reads lines from files and emits them as records

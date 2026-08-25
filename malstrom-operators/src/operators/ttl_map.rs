@@ -4,11 +4,10 @@ pub use expiremap;
 use expiremap::ExpireMap;
 use serde::{Serialize, de::DeserializeOwned};
 
-use malstrom_core::channels::operator_io::Output;
 use crate::operators::State;
+use malstrom_core::channels::operator_io::Output;
 use malstrom_core::stream::StreamBuilder;
 use malstrom_core::types::{Data, DataMessage, Key, Kvt, MaybeData, Message, Sealed, Timestamp};
-
 
 use super::stateful_op::{StatefulLogic, StatefulOp};
 pub use malstrom_macros::TTLState;
@@ -136,9 +135,9 @@ mod test {
     use crate::operators::{AssignTimestamps, Filter, GenerateEpochs, KeyLocal, Sink};
 
     use crate::sinks::StatelessSink;
-    use crate::sources::Source;
     use crate::sinks::VecSink;
-use malstrom_testkit::get_test_rt;
+    use crate::sources::Source;
+    use malstrom_testkit::get_test_rt;
 
     use super::{TTLState, TtlMap};
     use crate as malstrom;

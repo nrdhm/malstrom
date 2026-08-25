@@ -4,7 +4,6 @@ use malstrom_core::channels::operator_io::{Input, Output};
 use malstrom_core::stream::{Malstrom as _, Operator, OperatorContext, SafeLogic, StreamBuilder};
 use malstrom_core::types::{Data, DataMessage, Kvt, MaybeKey, Message, Sealed, Timestamp};
 
-
 /// Inspect messages in a stream without modifying them
 pub trait Inspect<Msg: Kvt, Inspector>: Sealed {
     /// Observe values in a stream without modifying them.
@@ -103,12 +102,11 @@ mod tests {
     use itertools::Itertools;
 
     use crate::operators::Source as _;
-use crate::operators::*;
-use crate::sinks::StatelessSink;
-use crate::sources::Source;
-use crate::sinks::VecSink;
-use malstrom_testkit::{get_test_rt};
-
+    use crate::operators::*;
+    use crate::sinks::StatelessSink;
+    use crate::sinks::VecSink;
+    use crate::sources::Source;
+    use malstrom_testkit::get_test_rt;
 
     #[test]
     fn test_inspect() {

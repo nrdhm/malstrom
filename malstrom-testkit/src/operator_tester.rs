@@ -10,13 +10,12 @@ use async_trait::async_trait;
 
 use malstrom_core::channels::operator_io::{Input, Output, full_broadcast, link};
 use malstrom_core::runtime::{
-        OperatorOperatorComm,
-        communication::{StreamReceiver, StreamSender},
-    };
+    OperatorOperatorComm,
+    communication::{StreamReceiver, StreamSender},
+};
 use malstrom_core::snapshot::NoPersistence;
 use malstrom_core::stream::{BuildContext, Logic, LogicBuilder, OperatorContext};
 use malstrom_core::types::{Kvt, Message, OperatorId, WorkerId, distributable::Distributable};
-
 
 /// A test harness for a single operator's logic, decoupled from a running worker.
 pub struct OperatorTester<In: Kvt, Out: Kvt, L, R> {

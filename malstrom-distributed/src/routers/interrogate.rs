@@ -1,9 +1,15 @@
 use indexmap::IndexSet;
 
 use malstrom_core::channels::{recv_trait::Receiver as _, spsc};
-use {crate::WorkerPartitioner, crate::ConfigVersion, crate::Interrogate, crate::routers::{CollectRouter, NormalRouter, RouterInput, RouterKind, RouterOutput}, crate::targeted_message::TargetedData, crate::versioned_message::VersionedData};
 use malstrom_core::types::{Key, Kvt, RescaleMessage, WorkerId, distributable::Distributable};
-
+use {
+    crate::ConfigVersion,
+    crate::Interrogate,
+    crate::WorkerPartitioner,
+    crate::routers::{CollectRouter, NormalRouter, RouterInput, RouterKind, RouterOutput},
+    crate::targeted_message::TargetedData,
+    crate::versioned_message::VersionedData,
+};
 
 /// Router for the Interrogation phase of the ICA algorithm
 pub(super) struct InterrogateRouter<M: Kvt> {

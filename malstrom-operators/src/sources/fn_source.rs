@@ -10,7 +10,6 @@ use futures::{Stream, StreamExt};
 use crate::sources::{Source, SourceImpl, SourcePartition};
 use malstrom_core::types::{Data, Key, NoKey, OnceTime, Timestamp, distributable::Distributable};
 
-
 /// An untimed source reading from an iterator.
 ///
 /// Every record is timestamped with [`OnceTime(false)`]; the stream finishes with
@@ -285,14 +284,13 @@ where
 mod tests {
     use itertools::Itertools;
 
+    use crate::operators::{Sink, Source as _};
+    use crate::sinks::{StatelessSink, VecSink};
+    use crate::sources::Source;
     use malstrom_core::channels::operator_io::{Input, Output};
-use crate::operators::{Sink, Source as _};
-use crate::sinks::{StatelessSink, VecSink};
-use crate::sources::Source;
-use malstrom_core::stream::{Malstrom as _, Operator, OperatorContext, StreamBuilder};
-use malstrom_testkit::get_test_rt;
-use malstrom_core::types::{Message, NoKey};
-
+    use malstrom_core::stream::{Malstrom as _, Operator, OperatorContext, StreamBuilder};
+    use malstrom_core::types::{Message, NoKey};
+    use malstrom_testkit::get_test_rt;
 
     /// The from_iterator source should emit the iterator values, untimed
     #[test]

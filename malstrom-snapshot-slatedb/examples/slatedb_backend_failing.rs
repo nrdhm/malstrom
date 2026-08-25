@@ -3,12 +3,15 @@ use malstrom_operators::keyed::rendezvous_select;
 use malstrom_operators::operators::Source as _;
 use malstrom_operators::operators::*;
 use malstrom_operators::sinks::{StatelessSink, StdOutSink};
-use malstrom_snapshot_slatedb::object_store::{local::LocalFileSystem, path::Path};
 use malstrom_operators::sources::{Source, SourceImpl, SourcePartition};
-use {malstrom_core::runtime::SingleThreadRuntime, malstrom_snapshot_slatedb::SlateDbBackend, malstrom_core::worker::StreamProvider};
+use malstrom_snapshot_slatedb::object_store::{local::LocalFileSystem, path::Path};
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+use {
+    malstrom_core::runtime::SingleThreadRuntime, malstrom_core::worker::StreamProvider,
+    malstrom_snapshot_slatedb::SlateDbBackend,
+};
 
 fn main() {
     let filesystem = LocalFileSystem::new();

@@ -1,8 +1,8 @@
 use tracing::Value;
 
 use super::stateless_op::StatelessOp;
-use malstrom_core::channels::operator_io::Output;
 use crate::operators::StatelessLogic;
+use malstrom_core::channels::operator_io::Output;
 use malstrom_core::stream::StreamBuilder;
 use malstrom_core::types::{Data, DataMessage, Kvt, MaybeKey, Message, Sealed, Timestamp};
 
@@ -104,12 +104,11 @@ mod tests {
     use itertools::Itertools;
 
     use crate::operators::Source as _;
-use crate::operators::*;
-use crate::sinks::StatelessSink;
-use crate::sources::Source;
-use crate::sinks::VecSink;
-use malstrom_testkit::{get_test_rt};
-
+    use crate::operators::*;
+    use crate::sinks::StatelessSink;
+    use crate::sinks::VecSink;
+    use crate::sources::Source;
+    use malstrom_testkit::get_test_rt;
 
     #[test]
     fn test_flatten() {

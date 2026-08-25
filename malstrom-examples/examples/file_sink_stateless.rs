@@ -1,4 +1,5 @@
 //! Example of a stateless sink writing to files on the local filesystem
+use std::{fs::OpenOptions, io::Write};
 use {
     malstrom::keyed::{KeyDistribute, rendezvous_select},
     malstrom::operators::{Map, Sink, Source as _},
@@ -9,7 +10,6 @@ use {
     malstrom::types::{DataMessage, MaybeTime},
     malstrom::worker::StreamProvider,
 };
-use std::{fs::OpenOptions, io::Write};
 // #region sink_impl
 /// Write records as lines to a file
 struct FileSink {
@@ -35,8 +35,8 @@ where
             .append(true)
             .open(file_path)
             .unwrap();
-        file.write(msg.value.as_bytes()).unwrap();
-        file.write(b"\n").unwrap();
+        file.write_all(msg.value.as_bytes()).unwrap();
+        file.write_all(b"\n").unwrap();
     }
 }
 // #endregion sink_impl

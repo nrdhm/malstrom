@@ -3,7 +3,6 @@ use std::marker::PhantomData;
 use malstrom_core::stream::{Logic, Malstrom as _, Operator, SafeLogic, StreamBuilder};
 use malstrom_core::types::{Data, DataMessage, Kvt, MaybeKey, Message, Sealed, Timestamp};
 
-
 use super::NeedsEpochs;
 /// Wrapper for messages which are either before the last epoch (on time)
 /// or equal to or after the last epoch (late)
@@ -88,14 +87,14 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::operators::{GenerateEpochs, Sink, Source as _};
+    use crate::sinks::StatelessSink;
+    use crate::sinks::VecSink;
+    use crate::sources::Source;
     use malstrom_core::channels::operator_io::{Input, Output};
-use crate::operators::{GenerateEpochs, Sink, Source as _};
-use crate::sinks::StatelessSink;
-use crate::sources::Source;
-use malstrom_core::stream::{DirectLogic, Operator, OperatorContext, SafeLogicWrapper};
-use crate::sinks::VecSink;
-use malstrom_testkit::{get_test_rt};
-use malstrom_core::types::{MaybeData, MaybeTime, Message, NoKey};
+    use malstrom_core::stream::{DirectLogic, Operator, OperatorContext, SafeLogicWrapper};
+    use malstrom_core::types::{MaybeData, MaybeTime, Message, NoKey};
+    use malstrom_testkit::get_test_rt;
 
     use itertools::Itertools;
 

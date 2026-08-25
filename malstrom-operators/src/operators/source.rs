@@ -1,7 +1,6 @@
 use malstrom_core::stream::{InitialStreamBuilder, Malstrom, StreamBuilder};
 use malstrom_core::types::{Data, Kvt, MaybeKey, NoData, NoKey, NoTime, Sealed, Timestamp};
 
-
 /// Produce new messages into a datastream.
 pub trait Source<M: Kvt, S>: Sealed {
     /// Produce new messages into a stream. This method can only be called

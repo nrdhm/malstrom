@@ -9,8 +9,8 @@ use std::{cell::RefCell, fmt::Debug, rc::Rc};
 use tokio::sync::mpsc;
 
 use crate::{
-    types::distributed::{Acquire, Collect, Interrogate},
     snapshot::SnapshotBarrier,
+    types::distributed::{Acquire, Collect, Interrogate},
     types::{MaybeData, MaybeKey, MaybeTime, NoData, NoKey, NoTime, OperatorId},
 };
 
@@ -205,11 +205,7 @@ pub struct RescaleMessage {
 impl RescaleMessage {
     /// Create a rescale message for the given target worker set and version.
     /// The callback is signalled when the rescale completes.
-    pub fn new(
-        workers: IndexSet<WorkerId>,
-        version: u64,
-        callback: mpsc::Sender<()>,
-    ) -> Self {
+    pub fn new(workers: IndexSet<WorkerId>, version: u64, callback: mpsc::Sender<()>) -> Self {
         Self {
             workers,
             version,

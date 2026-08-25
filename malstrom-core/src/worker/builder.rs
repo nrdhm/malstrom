@@ -109,10 +109,7 @@ impl InnerRuntimeBuilder {
     }
 
     /// Register an operator with the runtime; returns its id.
-    pub fn add_operator<In, B, Out>(
-        &mut self,
-        mut operator: Operator<In, B, Out>,
-    ) -> OperatorId
+    pub fn add_operator<In, B, Out>(&mut self, mut operator: Operator<In, B, Out>) -> OperatorId
     where
         In: Kvt,
         B: LogicBuilder<In, Out>,

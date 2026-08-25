@@ -121,12 +121,11 @@ where
 mod tests {
     use super::*;
     use crate::operators::Source as _;
-use crate::operators::*;
-use crate::sinks::StatelessSink;
-use crate::sources::Source;
-use crate::sinks::VecSink;
-use malstrom_testkit::{get_test_rt};
-
+    use crate::operators::*;
+    use crate::sinks::StatelessSink;
+    use crate::sinks::VecSink;
+    use crate::sources::Source;
+    use malstrom_testkit::get_test_rt;
 
     /// Test const split
     #[test]

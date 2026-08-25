@@ -3,6 +3,7 @@ use std::u8;
 
 use chrono::{Datelike, NaiveDate, TimeDelta};
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 use {
     malstrom::channels::operator_io::Output,
     malstrom::keyed::rendezvous_select,
@@ -15,7 +16,6 @@ use {
     malstrom::types::{DataMessage, Message, Timestamp},
     malstrom::worker::StreamProvider,
 };
-use serde::{Deserialize, Serialize};
 
 /// Fake transactions to track
 static TRANSACTIONS: [Transaction; 10] = [

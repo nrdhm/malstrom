@@ -4,15 +4,17 @@
 use std::sync::Arc;
 use std::{collections::HashMap, rc::Rc, sync::Mutex};
 
+use indexmap::{IndexMap, IndexSet};
 use malstrom_core::runtime::SingleThreadRuntime;
-use malstrom_core::snapshot::{NoPersistence, PersistenceBackend, PersistenceClient, SnapshotBarrier, SnapshotVersion};
+use malstrom_core::snapshot::{
+    NoPersistence, PersistenceBackend, PersistenceClient, SnapshotBarrier, SnapshotVersion,
+};
 use malstrom_core::stream::Logic;
 use malstrom_core::types::{
-    Barrier, Key, Kvt, MaybeData, MaybeKey, Message, OperatorId, WorkerId,
-    RescaleMessage, distributable::Distributable,
+    Barrier, Key, Kvt, MaybeData, MaybeKey, Message, OperatorId, RescaleMessage, WorkerId,
+    distributable::Distributable,
 };
 use malstrom_core::worker::StreamProvider;
-use indexmap::{IndexMap, IndexSet};
 
 pub mod communication;
 pub mod operator_tester;
@@ -45,11 +47,7 @@ impl PersistenceBackend for CapturingPersistenceBackend {
         Some(SnapshotVersion::default())
     }
 
-    fn for_version(
-        &self,
-        _worker_id: WorkerId,
-        _snapshot_epoch: &SnapshotVersion,
-    ) -> Self::Client {
+    fn for_version(&self, _worker_id: WorkerId, _snapshot_epoch: &SnapshotVersion) -> Self::Client {
         self.clone()
     }
 

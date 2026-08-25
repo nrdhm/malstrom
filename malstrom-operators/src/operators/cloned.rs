@@ -1,7 +1,6 @@
 use malstrom_core::stream::StreamBuilder;
 use malstrom_core::types::{Kvt, MaybeData, MaybeKey, MaybeTime, Sealed};
 
-
 use super::split::Split;
 
 /// Create multiple streams by cloning the message from a single stream.

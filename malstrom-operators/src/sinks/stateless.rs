@@ -1,12 +1,11 @@
 use std::marker::PhantomData;
 
-use malstrom_core::channels::operator_io::{Input, Output};
 use crate::operators::StreamSink;
+use malstrom_core::channels::operator_io::{Input, Output};
 use malstrom_core::stream::{Logic, Malstrom as _, Operator, OperatorContext, StreamBuilder};
 use malstrom_core::types::{
-        Data, DataMessage, Kvt, MaybeKey, MaybeTime, Message, NoData, NoKey, NoTime, Timestamp,
-    };
-
+    Data, DataMessage, Kvt, MaybeKey, MaybeTime, Message, NoData, NoKey, NoTime, Timestamp,
+};
 
 /// A sink emitting records not hold any state (or only ephemeral state)
 pub struct StatelessSink<In: Kvt, SinkImpl: StatelessSinkImpl<In>> {

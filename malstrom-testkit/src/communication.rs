@@ -3,11 +3,10 @@
 use async_trait::async_trait;
 
 use malstrom_core::runtime::{
-        OperatorOperatorComm,
-        communication::{StreamReceiver, StreamSender},
-    };
+    OperatorOperatorComm,
+    communication::{StreamReceiver, StreamSender},
+};
 use malstrom_core::types::{OperatorId, WorkerId};
-
 
 /// A CommunicationBackend which will always return an error when trying to create a connection.
 /// This is only really useful for unit tests where you know the operator will not attempt

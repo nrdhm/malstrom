@@ -4,11 +4,12 @@ use malstrom_operators::operators::Source as _;
 use malstrom_operators::operators::*;
 use malstrom_operators::sinks::{StatelessSink, StdOutSink};
 use malstrom_snapshot_slatedb::object_store::{local::LocalFileSystem, path::Path};
-use {
-    malstrom_core::runtime::SingleThreadRuntime, malstrom_snapshot_slatedb::SlateDbBackend, malstrom_operators::sources::Source, malstrom_core::worker::StreamProvider,
-};
 use std::sync::Arc;
 use std::time::Duration;
+use {
+    malstrom_core::runtime::SingleThreadRuntime, malstrom_core::worker::StreamProvider,
+    malstrom_operators::sources::Source, malstrom_snapshot_slatedb::SlateDbBackend,
+};
 
 fn main() {
     let filesystem = LocalFileSystem::new();

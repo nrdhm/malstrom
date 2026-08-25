@@ -4,17 +4,27 @@ use indexmap::{IndexMap, IndexSet};
 use tokio::sync::oneshot;
 
 use malstrom_core::channels::{
-        operator_io::{Input, Output},
-        recv_trait::Receiver,
-        spsc,
-    };
-use {crate::WorkerPartitioner, crate::Collect, crate::ConfigVersion, crate::Interrogate, crate::remote_receiver::DistributorReceiver, crate::remote_sender::DistributorSender, crate::routers::{MessageRouter, RouterInput, RouterOutput}, crate::targeted_message::{TargetedData, TargetedMessage}, crate::versioned_message::{VersionedData, VersionedMessage}, crate::wire_message::WireAcquire};
+    operator_io::{Input, Output},
+    recv_trait::Receiver,
+    spsc,
+};
 use malstrom_core::stream::{BuildContext, Logic, LogicBuilder, OperatorContext};
 use malstrom_core::types::{
-        DataMessage, Key, Kvt, Message, OperatorId, ReconfigComplete, RescaleMessage, WorkerId,
-        distributable::Distributable,
-    };
-
+    DataMessage, Key, Kvt, Message, OperatorId, ReconfigComplete, RescaleMessage, WorkerId,
+    distributable::Distributable,
+};
+use {
+    crate::Collect,
+    crate::ConfigVersion,
+    crate::Interrogate,
+    crate::WorkerPartitioner,
+    crate::remote_receiver::DistributorReceiver,
+    crate::remote_sender::DistributorSender,
+    crate::routers::{MessageRouter, RouterInput, RouterOutput},
+    crate::targeted_message::{TargetedData, TargetedMessage},
+    crate::versioned_message::{VersionedData, VersionedMessage},
+    crate::wire_message::WireAcquire,
+};
 
 /// The distributor operator logic: routes keyed messages across workers and
 /// moves state on rescale.

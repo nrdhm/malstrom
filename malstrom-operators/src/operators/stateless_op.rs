@@ -1,9 +1,10 @@
 use std::marker::PhantomData;
 
 use malstrom_core::channels::operator_io::{Input, Output};
-use malstrom_core::stream::{DirectLogic, Logic, Malstrom, Operator, SafeLogic, SafeLogicWrapper, StreamBuilder};
+use malstrom_core::stream::{
+    DirectLogic, Logic, Malstrom, Operator, SafeLogic, SafeLogicWrapper, StreamBuilder,
+};
 use malstrom_core::types::{Data, DataMessage, Kvt, MaybeKey, Message, Sealed, Timestamp};
-
 
 /// A custom stateless operator for Malstrom streams
 pub trait StatelessLogic<In: Kvt, T: Data>: 'static {

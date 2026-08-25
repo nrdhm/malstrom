@@ -3,11 +3,14 @@ use std::marker::PhantomData;
 use serde::{Serialize, de::DeserializeOwned};
 use tracing::warn;
 
-use malstrom_core::msg;
 use crate::operators::{StatefulLogic, time::assign_timestamps::OnTimeLate};
-use malstrom_core::stream::{Logic, LogicBuilder, Malstrom as _, Operator, SafeLogic, StreamBuilder};
-use malstrom_core::types::{DataMessage, Key, Kvt, MaybeData, MaybeKey, Message, Sealed, Timestamp};
-
+use malstrom_core::msg;
+use malstrom_core::stream::{
+    Logic, LogicBuilder, Malstrom as _, Operator, SafeLogic, StreamBuilder,
+};
+use malstrom_core::types::{
+    DataMessage, Key, Kvt, MaybeData, MaybeKey, Message, Sealed, Timestamp,
+};
 
 use super::util::{handle_maybe_late_msg, split_mixed_stream};
 /// Intermediate builder for a timestamped stream.

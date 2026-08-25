@@ -9,22 +9,21 @@ use futures::{StreamExt, stream::FuturesUnordered};
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 
-use malstrom_core::channels::operator_io::{Input, Output};
 use crate::keyed::{
-        Distribute as _,
-        distributed::{Acquire, Collect, Interrogate},
-        rendezvous_select,
-    };
+    Distribute as _,
+    distributed::{Acquire, Collect, Interrogate},
+    rendezvous_select,
+};
 use crate::operators::{CommUtility, StreamSource};
+use malstrom_core::channels::operator_io::{Input, Output};
 use malstrom_core::stream::{
-        BuildContext, InitialStreamBuilder, Logic, LogicBuilder, Malstrom as _, Operator,
-        OperatorContext, SafeLogic, SafeLogicWrapper, StreamBuilder,
-    };
+    BuildContext, InitialStreamBuilder, Logic, LogicBuilder, Malstrom as _, Operator,
+    OperatorContext, SafeLogic, SafeLogicWrapper, StreamBuilder,
+};
 use malstrom_core::types::{
-        Barrier, Data, DataMessage, Key, Kvt, Message, NoData, Timestamp, WorkerId,
-        distributable::Distributable,
-    };
-
+    Barrier, Data, DataMessage, Key, Kvt, Message, NoData, Timestamp, WorkerId,
+    distributable::Distributable,
+};
 
 /// A partitioned, possibly stateful source.
 ///

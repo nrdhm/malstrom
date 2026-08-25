@@ -7,14 +7,13 @@ use serde::{Serialize, de::DeserializeOwned};
 
 use malstrom_core::channels::operator_io::{Input, Output};
 use malstrom_core::stream::{
-        BuildContext, DirectLogic, Logic, LogicBuilder, Malstrom, Operator, OperatorContext,
-        SafeLogic, SafeLogicWrapper, StreamBuilder,
-    };
+    BuildContext, DirectLogic, Logic, LogicBuilder, Malstrom, Operator, OperatorContext, SafeLogic,
+    SafeLogicWrapper, StreamBuilder,
+};
 use malstrom_core::types::{
-        Barrier, Data, DataMessage, Key, Kvt, MaybeData, MaybeKey, MaybeTime, Message, Sealed,
-        Timestamp,
-    };
-
+    Barrier, Data, DataMessage, Key, Kvt, MaybeData, MaybeKey, MaybeTime, Message, Sealed,
+    Timestamp,
+};
 
 pub trait State: Serialize + DeserializeOwned + Default + 'static {}
 impl<X> State for X where X: Default + Serialize + DeserializeOwned + 'static {}
@@ -243,11 +242,10 @@ mod tests {
     use indexmap::{IndexMap, IndexSet};
 
     use crate::keyed::distributed::{Acquire, Collect, Interrogate};
-use malstrom_core::snapshot::{PersistenceClient, SnapshotBarrier};
-use malstrom_testkit::{CapturingPersistenceBackend, OperatorTester};
-use malstrom_core::types::distributable::Distributable;
-use malstrom_core::types::*;
-
+    use malstrom_core::snapshot::{PersistenceClient, SnapshotBarrier};
+    use malstrom_core::types::distributable::Distributable;
+    use malstrom_core::types::*;
+    use malstrom_testkit::{CapturingPersistenceBackend, OperatorTester};
 
     use super::*;
 

@@ -4,20 +4,29 @@ use indexmap::{IndexMap, IndexSet};
 use tokio::sync::oneshot;
 
 use malstrom_core::channels::{
-        operator_io::{Input, Output},
-        recv_trait::Receiver,
-        spsc,
-    };
-use {crate::WorkerPartitioner, crate::Collect, crate::ConfigVersion, crate::Interrogate, crate::remote_receiver::DistributorReceiver, crate::remote_sender::DistributorSender, crate::routers::{
-                InterrogateRouter, RouterInput, RouterKind, RouterOutput,
-                upgrading::UpgradingRouter,
-            }, crate::targeted_message::TargetedData, crate::versioned_message::{VersionedData, VersionedMessage}, crate::wire_message::WireAcquire};
+    operator_io::{Input, Output},
+    recv_trait::Receiver,
+    spsc,
+};
 use malstrom_core::stream::{BuildContext, Logic, OperatorContext};
 use malstrom_core::types::{
-        DataMessage, Key, Kvt, OperatorId, ReconfigComplete, RescaleMessage, WorkerId,
-        distributable::Distributable,
-    };
-
+    DataMessage, Key, Kvt, OperatorId, ReconfigComplete, RescaleMessage, WorkerId,
+    distributable::Distributable,
+};
+use {
+    crate::Collect,
+    crate::ConfigVersion,
+    crate::Interrogate,
+    crate::WorkerPartitioner,
+    crate::remote_receiver::DistributorReceiver,
+    crate::remote_sender::DistributorSender,
+    crate::routers::{
+        InterrogateRouter, RouterInput, RouterKind, RouterOutput, upgrading::UpgradingRouter,
+    },
+    crate::targeted_message::TargetedData,
+    crate::versioned_message::{VersionedData, VersionedMessage},
+    crate::wire_message::WireAcquire,
+};
 
 pub(super) struct CollectRouter<M: Kvt> {
     pub this_version: ConfigVersion,

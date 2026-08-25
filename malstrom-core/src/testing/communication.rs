@@ -1,34 +1,36 @@
 //! Utilities for testing inter-worker communication
 
+use async_trait::async_trait;
+
 use crate::{
-    runtime::OperatorOperatorComm,
+    runtime::{
+        OperatorOperatorComm,
+        communication::{StreamReceiver, StreamSender},
+    },
     types::{OperatorId, WorkerId},
 };
-use thiserror::Error;
 
-/// A CommunicationBackend which will always return an error when trying to create a connection
+/// A CommunicationBackend which will always return an error when trying to create a connection.
 /// This is only really useful for unit tests where you know the operator will not attempt
-/// to make a connection or want to assert it does not
+/// to make a connection or want to assert it does not.
 #[derive(Debug, Default)]
 pub struct NoCommunication;
+
+#[async_trait]
 impl OperatorOperatorComm for NoCommunication {
-    fn operator_to_operator(
+    async fn new_sender(
         &self,
         _to_worker: WorkerId,
-        _operator: OperatorId,
-    ) -> Result<
-        Box<dyn crate::runtime::communication::BiStreamTransport>,
-        crate::runtime::communication::CommunicationBackendError,
-    > {
-        Err(
-            crate::runtime::communication::CommunicationBackendError::ClientBuildError(Box::new(
-                NoCommunicationError::CannotCreateClientError,
-            )),
-        )
+        _channel_id: OperatorId,
+    ) -> Result<Box<dyn StreamSender>, Box<dyn std::error::Error>> {
+        Err("NoCommunication backend cannot create senders".into())
     }
-}
-#[derive(Error, Debug)]
-pub enum NoCommunicationError {
-    #[error("NoCommunication backend cannot create clients")]
-    CannotCreateClientError,
+
+    async fn new_receiver(
+        &self,
+        _from_worker: WorkerId,
+        _channel_id: OperatorId,
+    ) -> Result<Box<dyn StreamReceiver>, Box<dyn std::error::Error>> {
+        Err("NoCommunication backend cannot create receivers".into())
+    }
 }

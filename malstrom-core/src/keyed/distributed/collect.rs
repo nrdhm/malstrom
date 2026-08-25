@@ -18,7 +18,7 @@ impl<K> Collect<K>
 where
     K: Hash + Eq,
 {
-    pub(super) fn new(
+    pub(crate) fn new(
         key: K,
     ) -> (
         Self,

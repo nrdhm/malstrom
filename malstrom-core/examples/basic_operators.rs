@@ -1,8 +1,9 @@
 //! A basic example which runs a no-op dataflow
+use malstrom::operators::Source as _;
 use malstrom::operators::*;
 use malstrom::runtime::SingleThreadRuntime;
 use malstrom::snapshot::NoPersistence;
-use malstrom::sources::{SingleIteratorSource, StatelessSource};
+use malstrom::sources::Source;
 use malstrom::worker::StreamProvider;
 
 fn main() {
@@ -19,7 +20,7 @@ fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
         .source(
             // this is an operator
             "iter-source",
-            StatelessSource::new(SingleIteratorSource::new(0..=10)),
+            Source::from_iterator(0..=10),
         )
         .map("double", async |x| x * 2)
         .inspect("print", async |x, _| println!("{}", x.value)); // <-- and this too

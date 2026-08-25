@@ -20,9 +20,10 @@ pub trait Flatten<In: Kvt>: Sealed {
     /// Only retain numbers <= 42
     /// ```rust
     /// use malstrom::operators::*;
+    /// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
-    /// use malstrom::sources::{SingleIteratorSource, StatelessSource};
+    /// use malstrom::sources::Source;
     /// use malstrom::worker::StreamProvider;
     /// use malstrom::sinks::{VecSink, StatelessSink};
     ///
@@ -33,9 +34,7 @@ pub trait Flatten<In: Kvt>: Sealed {
     ///     .persistence(NoPersistence)
     ///     .build(move |provider: &mut dyn StreamProvider| {
     ///         provider.new_stream()
-    ///         .source("numbers", StatelessSource::new(
-    ///             SingleIteratorSource::new([vec![1, 2, 3], vec![4, 5], vec![6]])
-    ///         ))
+    ///         .source("numbers", Source::from_iterator([vec![1, 2, 3], vec![4, 5], vec![6]]))
     ///         .flatten("flatten")
     ///         .sink("sink", StatelessSink::new(sink_clone));
     ///     })
@@ -105,9 +104,10 @@ mod tests {
     use itertools::Itertools;
 
     use crate::{
+        operators::Source as _,
         operators::*,
         sinks::StatelessSink,
-        sources::{SingleIteratorSource, StatelessSource},
+        sources::Source,
         testing::{VecSink, get_test_rt},
     };
 
@@ -119,11 +119,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new([
-                        vec![1, 2],
-                        vec![3, 4],
-                        vec![5],
-                    ])),
+                    Source::from_iterator([vec![1, 2], vec![3, 4], vec![5]]),
                 )
                 .flatten("flatten")
                 .sink("sink", StatelessSink::new(collector.clone()));
@@ -143,11 +139,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new([
-                        vec![1, 2],
-                        vec![3, 4],
-                        vec![5],
-                    ])),
+                    Source::from_enumerated_iterator([vec![1, 2], vec![3, 4], vec![5]]),
                 )
                 .flatten("flatten")
                 .sink("sink", StatelessSink::new(collector.clone()));
@@ -171,11 +163,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new([
-                        vec![1, 2],
-                        vec![3, 4, 5],
-                        vec![6],
-                    ])),
+                    Source::from_iterator([vec![1, 2], vec![3, 4, 5], vec![6]]),
                 )
                 .key_local("key-local", |x| x.value.len())
                 .flatten("flatten")

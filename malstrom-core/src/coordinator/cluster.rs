@@ -58,7 +58,6 @@ impl ClusterHandle {
         let responses = self
             .workers
             .values()
-            .filter(|x| x.0.phase == WorkerPhase::Unknown)
             .map(|(_, client)| client.send::<_, ()>(msg.clone()));
         join_all(responses).await;
     }
@@ -69,19 +68,25 @@ impl ClusterHandle {
         let responses = self
             .workers
             .values()
-            .filter(|x| x.0.phase == WorkerPhase::BuildComplete)
             .map(|(_, client)| client.send::<_, ()>(msg.clone()));
         join_all(responses).await;
     }
 
     /// check if all workers have completed execution
     pub async fn check_execution_complete(&self) -> bool {
-        let msg = ExecutionComplete;
+        let msg = RuntimeMessage::ExecutionComplete;
         let responses = self
             .workers
             .values()
             .map(|(_, client)| client.send(msg.clone()));
         join_all(responses).await.into_iter().all(|x| x)
+    }
+
+    /// Suspend execution on all workers.
+    /// NOTE: currently a stub — the suspend feature is unimplemented
+    /// (see ApiRequestOperation::Suspend).
+    pub async fn suspend(&self) {
+        tracing::warn!("Coordinator suspend is not yet implemented");
     }
 
     pub async fn take_snapshot(&self, version: SnapshotVersion) {
@@ -97,9 +102,9 @@ impl ClusterHandle {
         &mut self,
         new_set: IndexSet<WorkerId>,
         comm: &C,
-    ) -> Result<(), Box<dyn std::error::Error>>
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
     where
-        C: WorkerCoordinatorComm,
+        C: Sync + WorkerCoordinatorComm,
     {
         for wid in new_set.iter() {
             if !self.workers.contains_key(wid) {
@@ -125,9 +130,9 @@ impl ClusterHandle {
         &mut self,
         id: WorkerId,
         comm: &C,
-    ) -> Result<(), Box<dyn std::error::Error>>
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
     where
-        C: WorkerCoordinatorComm,
+        C: Sync + WorkerCoordinatorComm,
     {
         let client = CoordinatorClient::new(id, comm).await?;
         self.workers.insert(id, (WorkerState::default(), client));
@@ -158,9 +163,9 @@ impl SerializableClusterHandle {
     pub(crate) async fn setup_communication<C>(
         self,
         comm: &C,
-    ) -> Result<ClusterHandle, Box<dyn std::error::Error>>
+    ) -> Result<ClusterHandle, Box<dyn std::error::Error + Send + Sync>>
     where
-        C: WorkerCoordinatorComm,
+        C: Sync + WorkerCoordinatorComm,
     {
         let worker_states = IndexMap::from(self.worker_states);
         let workers = IndexMap::with_capacity(worker_states.len());

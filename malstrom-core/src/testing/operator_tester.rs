@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, VecDeque},
+    marker::PhantomData,
     ops::Range,
     rc::Rc,
     sync::{Arc, Mutex},
@@ -10,16 +11,15 @@ use async_trait::async_trait;
 use crate::{
     channels::operator_io::{Input, Output, full_broadcast, link},
     runtime::{
-        BiCommunicationClient, OperatorOperatorComm,
-        communication::{
-            BiStreamTransport, CommunicationBackendError, Distributable, TransportError,
-        },
+        OperatorOperatorComm,
+        communication::{StreamReceiver, StreamSender},
     },
     snapshot::NoPersistence,
-    stream::{BuildContext, Logic, OperatorContext},
+    stream::{BuildContext, Logic, LogicBuilder, OperatorContext},
+    types::{Kvt, Message, OperatorId, WorkerId, distributable::Distributable},
 };
-use crate::{stream::LogicBuilder, types::*};
 
+/// A test harness for a single operator's logic, decoupled from a running worker.
 pub struct OperatorTester<In: Kvt, Out: Kvt, L, R> {
     logic: L,
     input: Input<In>,
@@ -27,7 +27,7 @@ pub struct OperatorTester<In: Kvt, Out: Kvt, L, R> {
 
     output: Output<Out>,
     output_handle: Input<Out>,
-    comm_shim: FakeCommunication<R>,
+    comm_shim: Rc<FakeCommunication<R>>,
 
     worker_id: WorkerId,
     operator_id: OperatorId,
@@ -56,16 +56,25 @@ where
         let mut output_handle = Input::new_unlinked();
         link(&mut output, &mut output_handle);
 
-        let mut comm_shim = FakeCommunication::default();
+        let comm_shim = Rc::new(FakeCommunication::default());
+        let rt =
+            Rc::new(tokio::runtime::LocalRuntime::new().expect("Failed to create LocalRuntime"));
         let mut build_ctx = BuildContext::new(
             worker_id,
             operator_id,
+            Rc::clone(&rt),
             "test".to_owned(),
-            Rc::new(NoPersistence),
-            &mut comm_shim,
+            0,
+            Rc::new(NoPersistence) as Rc<dyn crate::snapshot::PersistenceClient>,
+            Rc::clone(&comm_shim) as Rc<dyn OperatorOperatorComm>,
             worker_ids.collect(),
         );
         let logic = logic_builder.build(&mut build_ctx).await;
+
+        // The runtime must not be dropped inside the async test context (tokio panics
+        // on that). LocalRuntime spawns no threads on its own, so leaking it is fine
+        // for unit tests.
+        std::mem::forget(rt);
 
         Self {
             logic,
@@ -81,12 +90,13 @@ where
 
     /// Send a message to the operators local input
     pub fn send_local(&mut self, msg: Message<In>) {
-        self.input_handle.send(msg);
+        futures::executor::block_on(self.input_handle.send(msg));
     }
 
-    /// Receive a message from this operators local output
+    /// Receive a message from this operators local output, if one is immediately
+    /// available. Returns `None` when the output is empty.
     pub fn recv_local(&mut self) -> Option<Message<Out>> {
-        self.output_handle.recv()
+        self.output_handle.try_recv()
     }
 
     /// Get a fake commounication backend to emulate remote communication
@@ -97,12 +107,15 @@ where
 
     /// Perform one execution step on the operator
     pub fn step(&mut self) {
-        let mut op_ctx =
-            OperatorContext::new(self.worker_id, self.operator_id, &mut self.comm_shim);
-        self.logic
-            .apply(&mut self.input, &mut self.output, &mut op_ctx);
+        let mut op_ctx = OperatorContext::new(self.worker_id, self.operator_id);
+        futures::executor::block_on(self.logic.apply(
+            &mut self.input,
+            &mut self.output,
+            &mut op_ctx,
+        ));
     }
 }
+
 /// This is a Fake communication backend we can use in unit tests to emulate cross-worker
 /// Communication
 pub struct FakeCommunication<R> {
@@ -165,168 +178,85 @@ struct ImpersonatedSender {
     operator_id: OperatorId,
 }
 
+#[async_trait]
 impl<R> OperatorOperatorComm for FakeCommunication<R>
 where
-    R: Distributable + Send + 'static,
+    R: Distributable + Send + Sync + 'static,
 {
-    fn operator_to_operator(
+    async fn new_sender(
         &self,
         to_worker: WorkerId,
-        operator: OperatorId,
-    ) -> Result<Box<dyn BiStreamTransport>, CommunicationBackendError> {
-        let transport = FakeCommunicationTransport {
+        channel_id: OperatorId,
+    ) -> Result<Box<dyn StreamSender>, Box<dyn std::error::Error>> {
+        Ok(Box::new(FakeCommSender {
             sent_by_operator: Arc::clone(&self.sent_by_operator),
+            to_worker,
+            to_operator: channel_id,
+            _phantom: PhantomData,
+        }))
+    }
+
+    async fn new_receiver(
+        &self,
+        from_worker: WorkerId,
+        channel_id: OperatorId,
+    ) -> Result<Box<dyn StreamReceiver>, Box<dyn std::error::Error>> {
+        Ok(Box::new(FakeCommReceiver {
             sent_to_operator: Arc::clone(&self.sent_to_operator),
-            impersonate: ImpersonatedSender {
-                worker_id: to_worker,
-                operator_id: operator,
-            },
-        };
-        Ok(Box::new(transport))
+            from_worker,
+            from_operator: channel_id,
+            _phantom: PhantomData,
+        }))
     }
 }
 
-struct FakeCommunicationTransport<R> {
+struct FakeCommSender<R> {
     // these are the messages the operator under test sent
     sent_by_operator: Arc<Mutex<VecDeque<SentMessage<R>>>>,
-    // these are the messages the operator under test is yet to receive
-    sent_to_operator: Arc<Mutex<HashMap<ImpersonatedSender, VecDeque<R>>>>,
-    impersonate: ImpersonatedSender,
+    to_worker: WorkerId,
+    to_operator: OperatorId,
+    _phantom: PhantomData<R>,
 }
-#[async_trait]
-impl<R> BiStreamTransport for FakeCommunicationTransport<R>
-where
-    R: Distributable + Send,
-{
-    fn send(&self, msg: Vec<u8>) -> Result<(), TransportError> {
-        let decoded: R = BiCommunicationClient::decode(&msg);
 
-        // since communication clients are bidirectional, the intended reciptient and the sender we are impersonating
-        // are the same
-        let wrapped = SentMessage {
-            to_worker: self.impersonate.worker_id,
-            to_operator: self.impersonate.operator_id,
-            msg: decoded,
-        };
-        self.sent_by_operator.lock().unwrap().push_back(wrapped);
+#[async_trait]
+impl<R> StreamSender for FakeCommSender<R>
+where
+    R: Distributable + Send + Sync,
+{
+    async fn send(&self, msg: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
+        let decoded: R = R::decode(&msg);
+        self.sent_by_operator
+            .lock()
+            .unwrap()
+            .push_back(SentMessage {
+                to_worker: self.to_worker,
+                to_operator: self.to_operator,
+                msg: decoded,
+            });
         Ok(())
     }
-
-    fn recv(&self) -> Result<Option<Vec<u8>>, TransportError> {
-        let mut guard = self.sent_to_operator.lock().unwrap();
-        let queue = guard.get_mut(&self.impersonate);
-        match queue {
-            Some(q) => Ok(q.pop_front().map(BiCommunicationClient::encode)),
-            None => Ok(None),
-        }
-    }
-
-    async fn recv_async(&self) -> Result<Vec<u8>, TransportError> {
-        todo!()
-    }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use std::{rc::Rc, sync::Mutex};
+struct FakeCommReceiver<R> {
+    // these are the messages the operator under test is yet to receive
+    sent_to_operator: Arc<Mutex<HashMap<ImpersonatedSender, VecDeque<R>>>>,
+    from_worker: WorkerId,
+    from_operator: OperatorId,
+    _phantom: PhantomData<R>,
+}
 
-//     use crate::{
-//         channels::operator_io::Input, runtime::{BiCommunicationClient, OperatorOperatorComm}, testing::operator_tester::SentMessage, types::Message
-//     };
-
-//     use super::{DataMessage, FakeCommunication, NoKey, OperatorTester};
-
-//     /// We should be able to send messages to our operator under test
-//     /// using our fake communication
-//     #[test]
-//     fn test_fake_comm_send_to_operator() {
-//         let fake_comm = FakeCommunication::<i32>::default();
-//         // this is the client the operator would have
-//         let client = fake_comm.operator_to_operator(1, 0).unwrap();
-
-//         // impersonate worker 1 and operator 0
-//         fake_comm.send_to_operator(42, 1, 0);
-//         let raw = client.recv().unwrap().unwrap();
-//         let msg: i32 = BiCommunicationClient::decode(&raw);
-//         assert_eq!(msg, 42);
-//         assert!(client.recv().unwrap().is_none())
-//     }
-
-//     /// We should be able to receive messages from our operator under test
-//     #[test]
-//     fn test_fake_comm_receive() {
-//         let fake_comm = FakeCommunication::<i32>::default();
-//         // this is the client the operator would have
-//         let client = fake_comm.operator_to_operator(1, 0).unwrap();
-//         client.send(BiCommunicationClient::encode(42)).unwrap();
-
-//         let msg = fake_comm.recv_from_operator().unwrap();
-//         assert!(matches!(
-//             msg,
-//             SentMessage {
-//                 to_worker: 1,
-//                 to_operator: 0,
-//                 msg: 42
-//             }
-//         ));
-//         assert!(fake_comm.recv_from_operator().is_none())
-//     }
-
-//     /// We should be able to send a message to the operators local input
-//     #[test]
-//     fn test_operator_test_send_local() {
-//         let capture = Rc::new(Mutex::new(Option::None));
-//         let capture_moved = Rc::clone(&capture);
-
-//         let mut tester: OperatorTester<(NoKey, i32, i32), (NoKey, i32, i32), _, ()> =
-//             OperatorTester::built_by(
-//                 move |_| {
-//                     move |input: &mut Input<_>, _output, _ctx| {
-//                         if let Some(x) = input.recv() {
-//                             let _ = capture_moved.lock().unwrap().insert(x);
-//                         }
-//                     }
-//                 },
-//                 0,
-//                 0,
-//                 0..1,
-//             );
-//         tester.send_local(Message::Data(DataMessage::new(NoKey, 42, 111)));
-//         tester.step();
-//         let received = capture.lock().unwrap().take().unwrap();
-//         assert!(matches!(
-//             received,
-//             Message::Data(DataMessage {
-//                 key: NoKey,
-//                 value: 42,
-//                 timestamp: 111
-//             })
-//         ))
-//     }
-
-//     /// We should be able to receive a message from the operators local output
-//     #[test]
-//     fn test_operator_tester_receive_local() {
-//         let mut tester: OperatorTester<NoKey, i32, i32, NoKey, i32, i32, ()> =
-//             OperatorTester::built_by(
-//                 move |_| {
-//                     move |_input, output, _ctx| {
-//                         output.send(Message::Data(DataMessage::new(NoKey, 12345, 0)));
-//                     }
-//                 },
-//                 0,
-//                 0,
-//                 0..1,
-//             );
-//         tester.step();
-//         let received = tester.recv_local().unwrap();
-//         assert!(matches!(
-//             received,
-//             Message::Data(DataMessage {
-//                 key: NoKey,
-//                 value: 12345,
-//                 timestamp: 0
-//             })
-//         ));
-//     }
-// }
+#[async_trait]
+impl<R> StreamReceiver for FakeCommReceiver<R>
+where
+    R: Distributable + Send + Sync,
+{
+    async fn recv(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        let mut guard = self.sent_to_operator.lock().unwrap();
+        let key = ImpersonatedSender {
+            worker_id: self.from_worker,
+            operator_id: self.from_operator,
+        };
+        let msg = guard.get_mut(&key).and_then(|q| q.pop_front());
+        Ok(msg.map(R::encode).unwrap_or_default())
+    }
+}

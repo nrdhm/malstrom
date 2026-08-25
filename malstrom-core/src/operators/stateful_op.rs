@@ -168,8 +168,9 @@ where
         &mut self,
         output: &mut Output<(In::Key, T, In::Timestamp)>,
         ctx: &mut OperatorContext,
-    ) {
+    ) -> bool {
         self.logic.on_schedule(&mut self.state, output).await;
+        false
     }
 
     async fn on_data(
@@ -244,9 +245,9 @@ mod tests {
 
     use crate::{
         keyed::distributed::{Acquire, Collect, Interrogate},
-        runtime::BiCommunicationClient,
         snapshot::{PersistenceClient, SnapshotBarrier},
         testing::{CapturingPersistenceBackend, OperatorTester},
+        types::distributable::Distributable,
         types::*,
     };
 
@@ -298,16 +299,18 @@ mod tests {
         )));
         tester.step();
 
-        let interrogator = Interrogate::new(Rc::new(|_: &i32| true));
-        tester.send_local(Message::Interrogate(interrogator.clone()));
+        let (interrogator, mut rx) = Interrogate::new();
+        tester.send_local(Message::Interrogate(interrogator));
         tester.step();
 
-        // receive and drop all messages. We need to drop the interrogator copy
-        // so we can unwrap it
+        // receive and drop all messages so the forwarded interrogator is dropped
         while tester.recv_local().is_some() {}
 
-        let result = interrogator.try_unwrap().unwrap();
-        assert_eq!(IndexSet::from([1, 5]), result)
+        let mut keys = IndexSet::new();
+        while let Some(k) = rx.recv().await {
+            keys.insert(k);
+        }
+        assert_eq!(IndexSet::from([1, 5]), keys)
     }
 
     /// Check we do not add discarded keys
@@ -339,16 +342,18 @@ mod tests {
             NoTime,
         )));
         tester.step();
-        let interrogator = Interrogate::new(Rc::new(|_: &i32| true));
-        tester.send_local(Message::Interrogate(interrogator.clone()));
+        let (interrogator, mut rx) = Interrogate::new();
+        tester.send_local(Message::Interrogate(interrogator));
         tester.step();
 
-        // receive and drop all messages. We need to drop the interrogator copy
-        // so we can unwrap it
+        // receive and drop all messages so the forwarded interrogator is dropped
         while tester.recv_local().is_some() {}
 
-        let result = interrogator.try_unwrap().unwrap();
-        assert!(result.is_empty());
+        let mut keys = IndexSet::new();
+        while let Some(k) = rx.recv().await {
+            keys.insert(k);
+        }
+        assert!(keys.is_empty());
     }
 
     /// Check key state is collected
@@ -375,18 +380,18 @@ mod tests {
             NoTime,
         )));
         tester.step();
-        let collector = Collect::new(1);
-        tester.send_local(Message::Collect(collector.clone()));
+        let (collector, mut rx) = Collect::new(1);
+        tester.send_local(Message::Collect(collector));
         tester.step();
 
-        // receive and drop all messages. We need to drop the interrogator copy
-        // so we can unwrap it
+        // receive and drop all messages so the forwarded collector is dropped
         while tester.recv_local().is_some() {}
 
-        let foo_enc = BiCommunicationClient::encode("foo".to_string());
-        let (_key, result) = collector.try_unwrap().unwrap();
+        let foo_enc = Distributable::encode("foo".to_string());
+        let (operator_id, result) = rx.recv().await.unwrap();
         // 42 is the operator id
-        assert_eq!(IndexMap::from([(42, foo_enc)]), result)
+        assert_eq!(42, operator_id);
+        assert_eq!(foo_enc, result)
     }
 
     /// check we do not collect discarded state
@@ -418,16 +423,14 @@ mod tests {
             NoTime,
         )));
         tester.step();
-        let collector = Collect::new(1);
-        tester.send_local(Message::Collect(collector.clone()));
+        let (collector, mut rx) = Collect::new(1);
+        tester.send_local(Message::Collect(collector));
         tester.step();
 
-        // receive and drop all messages. We need to drop the interrogator copy
-        // so we can unwrap it
+        // receive and drop all messages so the forwarded collector is dropped
         while tester.recv_local().is_some() {}
 
-        let (_key, result) = collector.try_unwrap().unwrap();
-        assert!(result.is_empty());
+        assert!(rx.recv().await.is_none());
     }
 
     // check we acquire state when instructed
@@ -439,14 +442,14 @@ mod tests {
                            mut state: String,
                            output: &mut Output<(i32, String, NoTime)>| {
             std::mem::swap(&mut state, &mut msg.value);
-            output.send(Message::Data(msg));
+            output.send(Message::Data(msg)).await;
             Some(state)
         };
 
         let mut tester: OperatorTester<_, _, _, ()> =
             OperatorTester::built_by(StatefulLogicBuilder::new(logic), 0, 42, 0..1).await;
 
-        let state = IndexMap::from([(42, BiCommunicationClient::encode("HelloWorld".to_owned()))]);
+        let state = IndexMap::from([(42, Distributable::encode("HelloWorld".to_owned()))]);
 
         tester.send_local(Message::Acquire(Acquire::new(1337, state)));
         tester.step();
@@ -471,11 +474,13 @@ mod tests {
                            state: i32,
                            output: &mut Output<(bool, i32, NoTime)>| {
             let new_value = state + msg.value;
-            output.send(Message::Data(DataMessage::new(
-                msg.key,
-                new_value,
-                msg.timestamp,
-            )));
+            output
+                .send(Message::Data(DataMessage::new(
+                    msg.key,
+                    new_value,
+                    msg.timestamp,
+                )))
+                .await;
             Some(new_value)
         };
         // keep a total per key
@@ -492,7 +497,8 @@ mod tests {
             _ => panic!(),
         };
 
-        tester.send_local(Message::Collect(Collect::new(false)));
+        let (collector, _collect_rx) = Collect::new(false);
+        tester.send_local(Message::Collect(collector));
         tester.step();
         tester.recv_local().unwrap();
 
@@ -513,11 +519,13 @@ mod tests {
                            state: i32,
                            output: &mut Output<(bool, i32, NoTime)>| {
             let new_value = state + msg.value;
-            output.send(Message::Data(DataMessage::new(
-                msg.key,
-                new_value,
-                msg.timestamp,
-            )));
+            output
+                .send(Message::Data(DataMessage::new(
+                    msg.key,
+                    new_value,
+                    msg.timestamp,
+                )))
+                .await;
             Some(new_value)
         };
         // keep a total per key
@@ -528,12 +536,13 @@ mod tests {
         tester.step();
 
         let backend = CapturingPersistenceBackend::default();
-        tester.send_local(Message::AbsBarrier(SnapshotBarrier::new(Box::new(
-            backend.clone(),
-        ))));
+        let (cb, _cb_rx) = tokio::sync::mpsc::channel(1);
+        tester.send_local(Message::AbsBarrier(Barrier::Snapshot(
+            SnapshotBarrier::new(Box::new(backend.clone()), cb),
+        )));
         tester.step();
 
-        let state: IndexMap<bool, i32> = BiCommunicationClient::decode(&backend.load(&42).unwrap());
+        let state: IndexMap<bool, i32> = Distributable::decode(&backend.load(&42).unwrap());
         assert_eq!(*state.get(&false).unwrap(), 1);
     }
 

@@ -1,11 +1,11 @@
 //! Example of a stateless sink writing to files on the local filesystem
 use malstrom::{
-    keyed::{KeyDistribute, partitioners::rendezvous_select},
-    operators::{Map, Sink, Source},
+    keyed::{KeyDistribute, rendezvous_select},
+    operators::{Map, Sink, Source as _},
     runtime::SingleThreadRuntime,
     sinks::{StatelessSink, StatelessSinkImpl},
     snapshot::NoPersistence,
-    sources::{SingleIteratorSource, StatelessSource},
+    sources::Source,
     types::{DataMessage, MaybeTime},
     worker::StreamProvider,
 };
@@ -45,10 +45,7 @@ fn build_dataflow(provider: &mut dyn StreamProvider) {
     std::fs::create_dir_all("/tmp/file-sink").unwrap();
     provider
         .new_stream()
-        .source(
-            "number",
-            StatelessSource::new(SingleIteratorSource::new(0..5)),
-        )
+        .source("number", Source::from_iterator(0..5))
         .key_distribute(
             "key-by-value",
             |msg| msg.value.to_string(),

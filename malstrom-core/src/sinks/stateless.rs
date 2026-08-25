@@ -4,7 +4,9 @@ use crate::{
     channels::operator_io::{Input, Output},
     operators::StreamSink,
     stream::{Logic, Malstrom as _, Operator, OperatorContext, StreamBuilder},
-    types::{Data, DataMessage, Kvt, MaybeKey, Message, NoData, NoKey, NoTime, Timestamp},
+    types::{
+        Data, DataMessage, Kvt, MaybeKey, MaybeTime, Message, NoData, NoKey, NoTime, Timestamp,
+    },
 };
 
 /// A sink emitting records not hold any state (or only ephemeral state)
@@ -54,8 +56,14 @@ where
         output: &mut Output<()>,
         ctx: &mut OperatorContext,
     ) {
-        if let Message::Data(d) = input.recv().await {
-            self.sink_impl.sink(d);
+        match input.recv().await {
+            Message::Data(d) => self.sink_impl.sink(d),
+            // the sink has no downstream; the MAX epoch marks the end of the stream,
+            // so close the output to signal completion
+            Message::Epoch(e) if <M as Kvt>::Timestamp::CHECK_FINISHED(&Some(e.clone())) => {
+                output.close()
+            }
+            _ => (),
         }
     }
 }

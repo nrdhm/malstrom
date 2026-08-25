@@ -4,11 +4,10 @@ use std::{collections::HashMap, rc::Rc, sync::Mutex};
 use crate::keyed::distributed::{Acquire, Collect, Interrogate};
 
 use crate::runtime::SingleThreadRuntime;
-use crate::runtime::communication::Distributable;
 use crate::snapshot::{SnapshotBarrier, SnapshotVersion};
 use crate::stream::Logic;
-use crate::types::{Key, Kvt, SuspendMarker};
-use crate::types::{MaybeTime, RescaleMessage};
+use crate::types::{Barrier, Key, Kvt};
+use crate::types::{MaybeTime, RescaleMessage, distributable::Distributable};
 use crate::worker::StreamProvider;
 use crate::{
     snapshot::{NoPersistence, PersistenceBackend, PersistenceClient},
@@ -85,7 +84,11 @@ pub(crate) fn test_forward_system_messages<
 ) where
     In::Key: Key + Default,
 {
-    let msg = Message::AbsBarrier(SnapshotBarrier::new(Box::new(NoPersistence)));
+    let (cb_tx, _cb_rx) = tokio::sync::mpsc::channel(1);
+    let msg = Message::AbsBarrier(Barrier::Snapshot(SnapshotBarrier::new(
+        Box::new(NoPersistence),
+        cb_tx,
+    )));
     tester.send_local(msg);
     tester.step();
     assert!(matches!(
@@ -93,36 +96,11 @@ pub(crate) fn test_forward_system_messages<
         Message::AbsBarrier(_)
     ));
 
-    let msg = Message::Acquire(Acquire::new(In::Key::default(), IndexMap::new()));
-    tester.send_local(msg);
-    tester.step();
-    assert!(matches!(tester.recv_local().unwrap(), Message::Acquire(_)));
-
-    let msg = Message::Collect(Collect::new(In::Key::default()));
-    tester.send_local(msg);
-    tester.step();
-    assert!(matches!(tester.recv_local().unwrap(), Message::Collect(_)));
-
-    let msg = Message::Interrogate(Interrogate::new(Rc::new(|_| false)));
-    tester.send_local(msg);
-    tester.step();
-    assert!(matches!(
-        tester.recv_local().unwrap(),
-        Message::Interrogate(_)
-    ));
-
-    let msg = Message::Rescale(RescaleMessage::new(IndexSet::new(), 0));
+    let (cb_tx, _cb_rx) = tokio::sync::mpsc::channel(1);
+    let msg = Message::Rescale(RescaleMessage::new(IndexSet::new(), 0, cb_tx));
     tester.send_local(msg);
     tester.step();
     assert!(matches!(tester.recv_local().unwrap(), Message::Rescale(_)));
-
-    let msg = Message::SuspendMarker(SuspendMarker::default());
-    tester.send_local(msg);
-    tester.step();
-    assert!(matches!(
-        tester.recv_local().unwrap(),
-        Message::SuspendMarker(_)
-    ));
 }
 
 #[cfg(test)]

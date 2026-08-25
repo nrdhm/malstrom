@@ -61,11 +61,13 @@ where
         output: &mut Output<(In::Key, OutVal, In::Timestamp)>,
     ) -> Option<OpState> {
         let (value, state) = (self.mapper)(&msg.key, msg.value, &msg.timestamp, key_state).await;
-        output.send(Message::Data(DataMessage::new(
-            msg.key,
-            value,
-            msg.timestamp,
-        )));
+        output
+            .send(Message::Data(DataMessage::new(
+                msg.key,
+                value,
+                msg.timestamp,
+            )))
+            .await;
         state
     }
 
@@ -131,11 +133,11 @@ mod test {
     use expiremap::ExpireMap;
     use itertools::Itertools;
 
-    use crate::operators::source::Source;
+    use crate::operators::source::Source as _;
     use crate::operators::{AssignTimestamps, Filter, GenerateEpochs, KeyLocal, Sink};
 
     use crate::sinks::StatelessSink;
-    use crate::sources::{SingleIteratorSource, StatelessSource};
+    use crate::sources::Source;
     use crate::testing::{VecSink, get_test_rt};
 
     use super::{TTLState, TtlMap};
@@ -155,10 +157,7 @@ mod test {
         let rt = get_test_rt(|provider| {
             let (on_time, _late) = provider
                 .new_stream()
-                .source(
-                    "source",
-                    StatelessSource::new(SingleIteratorSource::new(0..100)),
-                )
+                .source("source", Source::from_enumerated_iterator(0..100))
                 .assign_timestamps("assigner", |msg| msg.timestamp)
                 .generate_epochs("generate", |_, t| t.to_owned());
 
@@ -208,9 +207,9 @@ mod test {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new(
+                    Source::from_enumerated_iterator(
                         ["foo", "bar", "hello", "world", "baz"].map(|x| x.to_string()),
-                    )),
+                    ),
                 )
                 // concat the words
                 .assign_timestamps("assigner", |msg| msg.timestamp)

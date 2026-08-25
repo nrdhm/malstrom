@@ -40,5 +40,8 @@ impl<P: PersistenceClient> Logic<(), ()> for RootLogic<P> {
                 }
             }
         }
+        // system message channel closed — no more system messages will arrive,
+        // so the root operator's output can be closed as well
+        output.close();
     }
 }

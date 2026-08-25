@@ -24,6 +24,8 @@ pub(super) struct CoordinationTask<P: PersistenceBackend> {
     persistence_backend: P,
     sys_msg_sender: mpsc::Sender<SysMessage<P::Client>>,
     coordinator_comm: WorkerClient,
+    /// Set to `true` by the worker once its dataflow has completed
+    completion: tokio::sync::watch::Receiver<bool>,
 }
 
 impl<P> CoordinationTask<P>
@@ -35,12 +37,14 @@ where
         persistence_backend: P,
         sys_msg_sender: mpsc::Sender<SysMessage<P::Client>>,
         coordinator_comm: WorkerClient,
+        completion: tokio::sync::watch::Receiver<bool>,
     ) -> Self {
         Self {
             worker_id: this_worker,
             persistence_backend,
             sys_msg_sender,
             coordinator_comm,
+            completion,
         }
     }
 
@@ -58,8 +62,7 @@ where
                         responder.respond(true).await;
                     }
                     RuntimeMessage::ExecutionComplete => {
-                        // following task already dropped
-                        let finished = self.sys_msg_sender.is_closed();
+                        let finished = *self.completion.borrow();
                         responder.respond(finished).await;
                         if finished {
                             return;

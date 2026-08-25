@@ -91,9 +91,9 @@ where
 mod tests {
     use crate::{
         channels::operator_io::{Input, Output},
-        operators::{GenerateEpochs, Sink, Source},
+        operators::{GenerateEpochs, Sink, Source as _},
         sinks::StatelessSink,
-        sources::{SingleIteratorSource, StatelessSource},
+        sources::Source,
         stream::{DirectLogic, Operator, OperatorContext, SafeLogicWrapper},
         testing::{VecSink, get_test_rt},
         types::{MaybeData, MaybeTime, Message, NoKey},
@@ -114,7 +114,7 @@ mod tests {
             output: &mut crate::channels::operator_io::Output<Msg>,
             ctx: &mut crate::stream::OperatorContext,
         ) {
-            output.send(Message::Data(data_message));
+            output.send(Message::Data(data_message)).await;
         }
 
         async fn on_epoch(
@@ -144,10 +144,7 @@ mod tests {
         let rt = get_test_rt(|provider| {
             let (ontime, _late) = provider
                 .new_stream()
-                .source(
-                    "source",
-                    StatelessSource::new(SingleIteratorSource::new(0..10)),
-                )
+                .source("source", Source::from_enumerated_iterator(0..10))
                 .assign_timestamps("ts-double-value", |x| x.value * 2)
                 .generate_epochs("no-epochs", |_x, _y| None);
             ontime.sink("sink", StatelessSink::new(collector.clone()));
@@ -171,10 +168,7 @@ mod tests {
 
             let (stream, late) = provider
                 .new_stream()
-                .source(
-                    "source",
-                    StatelessSource::new(SingleIteratorSource::new(0..10)),
-                )
+                .source("source", Source::from_enumerated_iterator(0..10))
                 .assign_timestamps("ts-from-value", |x| x.value)
                 .generate_epochs("add-epoch", |msg, epoch| {
                     Some(msg.timestamp + epoch.unwrap_or(0))
@@ -202,10 +196,7 @@ mod tests {
             let time_collector = time_collector.clone();
             let (stream, _late) = provider
                 .new_stream()
-                .source(
-                    "source",
-                    StatelessSource::new(SingleIteratorSource::new(0..10)),
-                )
+                .source("source", Source::from_enumerated_iterator(0..10))
                 .generate_epochs("monotonic-epoch", |msg, _| Some(msg.timestamp));
 
             // this should remove epochs
@@ -233,10 +224,7 @@ mod tests {
             let collector = collector.clone();
             let (ontime, _late) = provider
                 .new_stream()
-                .source(
-                    "source",
-                    StatelessSource::new(SingleIteratorSource::new(1..4)),
-                )
+                .source("source", Source::from_enumerated_iterator(1..4))
                 .assign_timestamps("value-as-ts", |x| x.value)
                 .generate_epochs("monotonic", |msg, _epoch| Some(msg.timestamp));
 
@@ -280,7 +268,7 @@ mod tests {
                 .new_stream()
                 .source(
                     "source",
-                    StatelessSource::new(SingleIteratorSource::new((5..10).chain(0..5))),
+                    Source::from_enumerated_iterator((5..10).chain(0..5)),
                 )
                 .assign_timestamps("value-ts", |x| x.value)
                 .generate_epochs("monotonic", |msg, _epoch| Some(msg.timestamp));
@@ -311,10 +299,7 @@ mod tests {
             let collector_ontime = collector_ontime.clone();
             let (ontime, _) = provider
                 .new_stream()
-                .source(
-                    "source",
-                    StatelessSource::new(SingleIteratorSource::new(0..6)),
-                )
+                .source("source", Source::from_enumerated_iterator(0..6))
                 .generate_epochs("out-of-order", |msg, _epoch| {
                     match msg.timestamp {
                         3 => Some(2), // should be ignrored

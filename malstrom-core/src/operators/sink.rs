@@ -13,9 +13,10 @@ pub trait Sink<M, S>: Sealed {
     ///
     /// ```
     /// use malstrom::operators::*;
+    /// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
-    /// use malstrom::sources::{SingleIteratorSource, StatelessSource};
+    /// use malstrom::sources::Source;
     /// use malstrom::worker::StreamProvider;
     /// use malstrom::sinks::{VecSink, StatelessSink};
     ///
@@ -26,7 +27,7 @@ pub trait Sink<M, S>: Sealed {
     ///     .persistence(NoPersistence)
     ///     .build(move |provider: &mut dyn StreamProvider| {
     ///         provider.new_stream()
-    ///         .source("numbers", StatelessSource::new(SingleIteratorSource::new(0..10)))
+    ///         .source("numbers", Source::from_iterator(0..10))
     ///         .sink("sink", StatelessSink::new(sink_clone));
     ///     })
     ///     .execute()

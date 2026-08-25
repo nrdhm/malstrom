@@ -16,9 +16,10 @@ pub trait FilterMap<In: Kvt, T: Data, Mapper>: Sealed {
     /// Only retain numeric strings
     /// ```rust
     /// use malstrom::operators::*;
+    /// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
-    /// use malstrom::sources::{SingleIteratorSource, StatelessSource};
+    /// use malstrom::sources::Source;
     /// use malstrom::worker::StreamProvider;
     /// use malstrom::sinks::{VecSink, StatelessSink};
     ///
@@ -29,10 +30,10 @@ pub trait FilterMap<In: Kvt, T: Data, Mapper>: Sealed {
     ///     .persistence(NoPersistence)
     ///     .build(move |provider: &mut dyn StreamProvider| {
     ///         provider.new_stream()
-    ///         .source("numbers", StatelessSource::new(
-    ///             SingleIteratorSource::new(["0", "one", "2", "3", "four"])
-    ///         ))
-    ///         .filter_map("filter_map", |x| x.parse::<i32>().ok())
+    ///         .source("numbers", Source::from_iterator([
+    ///             "0".to_string(), "one".to_string(), "2".to_string(), "3".to_string(), "four".to_string(),
+    ///         ]))
+    ///         .filter_map("filter_map", async |x| x.parse::<i32>().ok())
     ///         .sink("sink", StatelessSink::new(sink_clone));
     ///     })
     ///     .execute()
@@ -83,9 +84,9 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
-        operators::{sink::Sink, source::Source},
+        operators::{sink::Sink, source::Source as _},
         sinks::StatelessSink,
-        sources::{SingleIteratorSource, StatelessSource},
+        sources::Source,
         testing::{VecSink, get_test_rt},
     };
 
@@ -96,10 +97,7 @@ mod tests {
         let rt = get_test_rt(|provider| {
             provider
                 .new_stream()
-                .source(
-                    "source",
-                    StatelessSource::new(SingleIteratorSource::new(0..100)),
-                )
+                .source("source", Source::from_iterator(0..100))
                 .filter_map(
                     "less-than-42",
                     async |x| if x < 42 { Some(x * 2) } else { None },

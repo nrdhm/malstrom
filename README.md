@@ -29,7 +29,7 @@ use malstrom::operators::*;
 use malstrom::runtime::MultiThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;
-use malstrom::sources::{SingleIteratorSource, StatelessSource};
+use malstrom::sources::Source;
 use malstrom::worker::StreamProvider;
 
 fn main() {
@@ -46,14 +46,14 @@ fn build_dataflow(provider: &mut dyn StreamProvider) {
         .new_stream()
         .source(
             "words",
-            StatelessSource::new(SingleIteratorSource::new([
-                "Look",
-                "ma'",
-                "I'm",
-                "streaming",
-            ])),
+            Source::from_iterator([
+                "Look".to_string(),
+                "ma'".to_string(),
+                "I'm".to_string(),
+                "streaming".to_string(),
+            ]),
         )
-        .map("upper", |x| x.to_uppercase())
+        .map("upper", async |x| x.to_uppercase())
         .sink("stdout", StatelessSink::new(StdOutSink));
 }
 ```
@@ -61,10 +61,10 @@ fn build_dataflow(provider: &mut dyn StreamProvider) {
 This outputs
 
 ```
-{ key: NoKey, value: "LOOK", timestamp: 0 }
-{ key: NoKey, value: "MA'", timestamp: 1 }
-{ key: NoKey, value: "I'M", timestamp: 2 }
-{ key: NoKey, value: "STREAMING", timestamp: 3 }
+{ key: NoKey, value: "LOOK", timestamp: OnceTime(false) }
+{ key: NoKey, value: "MA'", timestamp: OnceTime(false) }
+{ key: NoKey, value: "I'M", timestamp: OnceTime(false) }
+{ key: NoKey, value: "STREAMING", timestamp: OnceTime(false) }
 ```
 
 # How production ready is Malstrom
@@ -76,3 +76,18 @@ proof of concept than a production ready streaming framework.
 
 "Malstrom" is the German name for the [Moskstraumen](https://en.wikipedia.org/wiki/Moskstraumen)
 one of the strongest and fastest tidal currents in the world.
+
+# Repository overviews
+
+Concise, code-linked notes about the project, its branches and dependencies live in
+[`docs/overviews/`](docs/overviews/README.md). After notable changes, refresh their
+stamps and the dependency diff with `scripts/refresh-overviews.sh`.
+
+# Agent Notes
+
+Design decisions and proposals affecting this codebase are recorded as RFC-style
+[Agent Notes](.agents/notes/README.md) — the *why* and *what we gave up*, the parts code
+and docs can't carry. They live under `.agents/notes/`, organized by lifecycle
+(`proposed/`, `implemented/`, `rejected/`, `archived/`) and class (`architecture`,
+`bug-fix`, `feature`, `process`, `simplification`, `testing`). Every non-trivial change
+adds or updates one.

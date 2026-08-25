@@ -1,9 +1,9 @@
 //! Using SlateDB as a persistence backend
-use malstrom::keyed::partitioners::rendezvous_select;
+use malstrom::keyed::rendezvous_select;
 use malstrom::operators::*;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::slatedb::object_store::{local::LocalFileSystem, path::Path};
-use malstrom::sources::{StatefulSource, StatefulSourceImpl, StatefulSourcePartition};
+use malstrom::sources::{Source, SourceImpl, SourcePartition};
 use malstrom::{runtime::SingleThreadRuntime, snapshot::SlateDbBackend, worker::StreamProvider};
 use std::sync::Arc;
 use std::thread::sleep;
@@ -34,7 +34,7 @@ fn build_dataflow(provider: &mut dyn StreamProvider) {
     let fail_interval = Duration::from_secs(10);
     provider
         .new_stream()
-        .source("iter-source", StatefulSource::new(StatefulNumberSource(0)))
+        .source("iter-source", Source::from_impl(StatefulNumberSource(0)))
         .key_distribute("key-by-value", |x| x.value & 1 == 1, rendezvous_select)
         .stateful_map("sum", |_key, value, state: i32| {
             let state = state + value;
@@ -54,44 +54,45 @@ fn build_dataflow(provider: &mut dyn StreamProvider) {
 
 struct StatefulNumberSource(i32);
 
-impl StatefulSourceImpl<i32, i32> for StatefulNumberSource {
-    type Part = ();
+impl SourceImpl for StatefulNumberSource {
+    type PartitionKey = ();
+    type Value = i32;
+    type Timestamp = i32;
     type PartitionState = i32;
-    type SourcePartition = Self;
+    type Partition = Self;
 
-    fn list_parts(&self) -> Vec<Self::Part> {
+    async fn discover(&mut self) -> Vec<Self::PartitionKey> {
         vec![()]
     }
 
-    fn build_part(
+    async fn open(
         &mut self,
-        _part: &Self::Part,
+        _part: &Self::PartitionKey,
         part_state: Option<Self::PartitionState>,
-    ) -> Self::SourcePartition {
+    ) -> Self::Partition {
         println!("Build with {part_state:?}");
         Self(part_state.unwrap_or_default())
     }
 }
 
-impl StatefulSourcePartition<i32, i32> for StatefulNumberSource {
-    type PartitionState = i32;
+impl SourcePartition for StatefulNumberSource {
+    type PartitionKey = ();
+    type Value = i32;
+    type Timestamp = i32;
+    type State = i32;
 
-    fn poll(&mut self) -> Option<(i32, i32)> {
+    async fn poll(&mut self) -> Option<(Self::Value, Self::Timestamp)> {
         let out = Some((self.0, self.0));
         self.0 += 1;
         out
     }
 
-    fn is_finished(&mut self) -> bool {
-        false
-    }
-
-    fn snapshot(&self) -> Self::PartitionState {
+    async fn snapshot(&self) -> Self::State {
         println!("SNAPSHOTTING SOURCE");
         self.0
     }
 
-    fn collect(self) -> Self::PartitionState {
+    async fn collect(self) -> Self::State {
         self.0
     }
 }

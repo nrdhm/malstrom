@@ -58,7 +58,7 @@ where
             .map_err(|rc| WorkerExecutionError::UnfinishedStreams(Rc::strong_count(&rc) - 1))?
             .into_inner()
             .expect("Lock poisened");
-        inner.add_operator(self.root_operator);
+        inner.add_root_operator(self.root_operator);
 
         let worker = inner.operator_rt.block_on(Worker::new(
             self.persistence,
@@ -80,6 +80,9 @@ pub(crate) struct InnerRuntimeBuilder {
     build_ctx: tokio::sync::broadcast::Sender<WorkerBuildContext>,
     operator_rt: Rc<LocalRuntime>,
     operator_tasks: HashMap<OperatorId, tokio::task::JoinHandle<()>>,
+    // the root operator task is kept separately: it only exists to inject system
+    // messages, so job completion must not wait for it
+    root_task: Option<tokio::task::JoinHandle<()>>,
 }
 
 impl InnerRuntimeBuilder {
@@ -88,7 +91,21 @@ impl InnerRuntimeBuilder {
             build_ctx: tokio::sync::broadcast::Sender::new(1),
             operator_rt: Rc::new(LocalRuntime::new().unwrap()),
             operator_tasks: HashMap::new(),
+            root_task: None,
         }
+    }
+
+    /// Spawn the root operator task. Not joined by [Worker::execute].
+    pub(crate) fn add_root_operator<B>(&mut self, operator: Operator<(), B, ()>)
+    where
+        B: LogicBuilder<(), ()>,
+    {
+        let mut ctx_receiver = self.build_ctx.subscribe();
+        let task = self.operator_rt.spawn_local(async move {
+            let build_ctx = ctx_receiver.recv().map(Result::unwrap);
+            operator.start(build_ctx).await;
+        });
+        self.root_task = Some(task);
     }
 
     pub(crate) fn add_operator<In, B, Out>(

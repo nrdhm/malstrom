@@ -18,9 +18,10 @@ pub trait Inspect<Msg: Kvt, Inspector>: Sealed {
     ///
     /// ```rust
     /// use malstrom::operators::*;
+    /// use malstrom::operators::Source as _;
     /// use malstrom::runtime::SingleThreadRuntime;
     /// use malstrom::snapshot::NoPersistence;
-    /// use malstrom::sources::{SingleIteratorSource, StatelessSource};
+    /// use malstrom::sources::Source;
     /// use malstrom::worker::StreamProvider;
     /// use malstrom::sinks::{VecSink, StatelessSink};
     ///
@@ -33,7 +34,7 @@ pub trait Inspect<Msg: Kvt, Inspector>: Sealed {
     ///     .persistence(NoPersistence)
     ///     .build(move |provider: &mut dyn StreamProvider| {
     ///         provider.new_stream()
-    ///         .source("numbers", StatelessSource::new(SingleIteratorSource::new(0..100)))
+    ///         .source("numbers", Source::from_iterator(0..100))
     ///         .
     /// inspect("inspect", async move |msg, _ctx| sink_insepct.give(msg.clone()))
     ///         .sink("sink", StatelessSink::new(sink_output));
@@ -103,9 +104,10 @@ mod tests {
     use itertools::Itertools;
 
     use crate::{
+        operators::Source as _,
         operators::*,
         sinks::StatelessSink,
-        sources::{SingleIteratorSource, StatelessSource},
+        sources::Source,
         testing::{VecSink, get_test_rt},
     };
 
@@ -114,17 +116,19 @@ mod tests {
         let inspect_collector = VecSink::new();
         let output_collector = VecSink::new();
 
-        let input = vec!["hello", "world", "foo", "bar"];
+        let input = vec![
+            "hello".to_string(),
+            "world".to_string(),
+            "foo".to_string(),
+            "bar".to_string(),
+        ];
         let expected = input.clone();
 
         let rt = get_test_rt(|provider| {
             let inspect_collector = inspect_collector.clone();
             provider
                 .new_stream()
-                .source(
-                    "source",
-                    StatelessSource::new(SingleIteratorSource::new(input.clone())),
-                )
+                .source("source", Source::from_iterator(input.clone()))
                 .inspect("inspect", async move |x, _| {
                     inspect_collector.give(x.value.to_owned())
                 })

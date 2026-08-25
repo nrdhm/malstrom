@@ -1,11 +1,12 @@
 //! Usage example for the ttl_map operator
 use expiremap::ExpireMap;
 use malstrom::keyed::KeyLocal;
+use malstrom::operators::Source as _;
 use malstrom::operators::*;
 use malstrom::runtime::SingleThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;
-use malstrom::sources::{SingleIteratorSource, StatelessSource};
+use malstrom::sources::Source;
 use malstrom::worker::StreamProvider;
 use std::time::Duration;
 
@@ -29,10 +30,7 @@ struct MyState {
 fn build_running_total_dataflow(provider: &mut dyn StreamProvider) {
     let (ontime, _late) = provider
         .new_stream()
-        .source(
-            "source",
-            StatelessSource::new(SingleIteratorSource::new(1..=25)),
-        )
+        .source("source", Source::from_enumerated_iterator(1..=25))
         .key_local("key-local", |x| ()) // only one key
         .assign_timestamps("assigner", |msg| msg.timestamp)
         .generate_epochs("generate", |msg, _| Some(msg.timestamp));

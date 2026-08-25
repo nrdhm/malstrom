@@ -5,12 +5,13 @@ use chrono::{Datelike, NaiveDate, TimeDelta};
 use indexmap::IndexMap;
 use malstrom::{
     channels::operator_io::Output,
-    keyed::partitioners::rendezvous_select,
+    keyed::rendezvous_select,
+    operators::Source as _,
     operators::*,
     runtime::SingleThreadRuntime,
     sinks::{StatelessSink, StdOutSink},
     snapshot::NoPersistence,
-    sources::{SingleIteratorSource, StatelessSource},
+    sources::Source,
     types::{DataMessage, Message, Timestamp},
     worker::StreamProvider,
 };
@@ -71,10 +72,7 @@ fn main() {
 fn build_dataflow(provider: &mut dyn StreamProvider) {
     let (stream, _late) = provider
         .new_stream()
-        .source(
-            "iter-source",
-            StatelessSource::new(SingleIteratorSource::new(TRANSACTIONS.clone())),
-        )
+        .source("iter-source", Source::from_iterator(TRANSACTIONS.clone()))
         .key_distribute(
             "key-year-month",
             |msg| {

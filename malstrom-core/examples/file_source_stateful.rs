@@ -1,10 +1,10 @@
-//! Example of a stateless source reading from files on the local filesystem
+//! Example of a stateful source reading from files on the local filesystem
 use core::iter::Enumerate;
 use malstrom::{
-    operators::Source,
+    operators::Source as _,
     runtime::SingleThreadRuntime,
     snapshot::NoPersistence,
-    sources::{StatefulSource, StatefulSourceImpl, StatefulSourcePartition},
+    sources::{Source, SourceImpl, SourcePartition},
     worker::StreamProvider,
 };
 use std::{
@@ -25,21 +25,23 @@ impl FileSource {
 }
 
 /// Implement the source emitting String values and usize timestamps
-impl StatefulSourceImpl<String, usize> for FileSource {
+impl SourceImpl for FileSource {
     // we will create one partition per path (String)
-    type Part = String;
-    type SourcePartition = FileSourcePartition;
+    type PartitionKey = String;
+    type Value = String;
+    type Timestamp = usize;
+    type Partition = FileSourcePartition;
     type PartitionState = usize;
 
-    fn list_parts(&self) -> Vec<Self::Part> {
+    async fn discover(&mut self) -> Vec<Self::PartitionKey> {
         self.paths.clone()
     }
 
-    fn build_part(
+    async fn open(
         &mut self,
-        part: &Self::Part,
+        part: &Self::PartitionKey,
         state: Option<Self::PartitionState>,
-    ) -> Self::SourcePartition {
+    ) -> Self::Partition {
         FileSourcePartition::new(part.clone(), state.unwrap_or(0))
     }
 }
@@ -62,9 +64,13 @@ impl FileSourcePartition {
     }
 }
 
-impl StatefulSourcePartition<String, usize> for FileSourcePartition {
-    type PartitionState = usize;
-    async fn poll(&mut self) -> Option<(String, usize)> {
+impl SourcePartition for FileSourcePartition {
+    type PartitionKey = String;
+    type State = usize;
+    type Value = String;
+    type Timestamp = usize;
+
+    async fn poll(&mut self) -> Option<(Self::Value, Self::Timestamp)> {
         // open the file
         let file = self.file.get_or_insert_with(|| {
             BufReader::new(File::open(&self.path).unwrap())
@@ -79,11 +85,11 @@ impl StatefulSourcePartition<String, usize> for FileSourcePartition {
         })
     }
 
-    fn snapshot(&self) -> Self::PartitionState {
+    async fn snapshot(&self) -> Self::State {
         self.next_line
     }
 
-    fn collect(self) -> Self::PartitionState {
+    async fn collect(self) -> Self::State {
         self.next_line
     }
 }
@@ -92,7 +98,7 @@ impl StatefulSourcePartition<String, usize> for FileSourcePartition {
 fn build_dataflow(provider: &mut dyn StreamProvider) {
     provider.new_stream().source(
         "files",
-        StatefulSource::new(FileSource::new(vec![
+        Source::from_impl(FileSource::new(vec![
             "/some/path.txt".to_string(),
             "/some/other/path.txt".to_string(),
         ])),

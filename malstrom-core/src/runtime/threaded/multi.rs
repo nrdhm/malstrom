@@ -1,13 +1,19 @@
 use std::{sync::Arc, time::Duration};
 
+use async_trait::async_trait;
 use bon::Builder;
 use thiserror::Error;
 
 use crate::{
-    coordinator::{Coordinator, CoordinatorApi, CoordinatorExecutionError},
-    runtime::{RuntimeFlavor},
+    coordinator::{ApiRequestError, Coordinator, CoordinatorApi, CoordinatorExecutionError},
+    runtime::{
+        OperatorOperatorComm, RuntimeFlavor,
+        communication::{
+            ReqResReceiver, ReqResSender, StreamReceiver, StreamSender, WorkerCoordinatorComm,
+        },
+    },
     snapshot::PersistenceBackend,
-    types::WorkerId,
+    types::{OperatorId, WorkerId},
     worker::{StreamProvider, WorkerBuilder, WorkerExecutionError},
 };
 
@@ -20,11 +26,12 @@ use super::communication::{
 /// # Example
 /// ```rust
 /// use malstrom::operators::*;
+/// use malstrom::operators::Source as _;
 /// use malstrom::runtime::MultiThreadRuntime;
 /// use malstrom::snapshot::NoPersistence;
-/// use malstrom::sources::{SingleIteratorSource, StatelessSource};
+/// use malstrom::sources::Source;
 /// use malstrom::worker::StreamProvider;
-/// use malstrom::keyed::partitioners::rendezvous_select;
+/// use malstrom::keyed::rendezvous_select;
 ///
 ///
 /// MultiThreadRuntime::builder()
@@ -32,9 +39,9 @@ use super::communication::{
 ///     .persistence(NoPersistence)
 ///     .build(|provider: &mut dyn StreamProvider| {
 ///         provider.new_stream()
-///         .source("numbers", StatelessSource::new(SingleIteratorSource::new(0..100)))
+///         .source("numbers", Source::from_iterator(0..100))
 ///         .key_distribute("key-by-value", |x| x.value, rendezvous_select)
-///         .inspect("print", |x, ctx| {
+///         .inspect("print", async |x, ctx| {
 ///             println!("{x:?} @ Worker {}", ctx.worker_id)
 ///         });
 ///     })
@@ -87,6 +94,7 @@ where
                 self.build,
                 self.persistence.clone(),
                 Arc::clone(&operator_channels),
+                Arc::clone(&coord_channels),
                 i,
             );
             threads.push(thread);
@@ -101,6 +109,7 @@ where
                             self.build,
                             self.persistence.clone(),
                             Arc::clone(&operator_channels),
+                            Arc::clone(&coord_channels),
                             i,
                         );
                         threads.push(thread);
@@ -117,13 +126,18 @@ where
     fn spawn_worker(
         build_fn: fn(&mut dyn StreamProvider) -> (),
         persistence: P,
-        shared: InterThreadChannels<Vec<u8>>,
+        operator_channels: OperatorChannels,
+        coordinator_channels: CoordinatorChannels,
         thread_id: u64,
     ) -> std::thread::JoinHandle<Result<(), ExecutionError>> {
         std::thread::Builder::new()
             .name(format!("worker-{thread_id}"))
             .spawn(move || {
-                let flavor = MultiThreadRuntimeFlavor::new(shared, thread_id);
+                let flavor = MultiThreadRuntimeFlavor::new(
+                    operator_channels,
+                    coordinator_channels,
+                    thread_id,
+                );
                 let mut worker_builder = WorkerBuilder::new(flavor, persistence);
                 build_fn(&mut worker_builder);
                 worker_builder.execute().map_err(ExecutionError::Worker)
@@ -151,12 +165,21 @@ pub enum ExecutionError {
 /// This is passed to the worker
 /// You can not construct this directly use [MultiThreadRuntime] instead
 pub struct MultiThreadRuntimeFlavor {
-    shared: Shared,
+    operator_channels: OperatorChannels,
+    coordinator_channels: CoordinatorChannels,
     worker_id: u64,
 }
 impl MultiThreadRuntimeFlavor {
-    fn new(shared: Shared, worker_id: WorkerId) -> Self {
-        MultiThreadRuntimeFlavor { shared, worker_id }
+    fn new(
+        operator_channels: OperatorChannels,
+        coordinator_channels: CoordinatorChannels,
+        worker_id: WorkerId,
+    ) -> Self {
+        MultiThreadRuntimeFlavor {
+            operator_channels,
+            coordinator_channels,
+            worker_id,
+        }
     }
 }
 
@@ -165,15 +188,61 @@ impl RuntimeFlavor for MultiThreadRuntimeFlavor {
 
     fn communication(
         &mut self,
-    ) -> Result<Self::Communication, crate::runtime::runtime_flavor::CommunicationError> {
-        Ok(InterThreadCommunication::new(
-            self.shared.clone(),
-            self.worker_id,
-        ))
+    ) -> Result<Self::Communication, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(InterThreadCommunication {
+            operator: OperatorCommunication::new(self.operator_channels.clone(), self.worker_id),
+            coordinator: CoordinatorCommunication::new(
+                self.coordinator_channels.clone(),
+                self.worker_id,
+            ),
+        })
     }
 
     fn this_worker_id(&self) -> u64 {
         self.worker_id
+    }
+}
+
+/// In-process communication for the multi-thread runtime (one worker per thread).
+/// Delegates to the shared inter-thread channel infrastructure
+/// ([crate::runtime::threaded::communication]).
+pub struct InterThreadCommunication {
+    operator: OperatorCommunication,
+    coordinator: CoordinatorCommunication,
+}
+
+#[async_trait]
+impl OperatorOperatorComm for InterThreadCommunication {
+    async fn new_sender(
+        &self,
+        to_worker: WorkerId,
+        channel_id: OperatorId,
+    ) -> Result<Box<dyn StreamSender>, Box<dyn std::error::Error>> {
+        self.operator.new_sender(to_worker, channel_id).await
+    }
+
+    async fn new_receiver(
+        &self,
+        from_worker: WorkerId,
+        channel_id: OperatorId,
+    ) -> Result<Box<dyn StreamReceiver>, Box<dyn std::error::Error>> {
+        self.operator.new_receiver(from_worker, channel_id).await
+    }
+}
+
+#[async_trait]
+impl WorkerCoordinatorComm for InterThreadCommunication {
+    async fn worker_to_coordinator(
+        &self,
+    ) -> Result<Box<dyn ReqResReceiver>, Box<dyn std::error::Error + Send + Sync>> {
+        self.coordinator.worker_to_coordinator().await
+    }
+
+    async fn coordinator_to_worker(
+        &self,
+        to_worker: WorkerId,
+    ) -> Result<Box<dyn ReqResSender>, Box<dyn std::error::Error + Send + Sync>> {
+        self.coordinator.coordinator_to_worker(to_worker).await
     }
 }
 
@@ -183,16 +252,16 @@ pub struct MultiThreadRuntimeApiHandle {
 }
 
 impl MultiThreadRuntimeApiHandle {
-    pub async fn rescale(&self, desired: u64) -> Result<(), CoordinatorRequestError> {
+    pub async fn rescale(&self, desired: u64) -> Result<(), ApiRequestError> {
         // instruct the runtime to spawn another thread if needed
         self.rescale_req
             .send(desired)
-            .map_err(|_| CoordinatorRequestError::NotRunning)?;
+            .map_err(|_| ApiRequestError::NotRunning)?;
         // instruct the coordinator to re-distribute computation
         self.coord_channel
             .borrow()
             .as_ref()
-            .ok_or(CoordinatorRequestError::NotRunning)?
+            .ok_or(ApiRequestError::NotRunning)?
             .rescale(desired)
             .await
     }

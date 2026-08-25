@@ -1,8 +1,9 @@
 //! Sources for reading data
-mod single_iterator;
+mod fn_source;
 mod stateful;
-mod stateless;
 
-pub use single_iterator::SingleIteratorSource;
-pub use stateful::{StatefulSource, StatefulSourceImpl, StatefulSourcePartition};
-pub use stateless::{StatelessSource, StatelessSourceImpl, StatelessSourcePartition};
+pub use fn_source::{
+    FromEnumeratedIteratorPartition, FromEnumeratedIteratorSource, FromIteratorPartition,
+    FromIteratorSource, FromStreamPartition, FromStreamSource, PollPartition, PollSource,
+};
+pub use stateful::{Source, SourceImpl, SourcePartition};

@@ -99,13 +99,6 @@ where
     T: Data,
     L: StatelessLogic<In, T>,
 {
-    async fn on_schedule(
-        &mut self,
-        output: &mut Output<(In::Key, T, In::Timestamp)>,
-        ctx: &mut crate::stream::OperatorContext,
-    ) {
-    }
-
     async fn on_data(
         &mut self,
         data_message: DataMessage<In>,

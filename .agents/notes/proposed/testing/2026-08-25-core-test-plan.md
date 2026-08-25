@@ -1,12 +1,72 @@
 # Agent Note: Test the `malstrom` core (kernel) for behavior and API stability
 
-Status: proposed
+Status: proposed (Layer 1a implemented 2026-08-25 — see Progress below)
+
+## Progress
+
+### Layer 1a — DONE (2026-08-25)
+
+`malstrom-core/tests/` now contains four contract-test files (importing only
+`malstrom_core::`, no layer crates):
+
+- `tests/common/mod.rs` — in-process mock of `OperatorOperatorComm` +
+  `WorkerCoordinatorComm` + a `RuntimeFlavor` (`MemoryComm`/`MemoryFlavor`), used by
+  `runtime_flavor_contract.rs`.
+- `tests/safe_logic_contract.rs` — `SafeLogic` operator ordering (`on_schedule` →
+  `on_data`/`on_barrier`/`on_epoch`) + automatic system-message forwarding. PASSES.
+- `tests/completion.rs` — kernel-only source emitting `Epoch(MAX)` terminates both
+  runtimes; multi-worker parallelism doubles the values. PASSES.
+- `tests/runtime_flavor_contract.rs` — the comm/flavor seam round-trips (operator
+  stream, coordinator req/res, flavor communication). PASSES (req/res test needed a
+  concurrent sender — `receiver.recv()` before any send can never return).
+- `tests/rescale.rs` — rescale 1→2 without deadlock, job still completes. PASSES.
+
+**Writing `rescale.rs` found three real kernel bugs, all fixed in this change:**
+
+1. **Rescale sent the startup protocol to existing workers**
+   `ClusterHandle::reconfigure` called `start_build`/`start_execution` for *all* workers;
+   an existing worker's `CoordinationTask` only decodes the `RuntimeMessage` enum, so the
+   tuple-struct `StartBuild` was mis-decoded as the enum and panicked, killing the
+   coordinator loop (`Err(Stopped)` on the API handle). Fixed: bootstrap only the
+   newly-added workers; existing workers learn the new scale via
+   `RuntimeMessage::Reconfigure`. (The rescaling example previously "worked" only because
+   its 2→2 rescale is a no-op and the fatal 2→1 happened late.)
+2. **Rescale never spawned the new worker**
+   `MultiThreadRuntime::execute` used `threads.len()` (which includes the coordinator
+   thread) as the current scale, so a rescale from P to P+1 spawned nothing and the
+   coordinator's `start_build` blocked forever on the missing worker. Fixed: track
+   `workers_spawned` separately.
+3. **Terminal operator output blocked forever after 1024 messages**
+   The spsc `Send::poll` queued into the bounded channel even after the receiver was
+   dropped (its "sends without a receiver drop the message" doc was a lie; the
+   `sending_without_receiver` unit test never polled the future, so it false-passed).
+   The last operator's output tail receiver is dropped at build time, so after 1024
+   records the terminal's `send` blocked forever, stalling the whole pipeline (the
+   source never polled its input, so the rescale handshake could not complete). Fixed:
+   `Send::poll` drops the message when `has_receiver == false`, matching the documented
+   intent. This is why the earlier tests (5 records, 2 records) never hit it.
+
+**Observed but NOT fixed (pre-existing, outside Layer 1a):** the rescaling example's
+stateless 2→2 rescale completes, but its *stateful* 2→1 downscale stalls in the
+keyed-state movement machinery (Interrogate/Collect/Acquire handshake). Previously the
+coordinator died at that point; it now reaches the state-movement layer and hangs. Also,
+downscale never shuts removed worker threads down (their sources keep running until
+`Epoch(MAX)`). Both are candidates for a follow-up (Layer 4 regression or a dedicated
+state-movement fix) — the kernel stateless scale-up path is proven by `rescale.rs`.
+
+### Remaining layers
+
+- 1b: `malstrom/tests/` (hello_pipeline + namespace) — unblocked, facade landed.
+- 2: unit tests (types/stream/channels/runtime/coordinator/worker/snapshot).
+- 3: proptest — must re-add `proptest` to the kernel dev-deps (dropped with all dev-deps).
+- 4: the 10 regression tests from the table.
+- 5: doc examples on the public extension surface.
 
 ## Problem
 
 The kernel is the foundation every other crate builds on, and its public surface was just
 widened by [split-malstrom-core](../../implemented/architecture/2026-08-24-split-malstrom-core.md)
-— but almost none of it is pinned by tests. Current coverage is 22 unit tests concentrated in
+— but almost none of it is pinned by tests. Current coverage is 19 unit tests concentrated in
 `channels` (14) and `coordinator/watchmap` (5):
 
 | Module | Tests | Gap |

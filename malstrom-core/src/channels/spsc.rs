@@ -122,6 +122,14 @@ impl<'a, T> Future for Send<'a, T> {
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Self::Output> {
         let mut shared = self.sender.shared.borrow_mut();
+        if !shared.has_receiver {
+            // The receiver is gone (e.g. the terminal operator's output, whose tail
+            // receiver is dropped at build time) — drop the message instead of
+            // queueing it. Queuing would eventually fill the bounded channel and
+            // block the upstream operator forever.
+            self.value.take();
+            return Poll::Ready(());
+        }
         if shared.capacity > shared.queue.len() {
             if let Some(v) = self.value.take() {
                 shared.queue.push_back(v);

@@ -46,9 +46,9 @@ impl ClusterHandle {
     //     }
     // }
 
-    /// Start execution graph build on all workers
-    /// Completes when all workers have finished building
-    pub async fn start_build(&self) -> () {
+    /// Start execution graph build on the given workers
+    /// Completes when all of them have finished building
+    pub async fn start_build(&self, targets: &[WorkerId]) -> () {
         let build_info = BuildInformation {
             worker_set: self.workers.keys().map(|x| *x).collect(),
             resume_snapshot: self.snapshot_version,
@@ -57,18 +57,20 @@ impl ClusterHandle {
         let msg = StartBuild(build_info);
         let responses = self
             .workers
-            .values()
-            .map(|(_, client)| client.send::<_, ()>(msg.clone()));
+            .iter()
+            .filter(|(wid, _)| targets.contains(wid))
+            .map(|(_, (_, client))| client.send::<_, ()>(msg.clone()));
         join_all(responses).await;
     }
 
-    /// Start job execution on all workers
-    pub async fn start_execution(&self) -> () {
+    /// Start job execution on the given workers
+    pub async fn start_execution(&self, targets: &[WorkerId]) -> () {
         let msg = StartExecution;
         let responses = self
             .workers
-            .values()
-            .map(|(_, client)| client.send::<_, ()>(msg.clone()));
+            .iter()
+            .filter(|(wid, _)| targets.contains(wid))
+            .map(|(_, (_, client))| client.send::<_, ()>(msg.clone()));
         join_all(responses).await;
     }
 
@@ -106,13 +108,21 @@ impl ClusterHandle {
     where
         C: Sync + WorkerCoordinatorComm,
     {
+        let mut new_workers = Vec::new();
         for wid in new_set.iter() {
             if !self.workers.contains_key(wid) {
-                self.add_worker(*wid, comm).await?
+                self.add_worker(*wid, comm).await?;
+                new_workers.push(*wid);
             }
         }
-        self.start_build().await;
-        self.start_execution().await;
+        // Bootstrap only the newly-added workers. Existing workers keep running and
+        // learn about the new scale from `RuntimeMessage::Reconfigure` below — their
+        // coordination tasks only decode `RuntimeMessage`, never the startup protocol,
+        // so sending them `StartBuild`/`StartExecution` would be mis-decoded.
+        if !new_workers.is_empty() {
+            self.start_build(&new_workers).await;
+            self.start_execution(&new_workers).await;
+        }
         let next_version = self.config_version.map(|x| x + 1).unwrap_or_default();
         let msg = RuntimeMessage::Reconfigure((new_set.clone(), next_version));
         let responses = self

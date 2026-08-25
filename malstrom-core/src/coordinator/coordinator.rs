@@ -106,8 +106,12 @@ where
         .await
         .map_err(|_| CoordinatorError::Communication)?;
     // start job on all workers
-    state.start_build().await;
-    state.start_execution().await;
+    state
+        .start_build(&state.workers.keys().copied().collect::<Vec<_>>())
+        .await;
+    state
+        .start_execution(&state.workers.keys().copied().collect::<Vec<_>>())
+        .await;
 
     loop {
         // either wake on API request or loop duration elapsed

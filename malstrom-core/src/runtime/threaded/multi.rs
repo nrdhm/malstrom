@@ -268,12 +268,20 @@ mod tests {
         SEEN.get_or_init(|| Mutex::new(Vec::new()))
     }
 
-    /// A minimal source: emits `0..max` once, then finishes the stream.
-    struct Numbers {
-        next: usize,
-        max: usize,
-        done: bool,
+    /// How many times the source operator's `apply` was called across all workers —
+    /// proves the runtime drives the state machine over multiple `apply` calls.
+    static APPLY_CALLS: OnceLock<Mutex<usize>> = OnceLock::new();
+
+    fn apply_calls() -> &'static Mutex<usize> {
+        APPLY_CALLS.get_or_init(|| Mutex::new(0))
     }
+
+    /// A minimal source with operator state: every `apply` call emits exactly one
+    /// record (advancing the counter), so the runtime's repeated-`apply` loop drives
+    /// the state machine — closer to how a real source is exercised. Once the
+    /// counter reaches `max` it emits `Epoch(MAX)`; no data is ever emitted after
+    /// the stream is finished.
+    struct Numbers(usize, usize);
     impl Logic<(), (usize, usize, usize)> for Numbers {
         async fn apply(
             &mut self,
@@ -281,16 +289,14 @@ mod tests {
             output: &mut Output<(usize, usize, usize)>,
             _ctx: &mut OperatorContext,
         ) {
-            if !self.done {
-                self.done = true;
-                while self.next < self.max {
-                    output
-                        .send(Message::Data(DataMessage::new(
-                            self.next, self.next, self.next,
-                        )))
-                        .await;
-                    self.next += 1;
-                }
+            *apply_calls().lock().unwrap() += 1;
+            let Numbers(next, max) = self;
+            if *next < *max {
+                output
+                    .send(Message::Data(DataMessage::new(*next, *next, *next)))
+                    .await;
+                *next += 1;
+            } else {
                 output.send(Message::Epoch(usize::MAX)).await;
             }
         }
@@ -315,11 +321,14 @@ mod tests {
     }
 
     /// Every worker runs the same dataflow, so the four workers each emit `0..5` —
-    /// 20 records total, every value observed on all four workers.
+    /// 20 records total, every value observed on all four workers. Also asserts the
+    /// source's `apply` was driven repeatedly by the runtime loop (at least one call
+    /// per emitted record plus the finishing `Epoch(MAX)` call, per worker).
     /// Exercises the kernel's public extension API end-to-end (no `malstrom-operators`).
     #[test]
     fn multi_thread_runtime_runs_dataflow_on_all_workers() {
         seen().lock().unwrap().clear();
+        *apply_calls().lock().unwrap() = 0;
 
         MultiThreadRuntime::builder()
             .parrallelism(4)
@@ -329,13 +338,7 @@ mod tests {
                     .new_stream()
                     .then(Operator::built_by(
                         "numbers".to_string(),
-                        |_ctx: &mut BuildContext| async {
-                            Numbers {
-                                next: 0,
-                                max: 5,
-                                done: false,
-                            }
-                        },
+                        |_ctx: &mut BuildContext| async { Numbers(0, 5) },
                     ))
                     .then(Operator::built_by(
                         "record-worker".to_string(),
@@ -355,5 +358,11 @@ mod tests {
                 "value {value} should be observed once per worker"
             );
         }
+
+        // at least 5 data emits + 1 finishing Epoch(MAX) apply per worker
+        assert!(
+            *apply_calls().lock().unwrap() >= 4 * (5 + 1),
+            "the runtime must drive the source's apply repeatedly, not once"
+        );
     }
 }

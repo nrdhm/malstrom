@@ -70,6 +70,32 @@ state-movement fix) — the kernel stateless scale-up path is proven by `rescale
   Note: `malstrom::coordinator::api` is private — the facade re-exports
   `CoordinatorApi`/`ApiRequestError` at `malstrom::coordinator::` directly.
 
+### Layer 2 — DONE (2026-08-25)
+
+Unit tests added inside the kernel source (21 new tests, unit count 19 → 40):
+
+- `types/distributable` — encode/decode round-trips (primitives, `String`, `Vec<u8>`,
+  nested tuples, `Kvt` tuples).
+- `types/time` — `Timestamp::merge` laws (min for numerics, AND for `OnceTime`),
+  `CHECK_FINISHED` only for MAX, `NoTime` semantics.
+- `types/message` — `DataMessage` serde round-trip, `Kvt` impls, payload constructors.
+- `channels/alignment` — replaced the `todo!()` placeholder: non-barrier passes
+  through, barrier held until *all* channels report then emitted together, group
+  recovers after alignment.
+- `coordinator/messages` — `StartBuild`/`StartExecution`/`RuntimeMessage` wire
+  round-trips (pins the format the coordination task decodes).
+- `coordinator/cluster` — regression: `reconfigure_bootstraps_only_new_workers` with a
+  mock `WorkerCoordinatorComm` + fake workers — worker 0 sees only
+  `StartBuild, StartExecution, Reconfigure`; worker 1 sees the same; pre-fix, worker 0
+  was sent `StartBuild` again and this test fails with a decode panic.
+- `snapshot` — `serialize_state`/`deserialize_state` round-trip.
+- `stream/stream_builder` — `link` wires output→input (single and multi-input).
+
+Also fixed a flake in `tests/safe_logic_contract.rs`: the operator loop polls the
+apply branch before the output-closed branch, so one trailing `schedule` pump (yielding
+no message) races shutdown; the test now trims trailing schedules before asserting the
+exact dispatch order.
+
 ### Remaining layers
 
 - 1b: `malstrom/tests/` (hello_pipeline + namespace) — unblocked, facade landed.

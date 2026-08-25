@@ -85,3 +85,48 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::channels::operator_io::{Input, Output, full_broadcast, link};
+    use crate::types::{DataMessage, Message};
+
+    type M = (u64, u64, u64);
+
+    /// `link` wires an output to an input: a message sent on the output arrives on the
+    /// linked input. `Malstrom::then` chains operators by exactly this primitive.
+    #[tokio::test]
+    async fn link_wires_output_to_input() {
+        let mut output: Output<M> = Output::new_unlinked(full_broadcast);
+        let mut input = Input::new_unlinked();
+        link(&mut output, &mut input);
+
+        output
+            .send(Message::Data(DataMessage::new(1u64, 2u64, 3u64)))
+            .await;
+        let msg = input.recv().await;
+        assert!(matches!(msg, Message::Data(d) if d.key == 1 && d.value == 2));
+    }
+
+    /// Linking twice yields two receivers; `Input::recv` drains them in order.
+    #[tokio::test]
+    async fn link_two_outputs_into_one_input() {
+        let mut out_a: Output<M> = Output::new_unlinked(full_broadcast);
+        let mut out_b: Output<M> = Output::new_unlinked(full_broadcast);
+        let mut input = Input::new_unlinked();
+        link(&mut out_a, &mut input);
+        link(&mut out_b, &mut input);
+
+        out_a.send(Message::Data(DataMessage::new(1u64, 1, 1))).await;
+        out_b.send(Message::Data(DataMessage::new(2u64, 2, 2))).await;
+
+        let mut seen = Vec::new();
+        for _ in 0..2 {
+            if let Message::Data(d) = input.recv().await {
+                seen.push(d.key);
+            }
+        }
+        seen.sort();
+        assert_eq!(seen, vec![1, 2]);
+    }
+}

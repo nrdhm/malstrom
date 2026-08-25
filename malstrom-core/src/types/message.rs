@@ -272,3 +272,53 @@ impl Drop for SuspendMarker {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{DataMessage, Kvt, Message};
+    use crate::types::{NoData, NoKey, NoTime};
+    use crate::types::distributable::Distributable;
+
+    /// `DataMessage` is the record that crosses every operator channel — its serde
+    /// round-trip must preserve key/value/timestamp exactly.
+    #[test]
+    fn data_message_round_trips() {
+        type M = (u64, String, usize);
+        let msg: DataMessage<M> = DataMessage::new(7, "value".to_string(), 42);
+        let encoded = msg.clone().encode();
+        let decoded = DataMessage::<M>::decode(&encoded);
+        assert_eq!(decoded.key, msg.key);
+        assert_eq!(decoded.value, msg.value);
+        assert_eq!(decoded.timestamp, msg.timestamp);
+    }
+
+    /// `Kvt` is implemented for unit (root/system streams) and tuples.
+    #[test]
+    fn kvt_impls() {
+        fn assert_kvt<M: Kvt>() {}
+        assert_kvt::<()>();
+        assert_kvt::<(u64, u64, u64)>();
+        assert_kvt::<(NoKey, NoData, NoTime)>();
+    }
+
+    /// `DataMessage::new` boxes the values into the tuple stream type.
+    #[test]
+    fn data_message_new() {
+        let msg: DataMessage<(u64, u64, u64)> = DataMessage::new(1u64, 2u64, 3u64);
+        assert_eq!(msg.key, 1);
+        assert_eq!(msg.value, 2);
+        assert_eq!(msg.timestamp, 3);
+    }
+
+    /// `Message` variants are constructible from their payload types.
+    #[test]
+    fn message_payloads_are_constructible() {
+        type M = (u64, u64, u64);
+        let data: DataMessage<M> = DataMessage::new(1u64, 2u64, 3u64);
+        let m = Message::<M>::Data(data.clone());
+        assert!(matches!(m, Message::Data(d) if d == data));
+
+        let epoch = Message::<M>::Epoch(5u64);
+        assert!(matches!(epoch, Message::Epoch(5)));
+    }
+}

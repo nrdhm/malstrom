@@ -151,9 +151,15 @@ fn safe_logic_dispatch_order_and_system_message_forwarding() {
         .execute()
         .unwrap();
 
-    // one on_schedule pump before each of the four messages, in order
+    // one on_schedule pump before each of the four messages, in order. The operator
+    // loop polls the apply branch before the output-closed branch, so it may run one
+    // extra schedule pump (yielding no message) as it shuts down — trim those.
+    let mut events = rx_events.drain().collect::<Vec<_>>();
+    while events.last() == Some(&"schedule") {
+        events.pop();
+    }
     assert_eq!(
-        rx_events.drain().collect::<Vec<_>>(),
+        events,
         vec![
             "schedule", "data", "schedule", "barrier", "schedule", "data", "schedule", "epoch",
         ],

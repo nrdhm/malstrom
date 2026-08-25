@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
-use malstrom::channels::operator_io::{Input, Output};
-use malstrom::stream::{Malstrom as _, Operator, OperatorContext, SafeLogic, StreamBuilder};
-use malstrom::types::{Data, DataMessage, Kvt, MaybeKey, Message, Sealed, Timestamp};
+use malstrom_core::channels::operator_io::{Input, Output};
+use malstrom_core::stream::{Malstrom as _, Operator, OperatorContext, SafeLogic, StreamBuilder};
+use malstrom_core::types::{Data, DataMessage, Kvt, MaybeKey, Message, Sealed, Timestamp};
 
 
 /// Inspect messages in a stream without modifying them
@@ -18,10 +18,10 @@ pub trait Inspect<Msg: Kvt, Inspector>: Sealed {
     /// ```rust
     /// use malstrom_operators::operators::*;
     /// use malstrom_operators::operators::Source as _;
-    /// use malstrom::runtime::SingleThreadRuntime;
-    /// use malstrom::snapshot::NoPersistence;
+    /// use malstrom_core::runtime::SingleThreadRuntime;
+    /// use malstrom_core::snapshot::NoPersistence;
     /// use malstrom_operators::sources::Source;
-    /// use malstrom::worker::StreamProvider;
+    /// use malstrom_core::worker::StreamProvider;
     /// use malstrom_operators::sinks::{VecSink, StatelessSink};
     ///
     /// let sink = VecSink::new();

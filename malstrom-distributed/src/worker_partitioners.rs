@@ -3,7 +3,7 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 
 use indexmap::IndexSet;
 
-use malstrom::types::WorkerId;
+use malstrom_core::types::WorkerId;
 
 /// A pratitioning function for selecting which worker a keyed message will go to
 pub type WorkerPartitioner<K> = fn(&K, &IndexSet<WorkerId>) -> WorkerId;

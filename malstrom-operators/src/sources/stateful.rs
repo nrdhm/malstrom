@@ -9,18 +9,18 @@ use futures::{StreamExt, stream::FuturesUnordered};
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 
-use malstrom::channels::operator_io::{Input, Output};
+use malstrom_core::channels::operator_io::{Input, Output};
 use crate::keyed::{
         Distribute as _,
         distributed::{Acquire, Collect, Interrogate},
         rendezvous_select,
     };
 use crate::operators::{CommUtility, StreamSource};
-use malstrom::stream::{
+use malstrom_core::stream::{
         BuildContext, InitialStreamBuilder, Logic, LogicBuilder, Malstrom as _, Operator,
         OperatorContext, SafeLogic, SafeLogicWrapper, StreamBuilder,
     };
-use malstrom::types::{
+use malstrom_core::types::{
         Barrier, Data, DataMessage, Key, Kvt, Message, NoData, Timestamp, WorkerId,
         distributable::Distributable,
     };
@@ -100,7 +100,7 @@ impl Source<()> {
     }
 
     /// An untimed source reading from an iterator. Every record is timestamped
-    /// [`OnceTime(false)`](malstrom::types::OnceTime); the stream finishes with
+    /// [`OnceTime(false)`](malstrom_core::types::OnceTime); the stream finishes with
     /// `OnceTime(true)`. For index timestamps see
     /// [Source::from_enumerated_iterator].
     pub fn from_iterator<V>(

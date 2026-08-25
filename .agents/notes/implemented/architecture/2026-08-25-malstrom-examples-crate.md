@@ -30,12 +30,13 @@ Create a **`malstrom-examples`** leaf crate (workspace member, `publish = false`
 target) that hosts the runnable examples, and free the kernel (and shrink
 `malstrom-operators`) of example-only dev-dependencies:
 
-1. **`malstrom-examples`** — depends on the full stack (`malstrom`, `malstrom-operators`,
-   `malstrom-distributed`) plus `indexmap`/`serde`/`tokio` as `[dependencies]`, and on the
-   demo tooling (`console-subscriber`, `tracing-subscriber`, `chrono`, `expiremap` — the
-   `ttl_map` example imports `expiremap::ExpireMap` directly) as `[dev-dependencies]`. Being
-   a leaf, it depends on everything without a cycle — acyclicity is structural, not
-   conventional.
+1. **`malstrom-examples`** — depends on the `malstrom` **facade** (since
+   [rename-kernel-and-add-malstrom-facade](2026-08-25-rename-kernel-and-add-malstrom-facade.md))
+   plus `indexmap`/`serde`/`tokio` as `[dependencies]`, and on the demo tooling
+   (`console-subscriber`, `tracing-subscriber`, `chrono`, `expiremap` — the `ttl_map` example
+   imports `expiremap::ExpireMap` directly) plus `malstrom-operators` (only for the
+   `TTLState` derive expansion in `ttl_map.rs`) as `[dev-dependencies]`. Being a leaf, it
+   depends on everything without a cycle — acyclicity is structural, not conventional.
 2. **All 21 non-SlateDB examples moved there** — the 5 framework-level (`basic_noop`,
    `multithreading`, `rescaling`, `stateful_programs`, `stateful_program_multiple_keys`) and
    the 16 operator-level (`look_ma_im_streaming`, `basic_operators`, `basic_stdout`,

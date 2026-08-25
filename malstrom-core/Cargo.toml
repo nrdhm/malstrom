@@ -1,5 +1,5 @@
 [package]
-name = "malstrom"
+name = "malstrom-core"
 version = "0.1.0"
 edition = "2024"
 description = "Malstrom is a distributed, stateful stream processing framework written in Rust."

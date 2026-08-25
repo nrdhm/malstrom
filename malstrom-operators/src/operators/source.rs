@@ -1,5 +1,5 @@
-use malstrom::stream::{InitialStreamBuilder, Malstrom, StreamBuilder};
-use malstrom::types::{Data, Kvt, MaybeKey, NoData, NoKey, NoTime, Sealed, Timestamp};
+use malstrom_core::stream::{InitialStreamBuilder, Malstrom, StreamBuilder};
+use malstrom_core::types::{Data, Kvt, MaybeKey, NoData, NoKey, NoTime, Sealed, Timestamp};
 
 
 /// Produce new messages into a datastream.
@@ -13,10 +13,10 @@ pub trait Source<M: Kvt, S>: Sealed {
     /// ```
     /// use malstrom_operators::operators::*;
     /// use malstrom_operators::operators::Source as _;
-    /// use malstrom::runtime::SingleThreadRuntime;
-    /// use malstrom::snapshot::NoPersistence;
+    /// use malstrom_core::runtime::SingleThreadRuntime;
+    /// use malstrom_core::snapshot::NoPersistence;
     /// use malstrom_operators::sources::Source;
-    /// use malstrom::worker::StreamProvider;
+    /// use malstrom_core::worker::StreamProvider;
     /// use malstrom_operators::sinks::{VecSink, StatelessSink};
     ///
     /// let sink = VecSink::new();

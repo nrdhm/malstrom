@@ -5,13 +5,13 @@ use chrono::{Datelike, NaiveDate, TimeDelta};
 use indexmap::IndexMap;
 use {
     malstrom::channels::operator_io::Output,
-    malstrom_operators::keyed::rendezvous_select,
-    malstrom_operators::operators::Source as _,
-    malstrom_operators::operators::*,
+    malstrom::keyed::rendezvous_select,
+    malstrom::operators::Source as _,
+    malstrom::operators::*,
     malstrom::runtime::SingleThreadRuntime,
-    malstrom_operators::sinks::{StatelessSink, StdOutSink},
+    malstrom::sinks::{StatelessSink, StdOutSink},
     malstrom::snapshot::NoPersistence,
-    malstrom_operators::sources::Source,
+    malstrom::sources::Source,
     malstrom::types::{DataMessage, Message, Timestamp},
     malstrom::worker::StreamProvider,
 };

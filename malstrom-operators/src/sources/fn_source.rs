@@ -8,7 +8,7 @@ use std::{cell::RefCell, future::Future, marker::PhantomData, rc::Rc};
 use futures::{Stream, StreamExt};
 
 use crate::sources::{Source, SourceImpl, SourcePartition};
-use malstrom::types::{Data, Key, NoKey, OnceTime, Timestamp, distributable::Distributable};
+use malstrom_core::types::{Data, Key, NoKey, OnceTime, Timestamp, distributable::Distributable};
 
 
 /// An untimed source reading from an iterator.
@@ -285,13 +285,13 @@ where
 mod tests {
     use itertools::Itertools;
 
-    use malstrom::channels::operator_io::{Input, Output};
+    use malstrom_core::channels::operator_io::{Input, Output};
 use crate::operators::{Sink, Source as _};
 use crate::sinks::{StatelessSink, VecSink};
 use crate::sources::Source;
-use malstrom::stream::{Malstrom as _, Operator, OperatorContext, StreamBuilder};
+use malstrom_core::stream::{Malstrom as _, Operator, OperatorContext, StreamBuilder};
 use malstrom_testkit::get_test_rt;
-use malstrom::types::{Message, NoKey};
+use malstrom_core::types::{Message, NoKey};
 
 
     /// The from_iterator source should emit the iterator values, untimed

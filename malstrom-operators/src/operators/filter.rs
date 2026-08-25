@@ -1,9 +1,9 @@
 use super::stateless_op::StatelessOp;
-use malstrom::channels::operator_io::Output;
-use malstrom::msg;
+use malstrom_core::channels::operator_io::Output;
+use malstrom_core::msg;
 use crate::operators::StatelessLogic;
-use malstrom::stream::StreamBuilder;
-use malstrom::types::{Data, DataMessage, Kvt, MaybeKey, Message, Sealed, Timestamp};
+use malstrom_core::stream::StreamBuilder;
+use malstrom_core::types::{Data, DataMessage, Kvt, MaybeKey, Message, Sealed, Timestamp};
 
 /// Filter messages in a stream
 pub trait Filter<In: Kvt, FilterFunc>: Sealed {
@@ -21,10 +21,10 @@ pub trait Filter<In: Kvt, FilterFunc>: Sealed {
     /// ```rust
     /// use malstrom_operators::operators::*;
     /// use malstrom_operators::operators::Source as _;
-    /// use malstrom::runtime::SingleThreadRuntime;
-    /// use malstrom::snapshot::NoPersistence;
+    /// use malstrom_core::runtime::SingleThreadRuntime;
+    /// use malstrom_core::snapshot::NoPersistence;
     /// use malstrom_operators::sources::Source;
-    /// use malstrom::worker::StreamProvider;
+    /// use malstrom_core::worker::StreamProvider;
     /// use malstrom_operators::sinks::{VecSink, StatelessSink};
     ///
     /// let sink = VecSink::new();

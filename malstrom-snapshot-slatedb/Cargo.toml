@@ -10,7 +10,7 @@ repository = "https://github.com/MalstromDevelopers/malstrom"
 workspace = true
 
 [dependencies]
-malstrom = { path = "../malstrom-core" }
+malstrom-core = { path = "../malstrom-core" }
 slatedb = { version = "0.3.0", features = ["azure"] }
 object_store = { version = "0.11.1", features = ["cloud"] }
 tokio = { version = "1.47.1", features = ["rt-multi-thread", "rt", "macros", "sync", "time"] }

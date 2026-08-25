@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
-use malstrom::stream::{Logic, Malstrom as _, Operator, SafeLogic, StreamBuilder};
-use malstrom::types::{Data, DataMessage, Kvt, MaybeKey, Message, Sealed, Timestamp};
+use malstrom_core::stream::{Logic, Malstrom as _, Operator, SafeLogic, StreamBuilder};
+use malstrom_core::types::{Data, DataMessage, Kvt, MaybeKey, Message, Sealed, Timestamp};
 
 
 use super::NeedsEpochs;
@@ -61,9 +61,9 @@ where
 {
     async fn apply(
         &mut self,
-        input: &mut malstrom::channels::operator_io::Input<In>,
-        output: &mut malstrom::channels::operator_io::Output<Out>,
-        ctx: &mut malstrom::stream::OperatorContext,
+        input: &mut malstrom_core::channels::operator_io::Input<In>,
+        output: &mut malstrom_core::channels::operator_io::Output<Out>,
+        ctx: &mut malstrom_core::stream::OperatorContext,
     ) {
         match input.recv().await {
             Message::Data(d) => {
@@ -88,14 +88,14 @@ where
 
 #[cfg(test)]
 mod tests {
-    use malstrom::channels::operator_io::{Input, Output};
+    use malstrom_core::channels::operator_io::{Input, Output};
 use crate::operators::{GenerateEpochs, Sink, Source as _};
 use crate::sinks::StatelessSink;
 use crate::sources::Source;
-use malstrom::stream::{DirectLogic, Operator, OperatorContext, SafeLogicWrapper};
+use malstrom_core::stream::{DirectLogic, Operator, OperatorContext, SafeLogicWrapper};
 use crate::sinks::VecSink;
 use malstrom_testkit::{get_test_rt};
-use malstrom::types::{MaybeData, MaybeTime, Message, NoKey};
+use malstrom_core::types::{MaybeData, MaybeTime, Message, NoKey};
 
     use itertools::Itertools;
 
@@ -110,8 +110,8 @@ use malstrom::types::{MaybeData, MaybeTime, Message, NoKey};
         async fn on_data(
             &mut self,
             data_message: DataMessage<Msg>,
-            output: &mut malstrom::channels::operator_io::Output<Msg>,
-            ctx: &mut malstrom::stream::OperatorContext,
+            output: &mut malstrom_core::channels::operator_io::Output<Msg>,
+            ctx: &mut malstrom_core::stream::OperatorContext,
         ) {
             output.send(Message::Data(data_message)).await;
         }
@@ -119,8 +119,8 @@ use malstrom::types::{MaybeData, MaybeTime, Message, NoKey};
         async fn on_epoch(
             &mut self,
             epoch: &<Msg as Kvt>::Timestamp,
-            output: &mut malstrom::channels::operator_io::Output<Msg>,
-            ctx: &mut malstrom::stream::OperatorContext,
+            output: &mut malstrom_core::channels::operator_io::Output<Msg>,
+            ctx: &mut malstrom_core::stream::OperatorContext,
         ) {
             self.0.give(epoch.clone());
         }

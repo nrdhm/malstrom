@@ -32,7 +32,12 @@ A Cargo workspace (`Cargo.toml`) with the following members:
 
 | Path | Crate | Purpose |
 |---|---|---|
-| `malstrom-core/` | `malstrom` (crates.io) | The core stream processing framework |
+| `malstrom/` | `malstrom` (crates.io) | The public **facade** — re-exports the layer crates under one module tree |
+| `malstrom-core/` | `malstrom-core` | The kernel (execution engine): types, channels, stream, worker, coordinator, runtime, snapshot |
+| `malstrom-distributed/` | `malstrom-distributed` | The keyed routing protocol |
+| `malstrom-operators/` | `malstrom-operators` | Operators, sinks, sources, keyed streams |
+| `malstrom-testkit/` | `malstrom-testkit` | Operator tester and in-memory comm backends |
+| `malstrom-snapshot-slatedb/` | `malstrom-snapshot-slatedb` | The SlateDB/object-store persistence backend |
 | `malstrom-k8s/runtime/` | `malstrom-k8s` | Kubernetes runtime flavor (gRPC-based distributed execution) |
 | `malstrom-k8s/operator/` | `malstrom-operator` | Kubernetes operator that manages Malstrom jobs |
 | `malstrom-k8s/operator/crds/` | `crds` | The `MalstromJob` CRD definition |

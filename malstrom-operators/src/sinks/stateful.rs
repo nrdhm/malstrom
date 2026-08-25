@@ -6,19 +6,19 @@ use std::{cell::RefCell, hash::Hash, marker::PhantomData, rc::Rc};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-use malstrom::channels::operator_io::{Input, Output};
+use malstrom_core::channels::operator_io::{Input, Output};
 use crate::keyed::{
         KeyDistribute,
         distributed::{Acquire, Collect, Interrogate},
         rendezvous_select,
     };
 use crate::operators::StreamSink;
-use malstrom::snapshot::SnapshotBarrier;
-use malstrom::stream::{
+use malstrom_core::snapshot::SnapshotBarrier;
+use malstrom_core::stream::{
         BuildContext, Logic, Malstrom, Operator, OperatorContext, SafeLogic, SafeLogicWrapper,
         StreamBuilder,
     };
-use malstrom::types::{
+use malstrom_core::types::{
         Barrier, Data, DataMessage, Key, Kvt, MaybeKey, MaybeTime, Message, NoData, NoKey, NoTime,
         RescaleMessage, SuspendMarker, distributable::Distributable,
     };

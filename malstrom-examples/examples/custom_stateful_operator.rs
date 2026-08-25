@@ -1,12 +1,12 @@
 //! A basic example which runs a no-op dataflow
 use indexmap::IndexMap;
 use malstrom::channels::operator_io::Output;
-use malstrom_operators::operators::Source as _;
-use malstrom_operators::operators::*;
+use malstrom::operators::Source as _;
+use malstrom::operators::*;
 use malstrom::runtime::SingleThreadRuntime;
-use malstrom_operators::sinks::{StatelessSink, StdOutSink};
+use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;
-use malstrom_operators::sources::Source;
+use malstrom::sources::Source;
 use malstrom::types::{Data, DataMessage, Key, Kvt, Message, Timestamp};
 use malstrom::worker::StreamProvider;
 

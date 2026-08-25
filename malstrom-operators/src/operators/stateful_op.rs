@@ -5,12 +5,12 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::{Serialize, de::DeserializeOwned};
 
-use malstrom::channels::operator_io::{Input, Output};
-use malstrom::stream::{
+use malstrom_core::channels::operator_io::{Input, Output};
+use malstrom_core::stream::{
         BuildContext, DirectLogic, Logic, LogicBuilder, Malstrom, Operator, OperatorContext,
         SafeLogic, SafeLogicWrapper, StreamBuilder,
     };
-use malstrom::types::{
+use malstrom_core::types::{
         Barrier, Data, DataMessage, Key, Kvt, MaybeData, MaybeKey, MaybeTime, Message, Sealed,
         Timestamp,
     };
@@ -243,10 +243,10 @@ mod tests {
     use indexmap::{IndexMap, IndexSet};
 
     use crate::keyed::distributed::{Acquire, Collect, Interrogate};
-use malstrom::snapshot::{PersistenceClient, SnapshotBarrier};
+use malstrom_core::snapshot::{PersistenceClient, SnapshotBarrier};
 use malstrom_testkit::{CapturingPersistenceBackend, OperatorTester};
-use malstrom::types::distributable::Distributable;
-use malstrom::types::*;
+use malstrom_core::types::distributable::Distributable;
+use malstrom_core::types::*;
 
 
     use super::*;

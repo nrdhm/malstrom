@@ -3,10 +3,10 @@ use std::marker::PhantomData;
 use serde::{Serialize, de::DeserializeOwned};
 use tracing::warn;
 
-use malstrom::msg;
+use malstrom_core::msg;
 use crate::operators::{StatefulLogic, time::assign_timestamps::OnTimeLate};
-use malstrom::stream::{Logic, LogicBuilder, Malstrom as _, Operator, SafeLogic, StreamBuilder};
-use malstrom::types::{DataMessage, Key, Kvt, MaybeData, MaybeKey, Message, Sealed, Timestamp};
+use malstrom_core::stream::{Logic, LogicBuilder, Malstrom as _, Operator, SafeLogic, StreamBuilder};
+use malstrom_core::types::{DataMessage, Key, Kvt, MaybeData, MaybeKey, Message, Sealed, Timestamp};
 
 
 use super::util::{handle_maybe_late_msg, split_mixed_stream};
@@ -34,8 +34,8 @@ pub trait GenerateEpochs<Msg: Kvt>: Sealed {
     ///
     /// ```no_run
     /// use malstrom_operators::operators::{GenerateEpochs, limit_out_of_orderness};
-    /// use malstrom::types::NoKey;
-    /// use malstrom::stream::StreamBuilder;
+    /// use malstrom_core::types::NoKey;
+    /// use malstrom_core::stream::StreamBuilder;
     ///
     /// let stream: StreamBuilder<(NoKey, String, i64)> = todo!();
     /// stream.generate_epochs("limit", limit_out_of_orderness(30));
@@ -100,7 +100,7 @@ where
 {
     type Logic = GenerateEpochsOp<In, F>;
 
-    async fn build(self, ctx: &mut malstrom::stream::BuildContext) -> Self::Logic {
+    async fn build(self, ctx: &mut malstrom_core::stream::BuildContext) -> Self::Logic {
         let prev_epoch: Option<In::Timestamp> = ctx.load_state().await;
         GenerateEpochsOp {
             generator: self.generator,
@@ -118,9 +118,9 @@ where
 {
     async fn apply(
         &mut self,
-        input: &mut malstrom::channels::operator_io::Input<In>,
-        output: &mut malstrom::channels::operator_io::Output<Out>,
-        ctx: &mut malstrom::stream::OperatorContext,
+        input: &mut malstrom_core::channels::operator_io::Input<In>,
+        output: &mut malstrom_core::channels::operator_io::Output<Out>,
+        ctx: &mut malstrom_core::stream::OperatorContext,
     ) {
         match input.recv().await {
             Message::Data(d) => {

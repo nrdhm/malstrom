@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "malstrom",
     "malstrom-core",
     "malstrom-examples",
     "malstrom-distributed",

@@ -2,11 +2,11 @@
 
 use async_trait::async_trait;
 
-use malstrom::runtime::{
+use malstrom_core::runtime::{
         OperatorOperatorComm,
         communication::{StreamReceiver, StreamSender},
     };
-use malstrom::types::{OperatorId, WorkerId};
+use malstrom_core::types::{OperatorId, WorkerId};
 
 
 /// A CommunicationBackend which will always return an error when trying to create a connection.

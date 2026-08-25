@@ -10,7 +10,7 @@ repository = "https://github.com/MalstromDevelopers/malstrom"
 workspace = true
 
 [dependencies]
-malstrom = { path = "../malstrom-core" }
+malstrom-core = { path = "../malstrom-core" }
 malstrom-distributed = { path = "../malstrom-distributed" }
 expiremap = { version="0.1.0-beta.3", features = ["serde"] }
 rand = "0.9.2"

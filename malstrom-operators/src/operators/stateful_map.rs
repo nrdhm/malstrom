@@ -1,9 +1,9 @@
 use serde::{Serialize, de::DeserializeOwned};
 
-use malstrom::channels::operator_io::Output;
+use malstrom_core::channels::operator_io::Output;
 use crate::operators::State;
-use malstrom::stream::StreamBuilder;
-use malstrom::types::{
+use malstrom_core::stream::StreamBuilder;
+use malstrom_core::types::{
         Data, DataMessage, Key, Kvt, MaybeData, MaybeKey, MaybeTime, Message, Sealed, Timestamp,
     };
 
@@ -33,10 +33,10 @@ pub trait StatefulMap<In: Kvt, T: Data, Mapper, S>: Sealed {
     /// ```rust
     /// use malstrom_operators::operators::*;
     /// use malstrom_operators::operators::Source as _;
-    /// use malstrom::runtime::SingleThreadRuntime;
-    /// use malstrom::snapshot::NoPersistence;
+    /// use malstrom_core::runtime::SingleThreadRuntime;
+    /// use malstrom_core::snapshot::NoPersistence;
     /// use malstrom_operators::sources::Source;
-    /// use malstrom::worker::StreamProvider;
+    /// use malstrom_core::worker::StreamProvider;
     /// use malstrom_operators::sinks::{VecSink, StatelessSink};
     ///
     /// let sink = VecSink::new();

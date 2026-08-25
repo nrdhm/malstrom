@@ -4,14 +4,14 @@
 use std::sync::Arc;
 use std::{collections::HashMap, rc::Rc, sync::Mutex};
 
-use malstrom::runtime::SingleThreadRuntime;
-use malstrom::snapshot::{NoPersistence, PersistenceBackend, PersistenceClient, SnapshotBarrier, SnapshotVersion};
-use malstrom::stream::Logic;
-use malstrom::types::{
+use malstrom_core::runtime::SingleThreadRuntime;
+use malstrom_core::snapshot::{NoPersistence, PersistenceBackend, PersistenceClient, SnapshotBarrier, SnapshotVersion};
+use malstrom_core::stream::Logic;
+use malstrom_core::types::{
     Barrier, Key, Kvt, MaybeData, MaybeKey, Message, OperatorId, WorkerId,
     RescaleMessage, distributable::Distributable,
 };
-use malstrom::worker::StreamProvider;
+use malstrom_core::worker::StreamProvider;
 use indexmap::{IndexMap, IndexSet};
 
 pub mod communication;
@@ -104,7 +104,7 @@ pub fn test_forward_system_messages<
 #[cfg(test)]
 mod tests {
 
-    use malstrom::snapshot::{deserialize_state, serialize_state};
+    use malstrom_core::snapshot::{deserialize_state, serialize_state};
 
     use super::*;
 

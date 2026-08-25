@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
 
-use malstrom::channels::operator_io::{Input, Output};
+use malstrom_core::channels::operator_io::{Input, Output};
 
-use malstrom::stream::{Logic, Malstrom, Operator, StreamBuilder};
-use malstrom::types::{Data, DataMessage, Key, Kvt, MaybeKey, MaybeTime, Message};
+use malstrom_core::stream::{Logic, Malstrom, Operator, StreamBuilder};
+use malstrom_core::types::{Data, DataMessage, Key, Kvt, MaybeKey, MaybeTime, Message};
 
 /// Create a keyed stream **without** distributing messages.
 pub trait KeyLocal<Msg: Kvt, K: Key> {
@@ -52,7 +52,7 @@ where
         &mut self,
         input: &mut Input<M>,
         output: &mut Output<N>,
-        _ctx: &mut malstrom::stream::OperatorContext,
+        _ctx: &mut malstrom_core::stream::OperatorContext,
     ) {
         match input.recv().await {
             Message::Data(d) => {

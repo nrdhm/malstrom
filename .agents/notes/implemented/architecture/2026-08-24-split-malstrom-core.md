@@ -32,7 +32,7 @@ Split `malstrom-core` along the kernel / stdlib / protocol boundary, with the ke
 
 | Crate | Contents | Depends on |
 |---|---|---|
-| `malstrom` (kernel, `malstrom-core/`) | `types` (incl. `types::distributed` protocol messages), `channels`, `stream`, `worker`, `coordinator`, `runtime`, `snapshot` | — |
+| `malstrom-core` (kernel, `malstrom-core/`) | `types` (incl. `types::distributed` protocol messages), `channels`, `stream`, `worker`, `coordinator`, `runtime`, `snapshot` | — |
 | `malstrom-distributed` | `keyed/distributed` routing (routers, distributor, `remote_receiver`/`remote_sender`, `wire_message`/`versioned_message`/`targeted_message`) plus `worker_partitioners` | `malstrom` |
 | `malstrom-operators` | `operators`, `sinks` (incl. `VecSink`), `sources` (incl. `fn_source` and the source engine), local keyed ops (`key_local`, `key_distribute`, `broadcast`) | `malstrom`, `malstrom-distributed` |
 | `malstrom-testkit` | `testing` (operator tester, in-memory comm backends, capture persistence) | `malstrom` |
@@ -59,7 +59,9 @@ Split `malstrom-core` along the kernel / stdlib / protocol boundary, with the ke
    malstrom`); cargo forbids crate cycles. Examples, README, the website guide, and the
    overviews were migrated (`malstrom::operators` → `malstrom_operators::operators`,
    `malstrom::sources` → `malstrom_operators::sources`, etc.); kernel paths
-   (`malstrom::runtime`, `malstrom::snapshot`, …) are unchanged.
+   (`malstrom::runtime`, `malstrom::snapshot`, …) are unchanged. The facade
+   ([rename-kernel-and-add-malstrom-facade](2026-08-25-rename-kernel-and-add-malstrom-facade.md))
+   later restored the single `malstrom::…` surface without a cycle.
 6. **The source engine lives in `malstrom-operators`** (deviation from the proposal's kernel
    row): `SourceImpl`/`SourcePartition`, the `Source` struct, the coordinator→distribute→reader
    graph, and `fn_source` move together as one unit (see
@@ -127,7 +129,8 @@ Split `malstrom-core` along the kernel / stdlib / protocol boundary, with the ke
 - **API churn** — every example, the README, `website/guide/TtlMapOperator.md`, and the
   overviews migrated from `malstrom::operators` to `malstrom_operators::…`; kernel-path
   imports are unchanged. `malstrom-kafka`/`malstrom-k8s` pin the published `malstrom 0.1.0`
-  and are unaffected.
+  and are unaffected. (The facade note later renamed the kernel to `malstrom-core` and
+  restored the `malstrom::…` surface via the facade crate.)
 - **Verification** — tests green: `malstrom` 18 unit + 1 doc, `malstrom-operators`
   31 unit + 9 doc (the operator/source tests and doctests moved with the code), 
   `malstrom-testkit` 1, `malstrom-snapshot-slatedb` 5; examples `look_ma_im_streaming`,

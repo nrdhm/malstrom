@@ -1,7 +1,7 @@
-use malstrom::channels::spsc;
+use malstrom_core::channels::spsc;
 use {crate::WorkerPartitioner, crate::Collect, crate::Interrogate, crate::targeted_message::TargetedData, crate::versioned_message::VersionedData, crate::wire_message::WireAcquire};
-use malstrom::stream::BuildContext;
-use malstrom::types::{Key, Kvt, ReconfigComplete, RescaleMessage, distributable::Distributable};
+use malstrom_core::stream::BuildContext;
+use malstrom_core::types::{Key, Kvt, ReconfigComplete, RescaleMessage, distributable::Distributable};
 
 
 mod normal;

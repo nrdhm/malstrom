@@ -1,10 +1,10 @@
 //! Example of a stateless source reading from files on the local filesystem
 use core::iter::Enumerate;
 use {
-    malstrom_operators::operators::Source as _,
+    malstrom::operators::Source as _,
     malstrom::runtime::SingleThreadRuntime,
     malstrom::snapshot::NoPersistence,
-    malstrom_operators::sources::{Source, SourceImpl, SourcePartition},
+    malstrom::sources::{Source, SourceImpl, SourcePartition},
     malstrom::worker::StreamProvider,
 };
 use std::{

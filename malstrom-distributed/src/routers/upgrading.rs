@@ -1,8 +1,8 @@
 use indexmap::IndexSet;
 
-use malstrom::channels::{recv_trait::Receiver as _, spsc};
+use malstrom_core::channels::{recv_trait::Receiver as _, spsc};
 use {crate::WorkerPartitioner, crate::ConfigVersion, crate::routers::{CollectRouter, NormalRouter, RouterInput, RouterKind, RouterOutput}, crate::targeted_message::TargetedData, crate::versioned_message::VersionedData};
-use malstrom::types::{Key, Kvt, RescaleMessage, WorkerId, distributable::Distributable};
+use malstrom_core::types::{Key, Kvt, RescaleMessage, WorkerId, distributable::Distributable};
 
 
 pub(super) struct UpgradingRouter<M: Kvt> {

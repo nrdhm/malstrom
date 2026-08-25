@@ -4,10 +4,10 @@ pub use expiremap;
 use expiremap::ExpireMap;
 use serde::{Serialize, de::DeserializeOwned};
 
-use malstrom::channels::operator_io::Output;
+use malstrom_core::channels::operator_io::Output;
 use crate::operators::State;
-use malstrom::stream::StreamBuilder;
-use malstrom::types::{Data, DataMessage, Key, Kvt, MaybeData, Message, Sealed, Timestamp};
+use malstrom_core::stream::StreamBuilder;
+use malstrom_core::types::{Data, DataMessage, Key, Kvt, MaybeData, Message, Sealed, Timestamp};
 
 
 use super::stateful_op::{StatefulLogic, StatefulOp};

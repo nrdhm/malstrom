@@ -8,14 +8,14 @@ use std::{
 
 use async_trait::async_trait;
 
-use malstrom::channels::operator_io::{Input, Output, full_broadcast, link};
-use malstrom::runtime::{
+use malstrom_core::channels::operator_io::{Input, Output, full_broadcast, link};
+use malstrom_core::runtime::{
         OperatorOperatorComm,
         communication::{StreamReceiver, StreamSender},
     };
-use malstrom::snapshot::NoPersistence;
-use malstrom::stream::{BuildContext, Logic, LogicBuilder, OperatorContext};
-use malstrom::types::{Kvt, Message, OperatorId, WorkerId, distributable::Distributable};
+use malstrom_core::snapshot::NoPersistence;
+use malstrom_core::stream::{BuildContext, Logic, LogicBuilder, OperatorContext};
+use malstrom_core::types::{Kvt, Message, OperatorId, WorkerId, distributable::Distributable};
 
 
 /// A test harness for a single operator's logic, decoupled from a running worker.
@@ -65,7 +65,7 @@ where
             Rc::clone(&rt),
             "test".to_owned(),
             0,
-            Rc::new(NoPersistence) as Rc<dyn malstrom::snapshot::PersistenceClient>,
+            Rc::new(NoPersistence) as Rc<dyn malstrom_core::snapshot::PersistenceClient>,
             Rc::clone(&comm_shim) as Rc<dyn OperatorOperatorComm>,
             worker_ids.collect(),
         );

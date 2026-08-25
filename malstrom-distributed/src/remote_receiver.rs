@@ -4,20 +4,20 @@ use futures::FutureExt;
 use indexmap::{IndexMap, IndexSet};
 use seahash::hash;
 
-use malstrom::channels::alignment::AlignedValue;
-use malstrom::channels::operator_io::{Output, merge_timestamps};
-use malstrom::channels::recv_trait::Receiver;
+use malstrom_core::channels::alignment::AlignedValue;
+use malstrom_core::channels::operator_io::{Output, merge_timestamps};
+use malstrom_core::channels::recv_trait::Receiver;
 use crate::ConfigVersion;
 use crate::versioned_message::VersionedMessage;
 use crate::wire_message::WireMessage;
-use malstrom::runtime::OperatorOperatorComm;
-use malstrom::runtime::communication::{OperatorCommSender, broadcast};
-use malstrom::stream::{BuildContext, Logic, OperatorContext};
-use malstrom::types::distributable::Distributable;
-use malstrom::types::{Key, ReconfigComplete, RescaleMessage};
-use malstrom::channels::{alignment::AlignmentGroup, operator_io::Input};
-use malstrom::runtime::communication::OperatorCommReceiver;
-use malstrom::types::{Barrier, Kvt, Message, WorkerId};
+use malstrom_core::runtime::OperatorOperatorComm;
+use malstrom_core::runtime::communication::{OperatorCommSender, broadcast};
+use malstrom_core::stream::{BuildContext, Logic, OperatorContext};
+use malstrom_core::types::distributable::Distributable;
+use malstrom_core::types::{Key, ReconfigComplete, RescaleMessage};
+use malstrom_core::channels::{alignment::AlignmentGroup, operator_io::Input};
+use malstrom_core::runtime::communication::OperatorCommReceiver;
+use malstrom_core::types::{Barrier, Kvt, Message, WorkerId};
 
 
 /// Aligns barriers from all remote receivers

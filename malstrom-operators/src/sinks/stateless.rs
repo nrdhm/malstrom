@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
 
-use malstrom::channels::operator_io::{Input, Output};
+use malstrom_core::channels::operator_io::{Input, Output};
 use crate::operators::StreamSink;
-use malstrom::stream::{Logic, Malstrom as _, Operator, OperatorContext, StreamBuilder};
-use malstrom::types::{
+use malstrom_core::stream::{Logic, Malstrom as _, Operator, OperatorContext, StreamBuilder};
+use malstrom_core::types::{
         Data, DataMessage, Kvt, MaybeKey, MaybeTime, Message, NoData, NoKey, NoTime, Timestamp,
     };
 

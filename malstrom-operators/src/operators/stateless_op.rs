@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
-use malstrom::channels::operator_io::{Input, Output};
-use malstrom::stream::{DirectLogic, Logic, Malstrom, Operator, SafeLogic, SafeLogicWrapper, StreamBuilder};
-use malstrom::types::{Data, DataMessage, Kvt, MaybeKey, Message, Sealed, Timestamp};
+use malstrom_core::channels::operator_io::{Input, Output};
+use malstrom_core::stream::{DirectLogic, Logic, Malstrom, Operator, SafeLogic, SafeLogicWrapper, StreamBuilder};
+use malstrom_core::types::{Data, DataMessage, Kvt, MaybeKey, Message, Sealed, Timestamp};
 
 
 /// A custom stateless operator for Malstrom streams
@@ -102,7 +102,7 @@ where
         &mut self,
         data_message: DataMessage<In>,
         output: &mut Output<(In::Key, T, In::Timestamp)>,
-        ctx: &mut malstrom::stream::OperatorContext,
+        ctx: &mut malstrom_core::stream::OperatorContext,
     ) {
         (self.logic).on_data(data_message, output).await;
     }
@@ -111,7 +111,7 @@ where
         &mut self,
         epoch: &<In as Kvt>::Timestamp,
         output: &mut Output<(In::Key, T, In::Timestamp)>,
-        ctx: &mut malstrom::stream::OperatorContext,
+        ctx: &mut malstrom_core::stream::OperatorContext,
     ) {
         (self.logic).on_epoch(&epoch, output).await;
     }

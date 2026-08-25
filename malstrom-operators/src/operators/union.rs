@@ -1,7 +1,7 @@
-use malstrom::channels::operator_io::{Input, Output, link};
-use malstrom::stream::InitialStreamBuilder;
-use malstrom::stream::{Operator, SafeLogic, StreamBuilder};
-use malstrom::types::{DataMessage, Kvt, MaybeData, MaybeKey, MaybeTime, Message, Sealed};
+use malstrom_core::channels::operator_io::{Input, Output, link};
+use malstrom_core::stream::InitialStreamBuilder;
+use malstrom_core::stream::{Operator, SafeLogic, StreamBuilder};
+use malstrom_core::types::{DataMessage, Kvt, MaybeData, MaybeKey, MaybeTime, Message, Sealed};
 use std::marker::PhantomData;
 use std::rc::Rc;
 
@@ -59,7 +59,7 @@ where
         &mut self,
         data_message: DataMessage<Msg>,
         output: &mut Output<Msg>,
-        ctx: &mut malstrom::stream::OperatorContext,
+        ctx: &mut malstrom_core::stream::OperatorContext,
     ) {
         output.send(Message::Data(data_message)).await;
     }

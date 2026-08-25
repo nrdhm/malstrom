@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use malstrom::types::{DataMessage, Kvt};
+use malstrom_core::types::{DataMessage, Kvt};
 
 use super::StatelessSinkImpl;
 

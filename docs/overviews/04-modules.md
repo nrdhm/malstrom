@@ -8,8 +8,14 @@
 
 ## The crate layout (layered, acyclic)
 
-**`malstrom` (kernel, `malstrom-core/`)** — the execution engine. Modules: `types`, `channels`,
-`stream`, `worker`, `coordinator`, `runtime`, `snapshot`. Depends on nothing in the workspace.
+**`malstrom` (facade, `malstrom/`)** — the public entry point: re-exports
+`malstrom-core`'s kernel modules (`types`, `channels`, `stream`, `worker`, `coordinator`,
+`runtime`, `snapshot`) and `malstrom-operators`' `operators`/`sinks`/`sources`/`keyed`, plus
+the SlateDB backend under feature `slatedb`. No logic of its own; depends on the layers.
+
+**`malstrom-core` (kernel, `malstrom-core/`)** — the execution engine. Modules: `types`,
+`channels`, `stream`, `worker`, `coordinator`, `runtime`, `snapshot`. Depends on nothing in
+the workspace.
 The kernel owns the **public operator extension API** (`stream::{Logic, SafeLogic,
 SafeLogicWrapper, BuildContext, OperatorContext, StreamBuilder}`, `channels::operator_io`,
 the `Message`/`Kvt` vocabulary) and the protocol message types
@@ -17,18 +23,18 @@ the `Message`/`Kvt` vocabulary) and the protocol message types
 
 **`malstrom-distributed`** — the keyed routing protocol: routers, distributor,
 `remote_receiver`/`remote_sender`, wire/versioned/targeted messages, `worker_partitioners`.
-Depends only on `malstrom`.
+Depends only on `malstrom-core`.
 
 **`malstrom-operators`** — the stdlib: `operators`, `sinks` (incl. `VecSink`), `sources`
 (incl. the `fn_source` constructors and the source engine), and the local keyed ops
 (`key_local`, `key_distribute`, `broadcast`), plus a `keyed::distributed` shim re-exporting
-`malstrom-distributed` at the historical path. Depends on `malstrom` + `malstrom-distributed`.
+`malstrom-distributed` at the historical path. Depends on `malstrom-core` + `malstrom-distributed`.
 
 **`malstrom-testkit`** — the operator tester, in-memory comm backends and capture persistence,
-used by downstream crates' unit tests. Depends on `malstrom`.
+used by downstream crates' unit tests. Depends on `malstrom-core`.
 
 **`malstrom-snapshot-slatedb`** — the SlateDB/object-store `PersistenceBackend` connector.
-Depends on `malstrom`.
+Depends on `malstrom-core`.
 
 **`malstrom-kafka`, `malstrom-k8s/*`, `malstrom-macros`** — connectors/runtime/macros, as before.
 
@@ -74,8 +80,9 @@ graph TD
     ss -->|"PersistenceBackend traits"| malstrom
 ```
 
-> **Caption:** `malstrom` is depended on, never depends on its own layers — the graph is
-> acyclic by construction. `malstrom-operators` keeps a `keyed::distributed` shim module so
+> **Caption:** the facade depends on the layers, nothing depends on the facade — the graph
+> is acyclic by construction. `malstrom-operators` keeps a `keyed::distributed` shim so the
+> historical import path still resolves through the facade. `malstrom-operators` keeps a `keyed::distributed` shim module so
 > the historical import path still resolves.
 
 ## How the pieces connect at runtime

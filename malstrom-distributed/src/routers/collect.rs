@@ -3,7 +3,7 @@ use std::{collections::VecDeque, hash::Hash};
 use indexmap::{IndexMap, IndexSet};
 use tokio::sync::oneshot;
 
-use malstrom::channels::{
+use malstrom_core::channels::{
         operator_io::{Input, Output},
         recv_trait::Receiver,
         spsc,
@@ -12,8 +12,8 @@ use {crate::WorkerPartitioner, crate::Collect, crate::ConfigVersion, crate::Inte
                 InterrogateRouter, RouterInput, RouterKind, RouterOutput,
                 upgrading::UpgradingRouter,
             }, crate::targeted_message::TargetedData, crate::versioned_message::{VersionedData, VersionedMessage}, crate::wire_message::WireAcquire};
-use malstrom::stream::{BuildContext, Logic, OperatorContext};
-use malstrom::types::{
+use malstrom_core::stream::{BuildContext, Logic, OperatorContext};
+use malstrom_core::types::{
         DataMessage, Key, Kvt, OperatorId, ReconfigComplete, RescaleMessage, WorkerId,
         distributable::Distributable,
     };

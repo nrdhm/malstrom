@@ -1,8 +1,8 @@
 use indexmap::IndexSet;
 
-use malstrom::channels::{recv_trait::Receiver as _, spsc};
+use malstrom_core::channels::{recv_trait::Receiver as _, spsc};
 use {crate::WorkerPartitioner, crate::ConfigVersion, crate::routers::{InterrogateRouter, RouterInput, RouterKind, RouterOutput}, crate::targeted_message::TargetedData, crate::versioned_message::VersionedData};
-use malstrom::types::{Key, Kvt, WorkerId, distributable::Distributable};
+use malstrom_core::types::{Key, Kvt, WorkerId, distributable::Distributable};
 
 
 /// A normal router which does not do anything but route messages to their target

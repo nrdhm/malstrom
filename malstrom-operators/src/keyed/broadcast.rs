@@ -3,10 +3,10 @@ use std::{hash::Hash, marker::PhantomData};
 use indexmap::IndexSet;
 use serde::{Serialize, de::DeserializeOwned};
 
-use malstrom::channels::operator_io::{Input, Output};
+use malstrom_core::channels::operator_io::{Input, Output};
 use crate::keyed::{Distribute as _, WorkerPartitioner, distributed::distributor::DistributorBuilder};
-use malstrom::stream::{BuildContext, Logic, LogicBuilder, Malstrom, Operator, StreamBuilder};
-use malstrom::types::{DataMessage, Key, Kvt, MaybeKey, Message, WorkerId, distributable::Distributable};
+use malstrom_core::stream::{BuildContext, Logic, LogicBuilder, Malstrom, Operator, StreamBuilder};
+use malstrom_core::types::{DataMessage, Key, Kvt, MaybeKey, Message, WorkerId, distributable::Distributable};
 
 
 use super::KeyLocal;
@@ -64,7 +64,7 @@ where
         &mut self,
         input: &mut Input<M>,
         output: &mut Output<N>,
-        ctx: &mut malstrom::stream::OperatorContext,
+        ctx: &mut malstrom_core::stream::OperatorContext,
     ) {
         match input.recv().await {
             Message::Data(d) => {
@@ -108,7 +108,7 @@ where
         &mut self,
         input: &mut Input<M>,
         output: &mut Output<N>,
-        ctx: &mut malstrom::stream::OperatorContext,
+        ctx: &mut malstrom_core::stream::OperatorContext,
     ) {
         match input.recv().await {
             Message::Data(d) => {

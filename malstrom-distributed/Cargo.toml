@@ -10,7 +10,7 @@ repository = "https://github.com/MalstromDevelopers/malstrom"
 workspace = true
 
 [dependencies]
-malstrom = { path = "../malstrom-core" }
+malstrom-core = { path = "../malstrom-core" }
 futures = "0.3.31"
 indexmap = { version = "2.1.0", features = ["serde"] }
 seahash = "4.1.0"

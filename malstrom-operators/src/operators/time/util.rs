@@ -1,7 +1,7 @@
-use malstrom::channels::operator_io::Output;
+use malstrom_core::channels::operator_io::Output;
 use crate::operators::{map::Map, split::Split};
-use malstrom::stream::{DirectLogic, Operator, StreamBuilder};
-use malstrom::types::{DataMessage, Kvt, MaybeData, MaybeKey, Message, Timestamp};
+use malstrom_core::stream::{DirectLogic, Operator, StreamBuilder};
+use malstrom_core::types::{DataMessage, Kvt, MaybeData, MaybeKey, Message, Timestamp};
 
 
 use super::assign_timestamps::OnTimeLate;
@@ -41,7 +41,7 @@ pub(super) fn split_mixed_stream<T: MaybeData, In: Kvt<Value = OnTimeLate<T>>>(
     // browser (floats only)
     let randint = rand::random::<u32>();
     let [ontime, late] = mixed.const_split::<2>(
-        &format!("malstrom::time-split-{randint}"),
+        &format!("malstrom_core::time-split-{randint}"),
         |x, outs| match x.value {
             OnTimeLate::OnTime(_) => {
                 outs[0] = true;
@@ -51,12 +51,12 @@ pub(super) fn split_mixed_stream<T: MaybeData, In: Kvt<Value = OnTimeLate<T>>>(
             }
         },
     );
-    let ontime = ontime.map(&format!("malstrom::ontime-{randint}"), async |x| match x {
+    let ontime = ontime.map(&format!("malstrom_core::ontime-{randint}"), async |x| match x {
         OnTimeLate::OnTime(y) => y,
         OnTimeLate::Late(_) => unreachable!("ontime"),
     });
 
-    let late = late.map(&format!("malstrom::late-{randint}"), async |x| match x {
+    let late = late.map(&format!("malstrom_core::late-{randint}"), async |x| match x {
         OnTimeLate::OnTime(_) => unreachable!("late"),
         OnTimeLate::Late(y) => y,
     });

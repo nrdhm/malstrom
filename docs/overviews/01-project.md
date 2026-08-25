@@ -121,7 +121,7 @@ the Kubernetes guide.
 cargo run --example look_ma_im_streaming        # simplest example
 cargo run --example basic_operators             # operators tour
 cargo run --example stateful_programs           # state + snapshots
-# SlateDB persistence examples need: cargo run --example slatedb_backend --features slatedb
+# SlateDB persistence examples: cargo run -p malstrom-snapshot-slatedb --example slatedb_backend
 ```
 
 Docs: `website/` (dev server: `bun run docs:dev`).

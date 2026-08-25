@@ -54,6 +54,22 @@ downscale never shuts removed worker threads down (their sources keep running un
 `Epoch(MAX)`). Both are candidates for a follow-up (Layer 4 regression or a dedicated
 state-movement fix) — the kernel stateless scale-up path is proven by `rescale.rs`.
 
+### Layer 1b — DONE (2026-08-25)
+
+`malstrom/tests/` (the facade, exercising only `malstrom::`):
+
+- `tests/hello_pipeline.rs` — a `sources → operators → sinks` pipeline
+  (`Source::from_iterator` → `map` → `VecSink`) on both `SingleThreadRuntime` and
+  `MultiThreadRuntime` (parallelism 1), asserting the exact doubled sequence.
+  Note: the `build` closure must annotate its parameter
+  (`|p: &mut dyn StreamProvider| …`) — an un-annotated closure does not satisfy the
+  `FnOnce(&mut dyn StreamProvider)` HRTB bound, while a plain fn item does.
+- `tests/namespace.rs` — every historical top-level path resolves through the facade
+  (kernel modules + `keyed` incl. `keyed::distributed`, `operators`, `sinks`,
+  `sources`), plus a smoke test touching `serialize_state`/`deserialize_state`.
+  Note: `malstrom::coordinator::api` is private — the facade re-exports
+  `CoordinatorApi`/`ApiRequestError` at `malstrom::coordinator::` directly.
+
 ### Remaining layers
 
 - 1b: `malstrom/tests/` (hello_pipeline + namespace) — unblocked, facade landed.

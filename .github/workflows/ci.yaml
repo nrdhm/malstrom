@@ -31,15 +31,16 @@ jobs:
       # workspace lints already deny it. Widening to `-D warnings` is tracked as a
       # follow-up (see .cargo/config.toml and the fix-warning-backlog note).
       #
-      # `malstrom-k8s` (the runtime crate) is excluded: its build.rs runs
-      # `tonic_build::compile_protos`, which needs `protoc`, and CI runners do not
-      # install it. Re-enabling it (install protoc, or vendor it) is tracked in the
+      # `malstrom-k8s` (runtime) and `malstrom-operator` are excluded: both crates'
+      # build.rs run `tonic_build::compile_protos` (runtime/exchange.proto +
+      # k8s_operator_api.proto), which needs `protoc`, and CI runners do not install
+      # it. Re-enabling them (install protoc, or vendor it) is tracked in the
       # point-k8s-and-kafka-at-local-malstrom note.
       - name: Clippy (correctness)
-        run: cargo clippy --workspace --exclude malstrom-k8s --all-targets -- -D clippy::correctness
+        run: cargo clippy --workspace --exclude malstrom-k8s --exclude malstrom-operator --all-targets -- -D clippy::correctness
 
       - name: Check
-        run: cargo check --workspace --exclude malstrom-k8s --all-targets
+        run: cargo check --workspace --exclude malstrom-k8s --exclude malstrom-operator --all-targets
 
       - name: Test
-        run: cargo test --workspace --exclude malstrom-k8s
+        run: cargo test --workspace --exclude malstrom-k8s --exclude malstrom-operator

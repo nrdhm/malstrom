@@ -74,9 +74,11 @@ Added a `ci.yaml` workflow and made the correctness gate meaningful:
 - **`--exclude malstrom-k8s --exclude malstrom-kafka` in check/test** — makes the "we don't
   validate them against the local kernel" fact explicit, but removes coverage of their own
   tests (k8s 5, kafka 9) which do pass against `0.1.0`. Keep them included and document the
-  gap instead. **Amended in practice:** `malstrom-k8s` (the runtime) is excluded anyway —
-  its `build.rs` needs `protoc` (`tonic_build::compile_protos`), which CI runners lack; the
-  gate runs with `--exclude malstrom-k8s` until the
+  gap instead. **Amended in practice:** `malstrom-k8s` (the runtime) and `malstrom-operator`
+  are excluded anyway — **both** crates' `build.rs` run `tonic_build::compile_protos`, which
+  needs `protoc`, and CI runners lack it (the operator crate's build script compiles
+  `k8s_operator_api.proto` itself, so excluding only the runtime was not enough); the gate
+  runs with `--exclude malstrom-k8s --exclude malstrom-operator` until the
   [point-k8s-and-kafka-at-local-malstrom](../../proposed/process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md)
   change installs protoc. `malstrom-kafka` stays included.
 - **Run clippy/check/test as a matrix (stable + nightly)** — edition 2024 and `tokio_unstable`

@@ -8,7 +8,7 @@ The state may be very simple, like the total count of messages received, or very
 
 Let's see how we can make our program stateful.
 
-<<< @../../malstrom-core/examples/stateful_programs.rs
+<<< @../../malstrom-examples/examples/stateful_programs.rs
 
 This program will print the running sum of all numbers from 0 to 100 added up.
 Let's dissect the `stateful_map` operator.
@@ -44,7 +44,7 @@ usually not what you would do in a real application.
 
 Let's look at an example with multiple keys:
 
-<<< @../../malstrom-core/examples/stateful_program_multiple_keys.rs
+<<< @../../malstrom-examples/examples/stateful_program_multiple_keys.rs
 
 Now instead of getting a running sum of all numbers, we gut running sums of all even and odd numbers.
 This is because our state is keyed by the parity of the numbers.

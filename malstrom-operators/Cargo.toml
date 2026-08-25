@@ -26,7 +26,3 @@ malstrom-macros = { path = "../malstrom-macros" }
 
 [dev-dependencies]
 malstrom-testkit = { path = "../malstrom-testkit" }
-# for the event-time examples
-chrono = { version = "0.4.41", features = ["serde"] }
-# for the ttl_map example
-expiremap = { version="0.1.0-beta.3", features = ["serde"] }

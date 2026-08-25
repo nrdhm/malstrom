@@ -19,7 +19,7 @@ In our `main.rs` file we need to create two functions:
 
 Lets look at the code and then go through it step-by-step
 
-<<< @../../malstrom-core/examples/basic_noop.rs
+<<< @../../malstrom-examples/examples/basic_noop.rs
 
 Feel free to copy and run this snippet, it does absolutely nothing! Let's go through it:
 
@@ -39,7 +39,7 @@ We then use this provider to create datastreams.
 
 A core concept of Malstrom are operators. Operators are the nodes of our execution graph and in the most general sense they do ✨something✨ with our data. Malstrom comes with many pre-built operators (though you can create your [own](CustomOperators)). Let's import them and use the `.source` operator to add some data to our program.
 
-<<< @../../malstrom-operators/examples/basic_operators.rs
+<<< @../../malstrom-examples/examples/basic_operators.rs
 
 If you now run this code you'll see every second number from 0 to 200 printed to the console. Let's look at what we did:
 
@@ -55,7 +55,7 @@ As you can see, all operators must have a **unique** name. Choosing a good name 
 
 What if we want to do something more complex than doubling numbers? We will need more power! Luckily going from a single to multiple threads ([or machines](Kubernetes)) is super easy:
 
-<<< @../../malstrom-core/examples/multithreading.rs
+<<< @../../malstrom-examples/examples/multithreading.rs
 
 You will again see all numbers printed, along with the ID of the thread where they where processed (a number between 0 and 3).
 Let's reflect on the changes we made:

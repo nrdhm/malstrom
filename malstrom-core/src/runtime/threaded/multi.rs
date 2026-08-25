@@ -24,26 +24,66 @@ use super::communication::{
 /// Runs all dataflows on multiple threads within one machine
 ///
 /// # Example
+///
+/// This example uses only the kernel's public extension API — the source and
+/// pass-through operators below are plain [`Logic`](crate::stream::Logic)
+/// implementations, no `malstrom-operators` needed. Every worker runs the same
+/// dataflow, so the four workers each emit the numbers `0..10`.
+///
 /// ```rust
-/// use malstrom_operators::operators::*;
-/// use malstrom_operators::operators::Source as _;
 /// use malstrom::runtime::MultiThreadRuntime;
 /// use malstrom::snapshot::NoPersistence;
-/// use malstrom_operators::sources::Source;
+/// use malstrom::stream::{BuildContext, Logic, LogicBuilder, Malstrom as _, Operator, OperatorContext};
+/// use malstrom::channels::operator_io::{Input, Output};
+/// use malstrom::types::{DataMessage, Message};
 /// use malstrom::worker::StreamProvider;
-/// use malstrom_operators::keyed::rendezvous_select;
 ///
+/// /// A minimal source: emits `0..10` once, then finishes the stream.
+/// struct Numbers(usize);
+/// impl Logic<(), (usize, usize, usize)> for Numbers {
+///     async fn apply(
+///         &mut self,
+///         _input: &mut Input<()>,
+///         output: &mut Output<(usize, usize, usize)>,
+///         _ctx: &mut OperatorContext,
+///     ) {
+///         if self.0 == 0 {
+///             for i in 0..10 {
+///                 output
+///                     .send(Message::Data(DataMessage::new(i, i, i)))
+///                     .await;
+///             }
+///             output.send(Message::Epoch(usize::MAX)).await;
+///         }
+///         self.0 += 1;
+///     }
+/// }
+///
+/// /// A pass-through operator that prints which worker handled each record.
+/// struct PrintWorker;
+/// impl Logic<(usize, usize, usize), (usize, usize, usize)> for PrintWorker {
+///     async fn apply(
+///         &mut self,
+///         input: &mut Input<(usize, usize, usize)>,
+///         output: &mut Output<(usize, usize, usize)>,
+///         ctx: &mut OperatorContext,
+///     ) {
+///         let msg = input.recv().await;
+///         if let Message::Data(d) = &msg {
+///             println!("{} @ Worker {}", d.value, ctx.worker_id);
+///         }
+///         output.send(msg).await;
+///     }
+/// }
 ///
 /// MultiThreadRuntime::builder()
 ///     .parrallelism(4)
 ///     .persistence(NoPersistence)
 ///     .build(|provider: &mut dyn StreamProvider| {
-///         provider.new_stream()
-///         .source("numbers", Source::from_iterator(0..100))
-///         .key_distribute("key-by-value", |x| x.value, rendezvous_select)
-///         .inspect("print", async |x, ctx| {
-///             println!("{x:?} @ Worker {}", ctx.worker_id)
-///         });
+///         provider
+///             .new_stream()
+///             .then(Operator::built_by("numbers".to_string(), |_ctx: &mut BuildContext| async { Numbers(0) }))
+///             .then(Operator::built_by("print-worker".to_string(), |_ctx: &mut BuildContext| async { PrintWorker }));
 ///     })
 ///     .execute()
 ///     .unwrap();

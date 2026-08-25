@@ -50,7 +50,7 @@ emitted them as their key.
 To turn any type into a source, we need to implement the `SourceImpl` trait on it.
 Example:
 
-<<< @../../malstrom-operators/examples/file_source_stateless.rs#source_impl
+<<< @../../malstrom-examples/examples/file_source_stateless.rs#source_impl
 
 Here we first define a struct `FileSource`, which holds the list of files we wish to read.
 On `FileSource` we then implement `SourceImpl` with `type Value = String;` meaning our source
@@ -80,7 +80,7 @@ emit every line and line number as data.
 
 To do this, we implement Malstrom's `SourcePartition` trait:
 
-<<< @../../malstrom-operators/examples/file_source_stateless.rs#partition_impl
+<<< @../../malstrom-examples/examples/file_source_stateless.rs#partition_impl
 
 The trait consists of three methods:
 
@@ -100,10 +100,10 @@ The trait consists of three methods:
 `SourceImpl` and `SourcePartition` are all you need to implement for any (stateless) source.
 Our file source can then be used like this on a stream:
 
-<<< @../../malstrom-operators/examples/file_source_stateless.rs#usage
+<<< @../../malstrom-examples/examples/file_source_stateless.rs#usage
 
 ::: details Full code
-<<< @../../malstrom-operators/examples/file_source_stateless.rs
+<<< @../../malstrom-examples/examples/file_source_stateless.rs
 :::
 
 ## Custom Stateful Source
@@ -118,7 +118,7 @@ It would be much nicer if instead we continued reading, where we left off.
 To make the source stateful, we only need to change the associated types on the same
 `SourceImpl` trait — there is no separate stateful trait anymore:
 
-<<< @../../malstrom-operators/examples/file_source_stateful.rs#source_impl
+<<< @../../malstrom-examples/examples/file_source_stateful.rs#source_impl
 
 To make this work, we set `PartitionState` to `usize`: the type of the state we wish to retain.
 We want to keep the current line number of the file we are reading, therefore we set
@@ -136,7 +136,7 @@ Conceptually we need to make two changes to our partition:
 We will introduce an additional attribute `next_line` to check which line we would need to read
 on the next call to `poll`.
 
-<<< @../../malstrom-operators/examples/file_source_stateful.rs#partition_impl
+<<< @../../malstrom-examples/examples/file_source_stateful.rs#partition_impl
 
 The method `snapshot` is called by Malstrom whenever it takes a persisted snapshot of the job state.
 The state returned here will be given to `open` when the job starts from a snapshot.
@@ -157,8 +157,8 @@ another worker on rescaling. On that other worker the returned state will then a
 Similar to the stateless version, our stateful implementation can be used with a stream by wrapping
 it in `Source::from_impl`:
 
-<<< @../../malstrom-operators/examples/file_source_stateful.rs#usage
+<<< @../../malstrom-examples/examples/file_source_stateful.rs#usage
 
 ::: details Full code
-<<< @../../malstrom-operators/examples/file_source_stateful.rs
+<<< @../../malstrom-examples/examples/file_source_stateful.rs
 :::

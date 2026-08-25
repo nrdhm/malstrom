@@ -248,7 +248,7 @@ impl MultiThreadRuntimeApiHandle {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Mutex, OnceLock};
+    use std::sync::{Arc, Mutex, OnceLock};
 
     use crate::{
         channels::operator_io::{Input, Output},
@@ -259,13 +259,20 @@ mod tests {
         worker::StreamProvider,
     };
 
-    /// Values observed at the end of the dataflow. A `static` (rather than a closure
-    /// capture) because `MultiThreadRuntime::builder().build(..)` takes a `fn` pointer —
-    /// capturing closures cannot be used, and the test must not change the library API.
-    static SEEN: OnceLock<Mutex<Vec<usize>>> = OnceLock::new();
+    /// A registry of each `RecordWorker` instance's own state. Every worker builds its
+    /// own `RecordWorker` (the build closure is a `fn` pointer, so it cannot capture a
+    /// shared vector), and each instance registers the buffer it owns here at
+    /// construction — real per-operator state, observable from the test afterwards.
+    static WORKER_BUFFERS: OnceLock<Mutex<Vec<Arc<Mutex<Vec<usize>>>>>> = OnceLock::new();
 
-    fn seen() -> &'static Mutex<Vec<usize>> {
-        SEEN.get_or_init(|| Mutex::new(Vec::new()))
+    fn new_worker_buffer() -> Arc<Mutex<Vec<usize>>> {
+        let buffer = Arc::new(Mutex::new(Vec::new()));
+        WORKER_BUFFERS
+            .get_or_init(|| Mutex::new(Vec::new()))
+            .lock()
+            .unwrap()
+            .push(buffer.clone());
+        buffer
     }
 
     /// How many times the source operator's `apply` was called across all workers —
@@ -302,8 +309,9 @@ mod tests {
         }
     }
 
-    /// A pass-through operator that records which worker handled each record.
-    struct RecordWorker;
+    /// A pass-through operator with its own per-instance state: a `Vec` of the values
+    /// it saw, registered at construction so the test can verify each worker's state.
+    struct RecordWorker(Arc<Mutex<Vec<usize>>>);
     impl Logic<(usize, usize, usize), (usize, usize, usize)> for RecordWorker {
         async fn apply(
             &mut self,
@@ -314,20 +322,25 @@ mod tests {
             let msg = input.recv().await;
             if let Message::Data(d) = &msg {
                 println!("{} @ Worker {}", d.value, ctx.worker_id);
-                seen().lock().unwrap().push(d.value);
+                self.0.lock().unwrap().push(d.value);
             }
             output.send(msg).await;
         }
     }
 
-    /// Every worker runs the same dataflow, so the four workers each emit `0..5` —
-    /// 20 records total, every value observed on all four workers. Also asserts the
-    /// source's `apply` was driven repeatedly by the runtime loop (at least one call
-    /// per emitted record plus the finishing `Epoch(MAX)` call, per worker).
+    /// Every worker runs the same dataflow, so the four workers each emit `0..5`:
+    /// each worker's `RecordWorker` instance accumulates exactly `0..5` in its own
+    /// state, and across workers every value is observed once per worker. Also asserts
+    /// the source's `apply` was driven repeatedly by the runtime loop (at least one
+    /// call per emitted record plus the finishing `Epoch(MAX)` call, per worker).
     /// Exercises the kernel's public extension API end-to-end (no `malstrom-operators`).
     #[test]
     fn multi_thread_runtime_runs_dataflow_on_all_workers() {
-        seen().lock().unwrap().clear();
+        WORKER_BUFFERS
+            .get_or_init(|| Mutex::new(Vec::new()))
+            .lock()
+            .unwrap()
+            .clear();
         *apply_calls().lock().unwrap() = 0;
 
         MultiThreadRuntime::builder()
@@ -342,13 +355,31 @@ mod tests {
                     ))
                     .then(Operator::built_by(
                         "record-worker".to_string(),
-                        |_ctx: &mut BuildContext| async { RecordWorker },
+                        |_ctx: &mut BuildContext| async { RecordWorker(new_worker_buffer()) },
                     ));
             })
             .execute()
             .unwrap();
 
-        let mut collected = seen().lock().unwrap().clone();
+        // one RecordWorker instance per worker, each with its own accumulated state
+        let buffers: Vec<Vec<usize>> = WORKER_BUFFERS
+            .get_or_init(|| Mutex::new(Vec::new()))
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|b| {
+                let mut v = b.lock().unwrap().clone();
+                v.sort_unstable();
+                v
+            })
+            .collect();
+        assert_eq!(buffers.len(), 4, "one operator instance per worker");
+        for (i, buf) in buffers.iter().enumerate() {
+            assert_eq!(buf, &vec![0, 1, 2, 3, 4], "worker {i}'s operator state");
+        }
+
+        // across workers: every value observed exactly once per worker
+        let mut collected: Vec<usize> = buffers.iter().flatten().copied().collect();
         assert_eq!(collected.len(), 4 * 5, "4 workers × 5 records each");
         collected.sort_unstable();
         for value in 0..5 {

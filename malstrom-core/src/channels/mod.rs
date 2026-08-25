@@ -1,6 +1,9 @@
 //! Channels for exchanging data between stream operators
-pub(crate) mod alignment;
+/// Barrier alignment machinery used by the distributed crate and operator IO.
+pub mod alignment;
 pub mod operator_io;
-pub(crate) mod recv_trait;
+/// Low-level receiver abstraction used by operator IO and the distributed crate.
+pub mod recv_trait;
 pub(crate) mod signal;
-pub(crate) mod spsc;
+/// The bounded/unbounded SPSC channels underlying operator edges.
+pub mod spsc;

@@ -5,9 +5,9 @@ use std::{
 
 use crate::{
     channels::operator_io::{Input, Output, full_broadcast},
-    keyed::distributed::{Acquire, Collect, Interrogate},
     snapshot::SnapshotBarrier,
     stream::{OperatorContext, WorkerBuildContext},
+    types::distributed::{Acquire, Collect, Interrogate},
     types::{
         Barrier, Data, DataMessage, Kvt, MaybeKey, MaybeTime, Message, ReconfigComplete,
         RescaleMessage, SuspendMarker,
@@ -57,7 +57,7 @@ where
 }
 
 /// Operator Logic with absolutely no safeguard, allows you to break keying and everything else
-pub(crate) trait Logic<M: Kvt, N: Kvt>: 'static {
+pub trait Logic<M: Kvt, N: Kvt>: 'static {
     async fn apply(
         &mut self,
         input: &mut Input<M>,

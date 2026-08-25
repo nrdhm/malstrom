@@ -8,7 +8,7 @@ For example if we are tracking financial transactions, we may want to distribute
 
 Let's see how keying is performed in Malstrom. We will take a simple stream of numbers and key them by whether they are even or not.
 
-<<< @../../malstrom-core/examples/keyed_streams.rs
+<<< @../../malstrom-examples/examples/keyed_streams.rs
 
 In the output we will see, that all even numbers where processed at one worker, and all other numbers at the other.
 The distribution happens in the `key_distribute` operator. Let's examine it more closely:

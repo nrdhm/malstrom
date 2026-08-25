@@ -1,12 +1,18 @@
 [workspace]
 resolver = "2"
 members = [
+    "malstrom",
     "malstrom-core",
-    "malstrom-core/examples/*",
+    "malstrom-examples",
+    "malstrom-distributed",
+    "malstrom-operators",
+    "malstrom-testkit",
+    "malstrom-snapshot-slatedb",
     "malstrom-k8s/artifact-downloader",
     "malstrom-k8s/artifact-manager",
     "malstrom-k8s/operator",
     "malstrom-k8s/operator/crds",
+    "malstrom-k8s/proto",
     "malstrom-k8s/runtime",
     "malstrom-kafka",
     "malstrom-macros",

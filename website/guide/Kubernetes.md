@@ -17,7 +17,7 @@ Fetch the repository's helm charts:
 
 Install the operator (see below for supported config values):
 
-`helm install malstrom-operator malstrom/malstrom-operator -f values.yaml`
+`helm install malstrom-k8s-operator malstrom/malstrom-k8s-operator -f values.yaml`
 
 ## Using the Kubernetes Job Runtime
 
@@ -107,4 +107,4 @@ number greater than 0. The operator will then automatically take care of rescali
 
 The operator helm chart supports these configuration values:
 
-<<< @../../malstrom-k8s/operator/helm/malstrom-operator/values.yaml
+<<< @../../malstrom-k8s/operator/helm/malstrom-k8s-operator/values.yaml

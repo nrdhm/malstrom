@@ -1,13 +1,7 @@
 mod discovery;
 mod worker_backend;
-/// Intra-job communication
-mod exchange {
-    include!(concat!(env!("OUT_DIR"), "/malstrom_k8s.rs"));
-}
-/// Communication with K8S operator
-mod k8s_operator {
-    include!(concat!(env!("OUT_DIR"), "/malstrom_k8s.k8s_operator.rs"));
-}
+/// Intra-job communication (generated once in `malstrom-k8s-proto`).
+use malstrom_k8s_proto::{exchange, k8s_operator};
 
 mod coordinator_backend;
 pub(crate) mod transport;

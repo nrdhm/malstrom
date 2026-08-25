@@ -1,0 +1,18 @@
+[package]
+name = "malstrom-distributed"
+version = "0.1.0"
+edition = "2024"
+description = "The distributed routing protocol for Malstrom: keyed state movement and the distributor/router machinery for cross-worker key placement."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/MalstromDevelopers/malstrom"
+
+[lints]
+workspace = true
+
+[dependencies]
+malstrom-core = { path = "../malstrom-core" }
+futures = "0.3.31"
+indexmap = { version = "2.1.0", features = ["serde"] }
+seahash = "4.1.0"
+serde = { version = "1.0.218", features = ["derive"] }
+tokio = { version = "1.47.1", features = ["sync", "macros", "rt"] }

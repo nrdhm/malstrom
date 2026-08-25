@@ -19,7 +19,7 @@ use crds::{JobState, MalstromJob, MalstromJobStatus};
 /// - `client` - A Kubernetes client to create the deployment with.
 /// - `job_spec` - A reference to the Malstrom job specification.
 pub async fn create(client: Client, job_spec: Arc<MalstromJob>) -> Result<(), CreateJobError> {
-    let pp = PatchParams::apply("malstrom-operator");
+    let pp = PatchParams::apply("malstrom-k8s-operator");
     let namespace = job_spec
         .metadata
         .namespace
@@ -55,7 +55,7 @@ pub async fn create(client: Client, job_spec: Arc<MalstromJob>) -> Result<(), Cr
     malstrom_api
         .patch_status(
             &job_spec.name_any(),
-            &PatchParams::apply("malstrom-operator"),
+            &PatchParams::apply("malstrom-k8s-operator"),
             &kube::api::Patch::Merge(MalstromJobStatus {
                 state,
                 replicas: job_spec.spec.replicas,

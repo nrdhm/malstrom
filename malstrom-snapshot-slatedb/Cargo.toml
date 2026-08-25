@@ -1,0 +1,22 @@
+[package]
+name = "malstrom-snapshot-slatedb"
+version = "0.1.0"
+edition = "2024"
+description = "SlateDB/object-store persistence backend for Malstrom snapshots."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/MalstromDevelopers/malstrom"
+
+[lints]
+workspace = true
+
+[dependencies]
+malstrom-core = { path = "../malstrom-core" }
+slatedb = { version = "0.3.0", features = ["azure"] }
+object_store = { version = "0.11.1", features = ["cloud"] }
+tokio = { version = "1.47.1", features = ["rt-multi-thread", "rt", "macros", "sync", "time"] }
+tokio-stream = "0.1.16"
+rmp-serde = "1.3.0"
+thiserror = "1.0.49"
+
+[dev-dependencies]
+malstrom-operators = { path = "../malstrom-operators" }

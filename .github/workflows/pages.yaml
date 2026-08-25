@@ -40,7 +40,7 @@ jobs:
 
       - name: Package Malstrom Operator Helm Chart
         run: |
-          helm package ./malstrom-k8s/operator/helm/malstrom-operator -d ./website/.vitepress/dist/helm
+          helm package ./malstrom-k8s/operator/helm/malstrom-k8s-operator -d ./website/.vitepress/dist/helm
           helm repo index website/.vitepress/dist/helm 
 
       - name: Upload artifact

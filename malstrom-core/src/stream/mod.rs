@@ -10,8 +10,7 @@ pub use build_context::BuildContext;
 pub(crate) use build_context::WorkerBuildContext;
 pub use operator::Operator;
 pub use operator_context::OperatorContext;
-pub use operator_logic::{DirectLogic, LogicBuilder};
-pub(crate) use operator_logic::{Logic, SafeLogic, SafeLogicWrapper};
+pub use operator_logic::{DirectLogic, Logic, LogicBuilder, SafeLogic, SafeLogicWrapper};
 pub use stream_builder::{InitialStreamBuilder, Malstrom, StreamBuilder};
 
 use crate::{

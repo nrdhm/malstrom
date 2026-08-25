@@ -1,0 +1,17 @@
+[package]
+name = "malstrom-k8s-proto"
+version = "0.1.0"
+edition = "2024"
+description = "Shared gRPC protobuf definitions for the Malstrom k8s runtime and operator."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/MalstromDevelopers/malstrom"
+
+[lints]
+workspace = true
+
+[dependencies]
+tonic = "0.12.3"
+prost = "0.13.5"
+
+[build-dependencies]
+tonic-build = "0.12.3"

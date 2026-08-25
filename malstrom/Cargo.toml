@@ -1,0 +1,33 @@
+[package]
+name = "malstrom"
+version = "0.2.0"
+edition = "2024"
+description = "Malstrom is a distributed, stateful stream processing framework written in Rust."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/MalstromDevelopers/malstrom"
+readme = "../README.md"
+categories = [
+    "concurrency",
+]
+keywords = [
+    "stream",
+    "data",
+    "framework",
+    "streaming",
+    "distributed",
+]
+
+[lints]
+workspace = true
+
+[dependencies]
+malstrom-core = { path = "../malstrom-core" }
+malstrom-operators = { path = "../malstrom-operators", optional = true }
+malstrom-distributed = { path = "../malstrom-distributed", optional = true }
+malstrom-snapshot-slatedb = { path = "../malstrom-snapshot-slatedb", optional = true }
+
+[features]
+default = ["operators", "distributed"]
+operators = ["dep:malstrom-operators"]
+distributed = ["dep:malstrom-distributed", "operators"]
+slatedb = ["dep:malstrom-snapshot-slatedb"]

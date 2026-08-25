@@ -1,10 +1,16 @@
 # Malstrom Core Dependency Map
 
-> **Last refreshed:** 2026-08-23 (new-scheduler @ a4c8fce)
-> **Scope:** non-dev dependencies of `malstrom-core/Cargo.toml`
-> **Branch/commit:** new-scheduler @ a4c8fce (2026-08-23)
+> **Last refreshed:** 2026-08-24 (split-malstrom-core)
+> **Scope:** non-dev dependencies of `malstrom-core/Cargo.toml` — **the kernel**.
 > **Method:** usage grep over `malstrom-core/src`; dead reference files excluded (see "Findings")
 > **Keep fresh:** see "Keeping this file fresh" at the bottom
+
+> **Post-split (2026-08-24):** the crate split moved dependency-heavy code out of
+> `malstrom-core`. `rand`, `expiremap`, `seahash`, `malstrom-macros` now live in
+> `malstrom-operators`; `seahash` additionally in `malstrom-distributed`;
+> `slatedb`, `object_store`, `tokio-stream` in `malstrom-snapshot-slatedb`; `eyre` was removed
+> as dead; `console-subscriber` is a dev-dependency of the kernel (multithreading example).
+> The usage lists below were not re-audited after the split — treat them as approximate.
 
 ## Data & serialization
 
@@ -34,19 +40,19 @@
 **pin-project** — `#[pin_project]` on pinned self-referential futures
 - `channels/spsc`, `runtime/communication/operator_operator`
 
-**tokio-stream** (optional, `slatedb`) — `StreamExt` over SlateDB entry stream
-- `snapshot/slatedb.rs`
+**tokio-stream** — `StreamExt` over SlateDB entry stream
+- **moved** with `malstrom-snapshot-slatedb` (2026-08-24)
 
 **console-subscriber** — `console_subscriber::init()`
-- **only** `examples/multithreading.rs` (not in `src/`)
+- **dev-dependency** — **only** `examples/multithreading.rs`
 
-## Persistence (feature `slatedb`)
+## Persistence connectors
 
-**slatedb** — `slatedb::db::Db` snapshot store; re-exported as `SlateDbBackend`/`SlateDbClient`
-- `snapshot/slatedb.rs`, `snapshot/mod.rs` (re-export)
+**slatedb** — `slatedb::db::Db` snapshot store; `SlateDbBackend`/`SlateDbClient`
+- **moved** to `malstrom-snapshot-slatedb` (2026-08-24)
 
 **object_store** — `ObjectStore`, `PutPayload`, `path::Path`, `Error::NotFound`, `ObjectMeta` (+ `memory::InMemory` in tests)
-- `snapshot/slatedb.rs`
+- **moved** to `malstrom-snapshot-slatedb` (2026-08-24)
 
 ## Operators & helpers
 
@@ -54,16 +60,16 @@
 - production: `channels/operator_io.rs` (`Output::send` clones a message per recipient); tests/examples: `operators/{map,filter_map,flatten,inspect,stateful_map,ttl_map,time/assign_timestamps}`, `sources/fn_source`, `testing/`; imports in `coordinator/coordinator.rs`, `stream/{build_context,operator_context}`, `operators/stateful_op.rs` are currently unused (WIP)
 
 **seahash** — `seahash::hash` (routing hashes), `seahash::SeaHasher::new` (partition assignment)
-- `keyed/distributed/remote_receiver`, `stream/operator`
+- kernel: `stream/operator`; `malstrom-distributed/remote_receiver` (own dep)
 
 **rand** — `rand::random::<u32>()` (timestamp jitter)
-- `operators/time/util.rs`
+- **moved** with `malstrom-operators` (2026-08-24)
 
 **expiremap** (serde) — `ExpireMap` as TTL-map state
-- `operators/ttl_map.rs`
+- **moved** with `malstrom-operators` (2026-08-24)
 
 **malstrom-macros** (path dep) — `TTLState` derive (fields wrapped as `Option<(T, ts)>` + expire/is_empty)
-- `operators/ttl_map.rs` (re-export)
+- **moved** with `malstrom-operators` (2026-08-24)
 
 ## Errors & logging
 
@@ -85,13 +91,13 @@
 
 ## Findings & caveats
 
-- **`eyre` is dead** — declared in Cargo.toml, zero uses in the whole crate (src + examples). Remove candidate.
+- **`eyre` was dead and is gone** — declared in Cargo.toml with zero uses; removed in the split (2026-08-24).
 - **Dead reference files removed** (2026-08-23, `collapse-source-traits`): the undeclared,
   uncompiled reference copies `keyed_old/`, `sources/stateful_old.rs`,
   `coordinator/state_old.rs`, `channels/operator_io copy.rs` (and `testing/iterator_source.rs`)
   were deleted.
 - `futures::SinkExt` imported in `snapshot/mod.rs` with no call site yet (WIP)
-- Optional deps (`slatedb`, `object_store`, `tokio-stream`) are only active under the `slatedb` feature
+- The `slatedb` feature of `malstrom` was removed with the extraction (2026-08-24); the backend lives in `malstrom-snapshot-slatedb`
 
 ## Keeping this file fresh
 

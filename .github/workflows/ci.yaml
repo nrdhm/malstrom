@@ -26,20 +26,23 @@ jobs:
       - name: Format
         run: cargo fmt --all -- --check
 
+      # `malstrom-k8s-proto` compiles the shared gRPC protos (exchange.proto +
+      # k8s_operator_api.proto) with tonic_build in its build.rs, which needs a
+      # `protoc` binary — CI runners do not provide one, so install it and keep the
+      # whole workspace in the gate (no exclusions; all k8s crates are first-class
+      # parts of the repo).
+      - name: Install protoc
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
       # The tree is not yet warning-clean (~420 rustc/clippy warnings remain from the
       # crate splits), so the clippy gate is scoped to the correctness group; the
       # workspace lints already deny it. Widening to `-D warnings` is tracked as a
       # follow-up (see .cargo/config.toml and the fix-warning-backlog note).
-      #
-      # `malstrom-k8s` (the runtime crate) is excluded: its build.rs runs
-      # `tonic_build::compile_protos`, which needs `protoc`, and CI runners do not
-      # install it. Re-enabling it (install protoc, or vendor it) is tracked in the
-      # point-k8s-and-kafka-at-local-malstrom note.
       - name: Clippy (correctness)
-        run: cargo clippy --workspace --exclude malstrom-k8s --all-targets -- -D clippy::correctness
+        run: cargo clippy --workspace --all-targets -- -D clippy::correctness
 
       - name: Check
-        run: cargo check --workspace --exclude malstrom-k8s --all-targets
+        run: cargo check --workspace --all-targets
 
       - name: Test
-        run: cargo test --workspace --exclude malstrom-k8s
+        run: cargo test --workspace

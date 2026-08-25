@@ -217,7 +217,7 @@ impl MalstromJob {
                     }),
                     spec: Some(PodSpec {
                         restart_policy: Some("Always".to_owned()),
-                        service_account_name: Some("malstrom-operator".to_owned()),
+                        service_account_name: Some("malstrom-k8s-operator".to_owned()),
                         volumes: Some(volumes),
                         containers,
                         init_containers: Some(init_containers),
@@ -235,7 +235,7 @@ impl MalstromJob {
                             sysctls: None,
                             windows_options: None,
                         }),
-                        service_account: Some("malstrom-operator".to_owned()),
+                        service_account: Some("malstrom-k8s-operator".to_owned()),
                         termination_grace_period_seconds: Some(30),
                         dns_policy: Some("ClusterFirst".to_owned()),
                         ..self.spec.pod_spec_template.clone()
@@ -303,7 +303,7 @@ impl MalstromJob {
                     }),
                     spec: Some(PodSpec {
                         restart_policy: Some("Always".to_owned()),
-                        service_account_name: Some("malstrom-operator".to_owned()),
+                        service_account_name: Some("malstrom-k8s-operator".to_owned()),
                         volumes: Some(volumes),
                         containers,
                         init_containers: Some(init_containers),
@@ -321,7 +321,7 @@ impl MalstromJob {
                             sysctls: None,
                             windows_options: None,
                         }),
-                        service_account: Some("malstrom-operator".to_owned()),
+                        service_account: Some("malstrom-k8s-operator".to_owned()),
                         termination_grace_period_seconds: Some(30),
                         dns_policy: Some("ClusterFirst".to_owned()),
                         ..self.spec.pod_spec_template.clone()

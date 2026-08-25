@@ -1,0 +1,26 @@
+[package]
+name = "malstrom-examples"
+version = "0.1.0"
+edition = "2024"
+description = "Runnable examples for Malstrom: framework-level and operator-level demos."
+publish = false
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/MalstromDevelopers/malstrom"
+
+[lints]
+workspace = true
+
+[dependencies]
+malstrom = { path = "../malstrom" }
+indexmap = { version = "2.1.0", features = ["serde"] }
+serde = { version = "1.0.218", features = ["derive"] }
+tokio = { version = "1.47.1", features = ["rt", "sync", "time"] }
+
+[dev-dependencies]
+console-subscriber = "0.5.0"
+tracing-subscriber = "0.3.18"
+chrono = { version = "0.4.41", features = ["serde"] }
+expiremap = { version="0.1.0-beta.3", features = ["serde"] }
+# only for the TTLState derive expansion in ttl_map.rs, which references the
+# operators crate by name; the example source imports the malstrom facade
+malstrom-operators = { path = "../malstrom-operators" }

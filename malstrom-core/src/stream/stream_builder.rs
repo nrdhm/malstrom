@@ -13,9 +13,9 @@ use crate::{
 /// `.filter` on it. The StreamBuilder needs to be finished by dropping it, which will automatically
 /// add it to the worker's execution schedule.
 pub struct StreamBuilder<M: Kvt> {
-    pub(crate) tail: Input<M>,
+    pub tail: Input<M>,
     // the runtime this stream is registered to
-    pub(crate) runtime: Rc<Mutex<InnerRuntimeBuilder>>,
+    pub runtime: Rc<Mutex<InnerRuntimeBuilder>>,
 }
 
 impl<M> StreamBuilder<M>
@@ -23,7 +23,7 @@ where
     M: Kvt,
 {
     /// Get a reference to the runtime this stream belongs to
-    pub(crate) fn get_runtime(&self) -> Rc<Mutex<InnerRuntimeBuilder>> {
+    pub fn get_runtime(&self) -> Rc<Mutex<InnerRuntimeBuilder>> {
         Rc::clone(&self.runtime)
     }
 }

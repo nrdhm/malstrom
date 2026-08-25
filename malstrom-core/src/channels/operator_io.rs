@@ -35,7 +35,7 @@ pub struct Output<M: Kvt> {
 impl<M: Kvt> Output<M> {
     /// Create a new Sender with **no** associated Receiver
     /// Link a receiver with [link].
-    pub(crate) fn new_unlinked(partitioner: impl OperatorPartitioner<M>) -> Self {
+    pub fn new_unlinked(partitioner: impl OperatorPartitioner<M>) -> Self {
         /// Allow NoTime type to indicate a final output
         /// even if send is never called on this output
         let finalized_signal = Signal::new(M::Timestamp::CHECK_FINISHED(&None));
@@ -117,7 +117,8 @@ impl<M: Kvt> Output<M> {
 
     /// Mark this output as closed, causing downstream operators watching
     /// [get_closed_signal] to stop.
-    pub(crate) fn close(&self) {
+    /// Mark this output as closed; further sends are dropped.
+    pub fn close(&self) {
         let _ = self.closed_signal.send(true);
     }
 
@@ -203,7 +204,7 @@ pub struct Input<M: Kvt> {
 
 impl<M: Kvt> Input<M> {
     /// Create a new input which is not (yet) linked to any output
-    pub(crate) fn new_unlinked() -> Input<M> {
+    pub fn new_unlinked() -> Input<M> {
         let barrier_align = BarrierAlign::new_empty(is_barrier);
         Self {
             frontiers: Vec::new(),
@@ -226,8 +227,8 @@ where
     /// Non-blocking receive: returns a message if one is immediately available.
     /// Polls with a no-op waker, so any registered waker on an empty channel may
     /// be overwritten — only use where no other task waits on this input
-    /// (e.g. the single-threaded [crate::testing::OperatorTester]).
-    pub(crate) fn try_recv(&mut self) -> Option<Message<M>> {
+    /// (e.g. the single-threaded operator testkit).
+    pub fn try_recv(&mut self) -> Option<Message<M>> {
         let mut fut = std::pin::pin!(self.receivers.recv());
         let waker = std::task::Waker::noop();
         let mut cx = std::task::Context::from_waker(&waker);
@@ -286,14 +287,14 @@ where
     }
 }
 
-// /// A simple partitioner, which will broadcast a value to all receivers
+/// A partitioner which broadcasts every value to all receivers.
 #[inline(always)]
-pub(crate) fn full_broadcast<T>(_: &T, outputs: &mut [bool]) {
+pub fn full_broadcast<T>(_: &T, outputs: &mut [bool]) {
     outputs.fill(true);
 }
 
 /// Link a Sender and receiver together
-pub(crate) fn link<M: Kvt>(sender: &mut Output<M>, receiver: &mut Input<M>) {
+pub fn link<M: Kvt>(sender: &mut Output<M>, receiver: &mut Input<M>) {
     let (tx, rx) = spsc::unbounded();
     sender.senders.push(Rc::new(tx));
     // receiver keys are 0-based so they line up with `frontiers`
@@ -304,7 +305,7 @@ pub(crate) fn link<M: Kvt>(sender: &mut Output<M>, receiver: &mut Input<M>) {
 
 /// Small reducer hack, as we can't use iter::reduce because of ownership
 /// TODO: Move this somewhere else
-pub(crate) fn merge_timestamps<'a, T: MaybeTime>(
+pub fn merge_timestamps<'a, T: MaybeTime>(
     mut timestamps: impl Iterator<Item = &'a Option<T>>,
 ) -> Option<T> {
     let mut merged = timestamps.next()?.clone();

@@ -32,14 +32,20 @@ A Cargo workspace (`Cargo.toml`) with the following members:
 
 | Path | Crate | Purpose |
 |---|---|---|
-| `malstrom-core/` | `malstrom` (crates.io) | The core stream processing framework |
+| `malstrom/` | `malstrom` (crates.io) | The public **facade** — re-exports the layer crates under one module tree |
+| `malstrom-core/` | `malstrom-core` | The kernel (execution engine): types, channels, stream, worker, coordinator, runtime, snapshot |
+| `malstrom-distributed/` | `malstrom-distributed` | The keyed routing protocol |
+| `malstrom-operators/` | `malstrom-operators` | Operators, sinks, sources, keyed streams |
+| `malstrom-testkit/` | `malstrom-testkit` | Operator tester and in-memory comm backends |
+| `malstrom-snapshot-slatedb/` | `malstrom-snapshot-slatedb` | The SlateDB/object-store persistence backend |
 | `malstrom-k8s/runtime/` | `malstrom-k8s` | Kubernetes runtime flavor (gRPC-based distributed execution) |
-| `malstrom-k8s/operator/` | `malstrom-operator` | Kubernetes operator that manages Malstrom jobs |
+| `malstrom-k8s/operator/` | `malstrom-k8s-operator` | Kubernetes operator that manages Malstrom jobs |
 | `malstrom-k8s/operator/crds/` | `crds` | The `MalstromJob` CRD definition |
 | `malstrom-k8s/artifact-downloader/` | — | Sidecar that downloads job binaries into pods |
 | `malstrom-k8s/artifact-manager/` | — | Service that serves job artifacts (Rocket) |
 | `malstrom-kafka/` | `malstrom-kafka` | Kafka protocol sources and sinks (via `rdkafka`) |
-| `malstrom-core/examples/*` | — | ~25 runnable examples (basic, stateful, event-time, TTL, SlateDB, …) |
+| `malstrom-examples/` | — | runnable examples (framework-level: engine demos; operator-level: operator/sink/source demos), see its README |
+| `malstrom-snapshot-slatedb/examples/*` | — | the SlateDB persistence examples |
 
 Supporting material: `website/` (VitePress documentation site), `.github/workflows/`
 (CI: container images via `ghcr.yaml`, docs site via `pages.yaml`), `malstrom-k8s/dev-scripts/`
@@ -57,27 +63,30 @@ provider
     .sink("stdout", StatelessSink::new(StdOutSink));
 ```
 
-Key modules:
+Key modules (kernel; `malstrom-core/src/`; since 2026-08-24 the operators/sinks/sources/keyed
+layers live in the `malstrom-operators` / `malstrom-distributed` crates):
 
 - **`stream/`** — the stream builder and operator abstraction: `BuildableOperator`,
   `RunnableOperator`, contexts, and standard/chained operator plumbing. Custom operators can
-  be written via `stateful_op`/`stateless_op`.
-- **`operators/`** — built-in operators: `map`, `filter`, `filter_map`, `inspect`, `flatten`,
-  `split`, `cloned`, `stateful_map`, `ttl_map`, plus event-time operators
-  (`assign_timestamps`, `generate_epochs`, `inspect_frontier`).
-- **`sources/` & `sinks/`** — one unified `SourceImpl`/`SourcePartition` abstraction plus
-  `Source::from_*` constructors for iterators/streams/poll closures ("stateless" sources are
-  `SourceImpl` with `PartitionState = ()`), stateless/stateful sinks, stdout and in-memory vec
-  sinks. `malstrom-kafka` adds Kafka endpoints.
-- **`keyed/`** — keyed streams: key distribution across workers, partitioners, and a message
-  router that fans messages to the right worker/partition.
+  be written via `stateful_op`/`stateless_op` (in `malstrom-operators`).
+- **`operators/`** (now `malstrom-operators`) — built-in operators: `map`, `filter`,
+  `filter_map`, `inspect`, `flatten`, `split`, `cloned`, `stateful_map`, `ttl_map`, plus
+  event-time operators (`assign_timestamps`, `generate_epochs`, `inspect_frontier`).
+- **`sources/` & `sinks/`** (now `malstrom-operators`) — one unified
+  `SourceImpl`/`SourcePartition` abstraction plus `Source::from_*` constructors for
+  iterators/streams/poll closures ("stateless" sources are `SourceImpl` with
+  `PartitionState = ()`), stateless/stateful sinks, stdout and in-memory vec sinks.
+  `malstrom-kafka` adds Kafka endpoints.
+- **`keyed/`** (now `malstrom-distributed`) — keyed streams: key distribution across workers,
+  partitioners, and a message router that fans messages to the right worker/partition.
 - **`runtime/`** — runtime flavors: in-process `MultiThreadRuntime` (single- and
   multi-threaded) and the distributed gRPC backend. **Workers are the unit of parallelism** —
   the runtime spawns identical workers up to the configured parallelism.
 - **`coordinator/`** — the coordinator orchestrates workers (communication, watchmaps, state,
   rescaling).
-- **`snapshot/`** — persistence backends (`NoPersistence`, `slatedb` with cloud object
-  stores) plus the barrier mechanism that drives exactly-once snapshots.
+- **`snapshot/`** — persistence traits and the barrier mechanism that drives exactly-once
+  snapshots; the `slatedb`/cloud-store backend is the separate
+  `malstrom-snapshot-slatedb` crate.
 - **`channels/`** — internal operator I/O: SPSC channels, linking, merging, broadcast.
 - **`types/`** — core message types (`Message`, keys, timestamps, worker IDs, partitioners).
 
@@ -88,7 +97,7 @@ serialization (`rmp-serde`) is only required at process boundaries.
 
 - A **`MalstromJob` CRD** (group `malstrom.io`) declares a job: which binary artifact to run,
   where to fetch it (with auth via env), initial scale, and job state (`Running`/`Suspended`).
-- The **operator** (`malstrom-operator`) uses `kube`/`kube-runtime` to watch `MalstromJob`
+- The **operator** (`malstrom-k8s-operator`) uses `kube`/`kube-runtime` to watch `MalstromJob`
   resources and reconcile them into Kubernetes `StatefulSet`s, with finalizers and health
   checks. This is what enables zero-downtime scaling (rescaling a job while it runs).
 - The **`malstrom-k8s` runtime** lets the *same* job code run distributed: `execute_auto()`
@@ -115,10 +124,10 @@ the Kubernetes guide.
 ## Quick start
 
 ```bash
-cargo run --example look_ma_im_streaming        # simplest example
-cargo run --example basic_operators             # operators tour
-cargo run --example stateful_programs           # state + snapshots
-# SlateDB persistence examples need: cargo run --example slatedb_backend --features slatedb
+cargo run -p malstrom-examples --example look_ma_im_streaming   # simplest example
+cargo run -p malstrom-examples --example basic_operators        # operators tour
+cargo run -p malstrom-examples --example stateful_programs      # state + snapshots
+# SlateDB persistence examples: cargo run -p malstrom-snapshot-slatedb --example slatedb_backend
 ```
 
 Docs: `website/` (dev server: `bun run docs:dev`).

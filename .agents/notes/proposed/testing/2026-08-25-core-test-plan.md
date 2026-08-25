@@ -110,6 +110,38 @@ The `rendezvous_select`/`index_select` partitioner determinism from the original
 lives in `malstrom-distributed` (a layer crate), so it is out of scope for the kernel;
 `hash_op_name` stability is already pinned by `stream::operator::hash_is_stable`.
 
+### Layer 4 — DONE (2026-08-25)
+
+The 10 regression rows, each pinned by a named test:
+
+| Bug | Regression test |
+|---|---|
+| `ClosedSignal::wait_for` future-of-a-future | `closed_signal_resolves_only_after_close` (operator_io) |
+| spsc waker inversion | `parked_receiver_wakes_on_send` (spsc) |
+| `merge_frontiers` dropped the MAX epoch | `completion.rs` (Epoch(MAX) reaches the sink, job terminates) |
+| `ConnectionKey` direction merge | `operator_channels_connect_on_same_connection_key` + `coordinator_worker_connect_on_same_connection_key` (inter_thread) |
+| 1-based vs 0-based frontier index | `multi_input_epoch_merges_with_zero_based_frontiers` (operator_io) |
+| `ExecutionComplete` struct vs enum | `runtime_messages_round_trip` (coordinator/messages) |
+| `on_schedule` pump-until-idle | `on_schedule_pumps_until_idle` (operator_logic) |
+| root/`no_receivers` termination | `completion.rs` |
+| sink swallowing MAX | `completion.rs` + `safe_logic_contract.rs` |
+| send-after-close | `send_after_close_is_noop` (operator_io) |
+
+**`send_after_close_is_noop` found a real kernel bug, fixed here:** `Output::close()`
+(and the internal Suspend/`CHECK_FINISHED` auto-close) used `watch::Sender::send`,
+which — per tokio semantics — is a *no-op that does not update the value* when there
+are zero receivers. With no subscriber, `close()` silently left the output open and
+sends kept flowing. Switched to `send_replace(true)` (updates unconditionally). This
+also forced two test-side fixes: `buffer_on_barriers` used a `NoTime` output, where
+`CHECK_FINISHED` is always true so the (now-correct) auto-close after the first send
+breaks its expectations — it now uses `i32` timestamps; likewise the pump test.
+Runtime behavior is unchanged (operators always subscribe to their own closed signal).
+
+**Observed but NOT fixed (pre-existing):** a `NoTime` output (e.g. the root operator's
+`Output<()>`) auto-closes after its *first* send and the operator exits — so the root
+dies after the first system message, and a second coordination message (e.g. a snapshot
+after a rescale) would never reach the dataflow. Candidate for a follow-up.
+
 ### Remaining layers
 
 - 1b: `malstrom/tests/` (hello_pipeline + namespace) — unblocked, facade landed.

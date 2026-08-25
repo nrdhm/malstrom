@@ -274,4 +274,19 @@ mod tests {
         assert_not_impl!(Receiver<()>, Copy);
         assert_not_impl!(Receiver<()>, Clone);
     }
+
+    /// Regression: a receiver parked on an empty channel must be woken when a message
+    /// is sent (the spsc waker inversion woke the wrong side, forcing busy-polling).
+    #[tokio::test]
+    async fn parked_receiver_wakes_on_send() {
+        let (tx, mut rx) = unbounded();
+        // park a receiver on the empty channel and register its waker
+        let timed_out = tokio::time::timeout(std::time::Duration::from_millis(20), rx.recv())
+            .await
+            .is_err();
+        assert!(timed_out, "receiver must park on an empty channel");
+        // a send must wake it without any further polling from the receiver
+        tx.send("wake me").await;
+        assert_eq!(rx.recv().await, "wake me");
+    }
 }

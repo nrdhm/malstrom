@@ -85,7 +85,7 @@ impl<M: Kvt> Output<M> {
             }
             x => {
                 if matches!(x, Message::AbsBarrier(Barrier::Suspend(_))) {
-                    self.closed_signal.send(true);
+                    self.closed_signal.send_replace(true);
                 }
                 // repeat_n will clone for every iteration except the last
                 // this gives us a small optimization on the common "1 receiver" case :)
@@ -99,7 +99,7 @@ impl<M: Kvt> Output<M> {
             }
         };
         if M::Timestamp::CHECK_FINISHED(&self.frontier) {
-            self.closed_signal.send(true);
+            self.closed_signal.send_replace(true);
         };
     }
     /// Get the frontier on this Sender, i.e the timestamp of the largest
@@ -119,7 +119,9 @@ impl<M: Kvt> Output<M> {
     /// [get_closed_signal] to stop.
     /// Mark this output as closed; further sends are dropped.
     pub fn close(&self) {
-        let _ = self.closed_signal.send(true);
+        // `send_replace` (not `send`): `watch::Sender::send` is a no-op when there are
+        // no receivers, which would silently leave the output open
+        self.closed_signal.send_replace(true);
     }
 
     /// Resolves once all receivers of this output's channels are gone, i.e. the
@@ -323,7 +325,7 @@ pub fn merge_timestamps<'a, T: MaybeTime>(
 mod test {
     use crate::{
         snapshot::{NoPersistence, SnapshotBarrier},
-        types::{Barrier, DataMessage, NoData, NoKey, NoTime},
+        types::{Barrier, DataMessage, NoData, NoKey},
     };
 
     use super::*;
@@ -388,8 +390,8 @@ mod test {
     /// should buffer messages if the channels if barred
     #[tokio::test]
     async fn buffer_on_barriers() {
-        let mut sender: Output<(NoKey, i32, NoTime)> = Output::new_unlinked(full_broadcast);
-        let mut sender2: Output<(NoKey, i32, NoTime)> = Output::new_unlinked(full_broadcast);
+        let mut sender: Output<(NoKey, i32, i32)> = Output::new_unlinked(full_broadcast);
+        let mut sender2: Output<(NoKey, i32, i32)> = Output::new_unlinked(full_broadcast);
         let mut receiver = Input::new_unlinked();
         link(&mut sender, &mut receiver);
         link(&mut sender2, &mut receiver);
@@ -402,10 +404,10 @@ mod test {
             .await;
 
         sender
-            .send(Message::Data(DataMessage::new(NoKey, 42, NoTime)))
+            .send(Message::Data(DataMessage::new(NoKey, 42, 0)))
             .await;
         sender
-            .send(Message::Data(DataMessage::new(NoKey, 177, NoTime)))
+            .send(Message::Data(DataMessage::new(NoKey, 177, 0)))
             .await;
 
         let (cb, _rx) = tokio::sync::mpsc::channel(1);
@@ -506,5 +508,67 @@ mod test {
             .await;
         // if the sender had kept or sent the message somewhere this should panic
         Rc::try_unwrap(elem).unwrap();
+    }
+
+    /// Regression: `ClosedSignal::wait_for` returns an awaitable future directly (a
+    /// future-of-a-future here made operators exit before applying), and it only
+    /// resolves once the output is actually closed.
+    #[tokio::test]
+    async fn closed_signal_resolves_only_after_close() {
+        let output: Output<(NoKey, NoData, i32)> = Output::new_unlinked(full_broadcast);
+        let mut closed = output.get_closed_signal();
+
+        let timed_out = tokio::time::timeout(
+            std::time::Duration::from_millis(20),
+            closed.wait_for(),
+        )
+        .await
+        .is_err();
+        assert!(timed_out, "must stay pending until the output closes");
+
+        output.close();
+        tokio::time::timeout(std::time::Duration::from_secs(1), closed.wait_for())
+            .await
+            .expect("resolves once the output is closed");
+    }
+
+    /// Regression: sending on a closed output is a no-op (message dropped), never a
+    /// panic, and nothing arrives downstream.
+    #[tokio::test]
+    async fn send_after_close_is_noop() {
+        let mut output: Output<(NoKey, NoData, i32)> = Output::new_unlinked(full_broadcast);
+        let mut input = Input::new_unlinked();
+        link(&mut output, &mut input);
+
+        output.close();
+        output
+            .send(Message::Data(DataMessage::new(NoKey, NoData, 0)))
+            .await;
+
+        let timed_out = tokio::time::timeout(
+            std::time::Duration::from_millis(20),
+            input.recv(),
+        )
+        .await
+        .is_err();
+        assert!(timed_out, "a closed output must drop messages");
+    }
+
+    /// Regression: with two inputs, per-channel epochs merge into the frontier using
+    /// 0-based receiver keys — a 1-based index panicked here.
+    #[tokio::test]
+    async fn multi_input_epoch_merges_with_zero_based_frontiers() {
+        let mut out_a: Output<(NoKey, NoData, i32)> = Output::new_unlinked(full_broadcast);
+        let mut out_b: Output<(NoKey, NoData, i32)> = Output::new_unlinked(full_broadcast);
+        let mut input = Input::new_unlinked();
+        link(&mut out_a, &mut input);
+        link(&mut out_b, &mut input);
+
+        out_a.send(Message::Epoch(5)).await;
+        // only one channel has a frontier -> nothing emitted yet
+        assert!(recv_or_none(&mut input).await.is_none());
+        out_b.send(Message::Epoch(7)).await;
+        // both channels aligned -> the merged (min) epoch is emitted
+        assert!(matches!(input.recv().await, Message::Epoch(5)));
     }
 }

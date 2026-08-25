@@ -259,3 +259,87 @@ where
         };
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::channels::operator_io::{Input, Output, full_broadcast, link};
+    use crate::types::{DataMessage, NoKey};
+
+    /// A `SafeLogic` whose `on_schedule` emits one record per call while work remains.
+    /// (Uses an `i32` timestamp: a `NoTime` output auto-closes after its first send —
+    /// `CHECK_FINISHED` is always true for `NoTime` — which is not what this test is
+    /// about.)
+    struct EmitWhileWork {
+        remaining: u32,
+        events: flume::Sender<&'static str>,
+    }
+
+    type M = (NoKey, u32, i32);
+
+    impl SafeLogic<M, M> for EmitWhileWork {
+        async fn on_schedule(
+            &mut self,
+            output: &mut Output<M>,
+            _ctx: &mut OperatorContext,
+        ) -> bool {
+            if self.remaining > 0 {
+                self.remaining -= 1;
+                self.events.send("emit").unwrap();
+                output
+                    .send(Message::Data(DataMessage::new(NoKey, self.remaining, 0)))
+                    .await;
+                true
+            } else {
+                false
+            }
+        }
+
+        async fn on_data(
+            &mut self,
+            _data_message: DataMessage<M>,
+            _output: &mut Output<M>,
+            _ctx: &mut OperatorContext,
+        ) {
+        }
+    }
+
+    /// Regression: `on_schedule` is pumped until it returns false — a source with no
+    /// input emits everything it has in a single apply, before any input message is
+    /// handled.
+    #[tokio::test]
+    async fn on_schedule_pumps_until_idle() {
+        let (tx_events, rx_events) = flume::unbounded();
+        let mut logic = EmitWhileWork {
+            remaining: 5,
+            events: tx_events,
+        }
+        .into_logic();
+
+        // pre-send one epoch so the apply's recv completes after the pump
+        let mut input = Input::new_unlinked();
+        let mut feeder: Output<M> = Output::new_unlinked(full_broadcast);
+        link(&mut feeder, &mut input);
+        feeder.send(Message::Epoch(0)).await;
+
+        let mut output: Output<M> = Output::new_unlinked(full_broadcast);
+        let mut collector = Input::new_unlinked();
+        link(&mut output, &mut collector);
+
+        logic
+            .apply(&mut input, &mut output, &mut OperatorContext::new(0, 0))
+            .await;
+
+        // all five emissions happened before the input epoch was handled
+        assert_eq!(rx_events.drain().collect::<Vec<_>>(), vec!["emit"; 5]);
+        let mut datas = 0;
+        for _ in 0..5 {
+            if let Message::Data(d) = collector.recv().await {
+                assert!(d.value < 5);
+                datas += 1;
+            }
+        }
+        assert_eq!(datas, 5);
+        assert!(matches!(collector.recv().await, Message::Epoch(_)));
+    }
+}

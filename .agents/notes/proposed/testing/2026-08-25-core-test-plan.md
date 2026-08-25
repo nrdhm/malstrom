@@ -96,6 +96,20 @@ apply branch before the output-closed branch, so one trailing `schedule` pump (y
 no message) races shutdown; the test now trims trailing schedules before asserting the
 exact dispatch order.
 
+### Layer 3 — DONE (2026-08-25)
+
+`proptest` re-added to the kernel dev-deps (it had been dropped with all dev-deps) and
+property tests added:
+
+- `types/distributable` — encode/decode is an identity over generated `u64`/`i64`/
+  `String`/`Vec<u8>`/`(u64, i32, String)` values.
+- `types/time` — `Timestamp::merge` laws over generated values: min for numerics,
+  commutative, associative, idempotent, monotone (never advances the frontier).
+
+The `rendezvous_select`/`index_select` partitioner determinism from the original plan
+lives in `malstrom-distributed` (a layer crate), so it is out of scope for the kernel;
+`hash_op_name` stability is already pinned by `stream::operator::hash_is_stable`.
+
 ### Remaining layers
 
 - 1b: `malstrom/tests/` (hello_pipeline + namespace) — unblocked, facade landed.

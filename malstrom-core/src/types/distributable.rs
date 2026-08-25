@@ -61,3 +61,38 @@ mod tests {
         assert_eq!(<(u64, i32, String)>::decode(&v.clone().encode()), v);
     }
 }
+
+#[cfg(test)]
+mod proptests {
+    use super::Distributable;
+    use proptest::prelude::*;
+
+    proptest! {
+        /// Encode/decode is an identity for every generated value.
+        #[test]
+        fn round_trips_u64(v: u64) {
+            prop_assert_eq!(u64::decode(&v.clone().encode()), v);
+        }
+
+        #[test]
+        fn round_trips_i64(v: i64) {
+            prop_assert_eq!(i64::decode(&v.clone().encode()), v);
+        }
+
+        #[test]
+        fn round_trips_string(v: String) {
+            prop_assert_eq!(String::decode(&v.clone().encode()), v);
+        }
+
+        #[test]
+        fn round_trips_byte_vec(v: Vec<u8>) {
+            prop_assert_eq!(Vec::<u8>::decode(&v.clone().encode()), v);
+        }
+
+        /// Nested tuples — the shape of a `Kvt` stream message.
+        #[test]
+        fn round_trips_kvt_tuple(v: (u64, i32, String)) {
+            prop_assert_eq!(<(u64, i32, String)>::decode(&v.clone().encode()), v);
+        }
+    }
+}

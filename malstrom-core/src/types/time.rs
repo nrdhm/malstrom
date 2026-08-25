@@ -147,3 +147,40 @@ mod tests {
         assert!(MaybeTime::CHECK_FINISHED(&None::<NoTime>));
     }
 }
+
+#[cfg(test)]
+mod proptests {
+    use super::Timestamp;
+    use proptest::prelude::*;
+
+    /// `merge` must be a commutative, associative, idempotent meet (min for the
+    /// numeric impls), and monotone: merging with a larger value never advances.
+    proptest! {
+        #[test]
+        fn usize_merge_is_min(a: usize, b: usize) {
+            prop_assert_eq!(a.merge(&b), a.min(b));
+        }
+
+        #[test]
+        fn merge_commutative(a: u64, b: u64) {
+            prop_assert_eq!(a.merge(&b), b.merge(&a));
+        }
+
+        #[test]
+        fn merge_associative(a: u64, b: u64, c: u64) {
+            prop_assert_eq!(a.merge(&b).merge(&c), a.merge(&b.merge(&c)));
+        }
+
+        #[test]
+        fn merge_idempotent(a: u64) {
+            prop_assert_eq!(a.merge(&a), a);
+        }
+
+        #[test]
+        fn merge_monotone(a: u64, b: u64) {
+            // merging can only advance the frontier downward (towards completion)
+            prop_assert!(a.merge(&b) <= a);
+            prop_assert!(a.merge(&b) <= b);
+        }
+    }
+}

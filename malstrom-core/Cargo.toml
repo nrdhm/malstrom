@@ -45,6 +45,5 @@ chrono = { version = "0.4.41", features = ["serde"] }
 # the extracted layers, used by the examples
 malstrom-distributed = { path = "../malstrom-distributed" }
 malstrom-operators = { path = "../malstrom-operators" }
-malstrom-testkit = { path = "../malstrom-testkit" }
 expiremap = { version="0.1.0-beta.3", features = ["serde"] }
 console-subscriber = "0.5.0"

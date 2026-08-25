@@ -248,6 +248,8 @@ impl MultiThreadRuntimeApiHandle {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{Mutex, OnceLock};
+
     use crate::{
         channels::operator_io::{Input, Output},
         runtime::MultiThreadRuntime,
@@ -257,8 +259,21 @@ mod tests {
         worker::StreamProvider,
     };
 
-    /// A minimal source: emits `0..10` once, then finishes the stream.
-    struct Numbers(usize);
+    /// Values observed at the end of the dataflow. A `static` (rather than a closure
+    /// capture) because `MultiThreadRuntime::builder().build(..)` takes a `fn` pointer —
+    /// capturing closures cannot be used, and the test must not change the library API.
+    static SEEN: OnceLock<Mutex<Vec<usize>>> = OnceLock::new();
+
+    fn seen() -> &'static Mutex<Vec<usize>> {
+        SEEN.get_or_init(|| Mutex::new(Vec::new()))
+    }
+
+    /// A minimal source: emits `0..max` once, then finishes the stream.
+    struct Numbers {
+        next: usize,
+        max: usize,
+        done: bool,
+    }
     impl Logic<(), (usize, usize, usize)> for Numbers {
         async fn apply(
             &mut self,
@@ -266,21 +281,24 @@ mod tests {
             output: &mut Output<(usize, usize, usize)>,
             _ctx: &mut OperatorContext,
         ) {
-            if self.0 == 0 {
-                for i in 0..10 {
+            if !self.done {
+                self.done = true;
+                while self.next < self.max {
                     output
-                        .send(Message::Data(DataMessage::new(i, i, i)))
+                        .send(Message::Data(DataMessage::new(
+                            self.next, self.next, self.next,
+                        )))
                         .await;
+                    self.next += 1;
                 }
                 output.send(Message::Epoch(usize::MAX)).await;
             }
-            self.0 += 1;
         }
     }
 
-    /// A pass-through operator that prints which worker handled each record.
-    struct PrintWorker;
-    impl Logic<(usize, usize, usize), (usize, usize, usize)> for PrintWorker {
+    /// A pass-through operator that records which worker handled each record.
+    struct RecordWorker;
+    impl Logic<(usize, usize, usize), (usize, usize, usize)> for RecordWorker {
         async fn apply(
             &mut self,
             input: &mut Input<(usize, usize, usize)>,
@@ -290,15 +308,19 @@ mod tests {
             let msg = input.recv().await;
             if let Message::Data(d) = &msg {
                 println!("{} @ Worker {}", d.value, ctx.worker_id);
+                seen().lock().unwrap().push(d.value);
             }
             output.send(msg).await;
         }
     }
 
-    /// Every worker runs the same dataflow, so the four workers each emit `0..10`.
+    /// Every worker runs the same dataflow, so the four workers each emit `0..5` —
+    /// 20 records total, every value observed on all four workers.
     /// Exercises the kernel's public extension API end-to-end (no `malstrom-operators`).
     #[test]
     fn multi_thread_runtime_runs_dataflow_on_all_workers() {
+        seen().lock().unwrap().clear();
+
         MultiThreadRuntime::builder()
             .parrallelism(4)
             .persistence(NoPersistence)
@@ -307,14 +329,31 @@ mod tests {
                     .new_stream()
                     .then(Operator::built_by(
                         "numbers".to_string(),
-                        |_ctx: &mut BuildContext| async { Numbers(0) },
+                        |_ctx: &mut BuildContext| async {
+                            Numbers {
+                                next: 0,
+                                max: 5,
+                                done: false,
+                            }
+                        },
                     ))
                     .then(Operator::built_by(
-                        "print-worker".to_string(),
-                        |_ctx: &mut BuildContext| async { PrintWorker },
+                        "record-worker".to_string(),
+                        |_ctx: &mut BuildContext| async { RecordWorker },
                     ));
             })
             .execute()
             .unwrap();
+
+        let mut collected = seen().lock().unwrap().clone();
+        assert_eq!(collected.len(), 4 * 5, "4 workers × 5 records each");
+        collected.sort_unstable();
+        for value in 0..5 {
+            assert_eq!(
+                &collected[value * 4..(value + 1) * 4],
+                &[value; 4],
+                "value {value} should be observed once per worker"
+            );
+        }
     }
 }

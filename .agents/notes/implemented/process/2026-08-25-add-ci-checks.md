@@ -74,7 +74,11 @@ Added a `ci.yaml` workflow and made the correctness gate meaningful:
 - **`--exclude malstrom-k8s --exclude malstrom-kafka` in check/test** — makes the "we don't
   validate them against the local kernel" fact explicit, but removes coverage of their own
   tests (k8s 5, kafka 9) which do pass against `0.1.0`. Keep them included and document the
-  gap instead.
+  gap instead. **Amended in practice:** `malstrom-k8s` (the runtime) is excluded anyway —
+  its `build.rs` needs `protoc` (`tonic_build::compile_protos`), which CI runners lack; the
+  gate runs with `--exclude malstrom-k8s` until the
+  [point-k8s-and-kafka-at-local-malstrom](../../proposed/process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md)
+  change installs protoc. `malstrom-kafka` stays included.
 - **Run clippy/check/test as a matrix (stable + nightly)** — edition 2024 and `tokio_unstable`
   work on stable; nightly adds noise for no current benefit. Defer until something needs it.
 
@@ -87,7 +91,11 @@ Added a `ci.yaml` workflow and made the correctness gate meaningful:
   what it does and does not enforce.
 - **Toolchain is pinned** — `rust-toolchain.toml` (1.97.1) gives local/CI parity.
 - **Known gap documented** — kafka/k8s still compile against crates.io `malstrom 0.1.0`;
-  CI is honest for the `malstrom*` crates until the k8s/kafka re-pointing lands.
+  CI is honest for the `malstrom*` crates until the k8s/kafka re-pointing lands. The k8s
+  runtime additionally needs `protoc` to build, so CI excludes `malstrom-k8s` (see the
+  amended alternative above and the
+  [point-k8s-and-kafka-at-local-malstrom](../../proposed/process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md)
+  note).
 - **Verification** — `cargo fmt --all -- --check` clean (51 files reformatted to rustfmt);
   `cargo clippy --workspace --all-targets -- -D clippy::correctness` passes with 0 errors;
   `cargo check --workspace --all-targets` clean; `cargo test --workspace` green (malstrom-core

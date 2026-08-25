@@ -23,71 +23,10 @@ use super::communication::{
 
 /// Runs all dataflows on multiple threads within one machine
 ///
-/// # Example
-///
-/// This example uses only the kernel's public extension API — the source and
-/// pass-through operators below are plain [`Logic`](crate::stream::Logic)
-/// implementations, no `malstrom-operators` needed. Every worker runs the same
-/// dataflow, so the four workers each emit the numbers `0..10`.
-///
-/// ```rust
-/// use malstrom::runtime::MultiThreadRuntime;
-/// use malstrom::snapshot::NoPersistence;
-/// use malstrom::stream::{BuildContext, Logic, LogicBuilder, Malstrom as _, Operator, OperatorContext};
-/// use malstrom::channels::operator_io::{Input, Output};
-/// use malstrom::types::{DataMessage, Message};
-/// use malstrom::worker::StreamProvider;
-///
-/// /// A minimal source: emits `0..10` once, then finishes the stream.
-/// struct Numbers(usize);
-/// impl Logic<(), (usize, usize, usize)> for Numbers {
-///     async fn apply(
-///         &mut self,
-///         _input: &mut Input<()>,
-///         output: &mut Output<(usize, usize, usize)>,
-///         _ctx: &mut OperatorContext,
-///     ) {
-///         if self.0 == 0 {
-///             for i in 0..10 {
-///                 output
-///                     .send(Message::Data(DataMessage::new(i, i, i)))
-///                     .await;
-///             }
-///             output.send(Message::Epoch(usize::MAX)).await;
-///         }
-///         self.0 += 1;
-///     }
-/// }
-///
-/// /// A pass-through operator that prints which worker handled each record.
-/// struct PrintWorker;
-/// impl Logic<(usize, usize, usize), (usize, usize, usize)> for PrintWorker {
-///     async fn apply(
-///         &mut self,
-///         input: &mut Input<(usize, usize, usize)>,
-///         output: &mut Output<(usize, usize, usize)>,
-///         ctx: &mut OperatorContext,
-///     ) {
-///         let msg = input.recv().await;
-///         if let Message::Data(d) = &msg {
-///             println!("{} @ Worker {}", d.value, ctx.worker_id);
-///         }
-///         output.send(msg).await;
-///     }
-/// }
-///
-/// MultiThreadRuntime::builder()
-///     .parrallelism(4)
-///     .persistence(NoPersistence)
-///     .build(|provider: &mut dyn StreamProvider| {
-///         provider
-///             .new_stream()
-///             .then(Operator::built_by("numbers".to_string(), |_ctx: &mut BuildContext| async { Numbers(0) }))
-///             .then(Operator::built_by("print-worker".to_string(), |_ctx: &mut BuildContext| async { PrintWorker }));
-///     })
-///     .execute()
-///     .unwrap();
-/// ```
+/// See the `multi_thread_runtime_runs_dataflow_on_all_workers` test for a runnable
+/// example that uses only the kernel's public extension API — plain
+/// [`Logic`](crate::stream::Logic) operators wired via
+/// [`Operator::built_by`](crate::stream::Operator), no `malstrom-operators` needed.
 #[derive(Builder)]
 pub struct MultiThreadRuntime<P> {
     #[builder(finish_fn)]
@@ -304,5 +243,78 @@ impl MultiThreadRuntimeApiHandle {
             .ok_or(ApiRequestError::NotRunning)?
             .rescale(desired)
             .await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        channels::operator_io::{Input, Output},
+        runtime::MultiThreadRuntime,
+        snapshot::NoPersistence,
+        stream::{BuildContext, Logic, LogicBuilder, Malstrom as _, Operator, OperatorContext},
+        types::{DataMessage, Message},
+        worker::StreamProvider,
+    };
+
+    /// A minimal source: emits `0..10` once, then finishes the stream.
+    struct Numbers(usize);
+    impl Logic<(), (usize, usize, usize)> for Numbers {
+        async fn apply(
+            &mut self,
+            _input: &mut Input<()>,
+            output: &mut Output<(usize, usize, usize)>,
+            _ctx: &mut OperatorContext,
+        ) {
+            if self.0 == 0 {
+                for i in 0..10 {
+                    output
+                        .send(Message::Data(DataMessage::new(i, i, i)))
+                        .await;
+                }
+                output.send(Message::Epoch(usize::MAX)).await;
+            }
+            self.0 += 1;
+        }
+    }
+
+    /// A pass-through operator that prints which worker handled each record.
+    struct PrintWorker;
+    impl Logic<(usize, usize, usize), (usize, usize, usize)> for PrintWorker {
+        async fn apply(
+            &mut self,
+            input: &mut Input<(usize, usize, usize)>,
+            output: &mut Output<(usize, usize, usize)>,
+            ctx: &mut OperatorContext,
+        ) {
+            let msg = input.recv().await;
+            if let Message::Data(d) = &msg {
+                println!("{} @ Worker {}", d.value, ctx.worker_id);
+            }
+            output.send(msg).await;
+        }
+    }
+
+    /// Every worker runs the same dataflow, so the four workers each emit `0..10`.
+    /// Exercises the kernel's public extension API end-to-end (no `malstrom-operators`).
+    #[test]
+    fn multi_thread_runtime_runs_dataflow_on_all_workers() {
+        MultiThreadRuntime::builder()
+            .parrallelism(4)
+            .persistence(NoPersistence)
+            .build(|provider: &mut dyn StreamProvider| {
+                provider
+                    .new_stream()
+                    .then(Operator::built_by(
+                        "numbers".to_string(),
+                        |_ctx: &mut BuildContext| async { Numbers(0) },
+                    ))
+                    .then(Operator::built_by(
+                        "print-worker".to_string(),
+                        |_ctx: &mut BuildContext| async { PrintWorker },
+                    ));
+            })
+            .execute()
+            .unwrap();
     }
 }

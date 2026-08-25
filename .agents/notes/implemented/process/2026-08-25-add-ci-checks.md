@@ -74,13 +74,11 @@ Added a `ci.yaml` workflow and made the correctness gate meaningful:
 - **`--exclude malstrom-k8s --exclude malstrom-kafka` in check/test** — makes the "we don't
   validate them against the local kernel" fact explicit, but removes coverage of their own
   tests (k8s 5, kafka 9) which do pass against `0.1.0`. Keep them included and document the
-  gap instead. **Amended in practice:** `malstrom-k8s` (the runtime) and `malstrom-operator`
-  are excluded anyway — **both** crates' `build.rs` run `tonic_build::compile_protos`, which
-  needs `protoc`, and CI runners lack it (the operator crate's build script compiles
-  `k8s_operator_api.proto` itself, so excluding only the runtime was not enough); the gate
-  runs with `--exclude malstrom-k8s --exclude malstrom-operator` until the
-  [point-k8s-and-kafka-at-local-malstrom](../../proposed/process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md)
-  change installs protoc. `malstrom-kafka` stays included.
+  gap instead. **Tried and rejected for `protoc`:** an initial fix excluded `malstrom-k8s`
+  and `malstrom-k8s-operator` (both crates' `build.rs` run `tonic_build::compile_protos`, which
+  needs `protoc`, absent on CI runners) — but both are first-class parts of the repo, so the
+  gate instead **installs `protobuf-compiler`** in `ci.yaml` and keeps the whole workspace
+  included. `malstrom-kafka` stays included throughout.
 - **Run clippy/check/test as a matrix (stable + nightly)** — edition 2024 and `tokio_unstable`
   work on stable; nightly adds noise for no current benefit. Defer until something needs it.
 
@@ -94,7 +92,7 @@ Added a `ci.yaml` workflow and made the correctness gate meaningful:
 - **Toolchain is pinned** — `rust-toolchain.toml` (1.97.1) gives local/CI parity.
 - **Known gap documented** — kafka/k8s still compile against crates.io `malstrom 0.1.0`;
   CI is honest for the `malstrom*` crates until the k8s/kafka re-pointing lands. The k8s
-  runtime additionally needs `protoc` to build, so CI excludes `malstrom-k8s` (see the
+  runtime and operator need `protoc` to build, which `ci.yaml` now installs (see the
   amended alternative above and the
   [point-k8s-and-kafka-at-local-malstrom](../../proposed/process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md)
   note).

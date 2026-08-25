@@ -1,3 +1,4 @@
+//! Compiles the shared gRPC protos into tonic types.
 use std::path::PathBuf;
 
 fn main() {

@@ -12,6 +12,7 @@ members = [
     "malstrom-k8s/artifact-manager",
     "malstrom-k8s/operator",
     "malstrom-k8s/operator/crds",
+    "malstrom-k8s/proto",
     "malstrom-k8s/runtime",
     "malstrom-kafka",
     "malstrom-macros",

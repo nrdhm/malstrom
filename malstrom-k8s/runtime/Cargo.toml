@@ -27,8 +27,8 @@ envconfig = "0.11.0"
 flume = "0.11.1"
 futures = "0.3.31"
 malstrom = "0.1.0"
+malstrom-k8s-proto = { path = "../proto" }
 once_cell = "1.20.2"
-prost = "0.13.3"
 thiserror = "1.0.66"
 tokio = { version = "1.41.0", features = ["rt-multi-thread"] }
 tokio-stream = "0.1.16"
@@ -36,7 +36,4 @@ tonic = "0.12.3"
 async-trait = "0.1.86"
 tracing = "0.1.41"
 tonic-health = "0.12.3"
-
-[build-dependencies]
-tonic-build = "0.12.3"
 

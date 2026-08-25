@@ -1,13 +1,13 @@
-# Default values for malstrom-operator.
+# Default values for malstrom-k8s-operator.
 
-name: malstrom-operator # operator name
+name: malstrom-k8s-operator # operator name
 namespace: default # deployment namespace for operator pods
 
 logLevel: info # logging level, operator will log at this level to std out
 
 operator:
   image:
-    repository: ghcr.io/malstromdevelopers/malstrom-operator
+    repository: ghcr.io/malstromdevelopers/malstrom-k8s-operator
     tag: latest
     imagePullPolicy: IfNotPresent
   resources: {}
@@ -28,7 +28,7 @@ artifactManager:
   size: 1Gi
 
 serviceAccount: # service account used by operator
-  name: malstrom-operator
+  name: malstrom-k8s-operator
   namespaces: ["default"]
 
 imagePullSecrets: [] # names of Kubernetes secrets used for pulling the operator images

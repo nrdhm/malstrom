@@ -39,7 +39,7 @@ A Cargo workspace (`Cargo.toml`) with the following members:
 | `malstrom-testkit/` | `malstrom-testkit` | Operator tester and in-memory comm backends |
 | `malstrom-snapshot-slatedb/` | `malstrom-snapshot-slatedb` | The SlateDB/object-store persistence backend |
 | `malstrom-k8s/runtime/` | `malstrom-k8s` | Kubernetes runtime flavor (gRPC-based distributed execution) |
-| `malstrom-k8s/operator/` | `malstrom-operator` | Kubernetes operator that manages Malstrom jobs |
+| `malstrom-k8s/operator/` | `malstrom-k8s-operator` | Kubernetes operator that manages Malstrom jobs |
 | `malstrom-k8s/operator/crds/` | `crds` | The `MalstromJob` CRD definition |
 | `malstrom-k8s/artifact-downloader/` | — | Sidecar that downloads job binaries into pods |
 | `malstrom-k8s/artifact-manager/` | — | Service that serves job artifacts (Rocket) |
@@ -97,7 +97,7 @@ serialization (`rmp-serde`) is only required at process boundaries.
 
 - A **`MalstromJob` CRD** (group `malstrom.io`) declares a job: which binary artifact to run,
   where to fetch it (with auth via env), initial scale, and job state (`Running`/`Suspended`).
-- The **operator** (`malstrom-operator`) uses `kube`/`kube-runtime` to watch `MalstromJob`
+- The **operator** (`malstrom-k8s-operator`) uses `kube`/`kube-runtime` to watch `MalstromJob`
   resources and reconcile them into Kubernetes `StatefulSet`s, with finalizers and health
   checks. This is what enables zero-downtime scaling (rescaling a job while it runs).
 - The **`malstrom-k8s` runtime** lets the *same* job code run distributed: `execute_auto()`

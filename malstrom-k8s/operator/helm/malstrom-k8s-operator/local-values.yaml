@@ -1,12 +1,12 @@
 # Values for local development
-name: malstrom-operator
+name: malstrom-k8s-operator
 namespace: default
 
 logLevel: info
 
 operator:
   image:
-    repository: localhost:5001/malstromdevelopers/malstrom-operator
+    repository: localhost:5001/malstromdevelopers/malstrom-k8s-operator
     tag: latest
     imagePullPolicy: IfNotPresent
   resources: {}
@@ -25,7 +25,7 @@ artifactManager:
   size: 1Gi
 
 serviceAccount:
-  name: malstrom-operator
+  name: malstrom-k8s-operator
   namespaces: ["default"]
 
 imagePullSecrets: []

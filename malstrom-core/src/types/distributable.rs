@@ -59,7 +59,10 @@ mod tests {
         assert_eq!(Vec::<u8>::decode(&bytes.clone().encode()), bytes);
 
         let nested = vec![(1u64, "a".to_string()), (2, "b".to_string())];
-        assert_eq!(Vec::<(u64, String)>::decode(&nested.clone().encode()), nested);
+        assert_eq!(
+            Vec::<(u64, String)>::decode(&nested.clone().encode()),
+            nested
+        );
     }
 
     /// The `Distributable` blanket impl covers tuples of distributable types, which is

@@ -295,8 +295,8 @@ impl Drop for SuspendMarker {
 #[cfg(test)]
 mod tests {
     use super::{DataMessage, Kvt, Message};
-    use crate::types::{NoData, NoKey, NoTime};
     use crate::types::distributable::Distributable;
+    use crate::types::{NoData, NoKey, NoTime};
 
     /// `DataMessage` is the record that crosses every operator channel — its serde
     /// round-trip must preserve key/value/timestamp exactly.

@@ -25,9 +25,7 @@ async fn worker_coordinator_req_res_round_trip() {
     let sender = comm.coordinator_to_worker(0).await.unwrap();
 
     // the send must run concurrently with the receive (it blocks awaiting the response)
-    let send_task = tokio::spawn(async move {
-        sender.send(b"request".to_vec()).await.unwrap()
-    });
+    let send_task = tokio::spawn(async move { sender.send(b"request".to_vec()).await.unwrap() });
     let (msg, mut responder) = receiver.recv().await.unwrap();
     assert_eq!(msg, b"request");
     responder.respond(b"response".to_vec()).await.unwrap();

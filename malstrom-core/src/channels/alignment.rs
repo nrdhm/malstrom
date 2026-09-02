@@ -157,7 +157,7 @@ pub enum AlignedValue<K, T> {
 
 #[cfg(test)]
 mod tests {
-    use super::{AlignmentGroup, AlignedValue};
+    use super::{AlignedValue, AlignmentGroup};
     use crate::channels::{recv_trait::Receiver as _, spsc};
 
     /// A condition on the payload: values equal to the sentinel "pause" the channel.
@@ -187,20 +187,24 @@ mod tests {
 
         // only one channel barred -> recv must not complete within the grace period
         tx0.send(u64::MAX).await;
-        let timed_out = tokio::time::timeout(
-            std::time::Duration::from_millis(50),
-            group.recv(),
-        )
-        .await
-        .is_err();
-        assert!(timed_out, "barrier must be held until all channels are barred");
+        let timed_out = tokio::time::timeout(std::time::Duration::from_millis(50), group.recv())
+            .await
+            .is_err();
+        assert!(
+            timed_out,
+            "barrier must be held until all channels are barred"
+        );
 
         // now both channels are barred -> all barriers are emitted at once
         tx1.send(u64::MAX).await;
         let v = group.recv().await;
         match v {
             AlignedValue::Aligned(items) => {
-                assert_eq!(items.len(), 2, "both paused barriers must be emitted together");
+                assert_eq!(
+                    items.len(),
+                    2,
+                    "both paused barriers must be emitted together"
+                );
                 assert!(items.iter().all(|(_, x)| *x == u64::MAX));
             }
             _ => panic!("expected aligned barriers"),
@@ -219,6 +223,9 @@ mod tests {
         assert!(matches!(group.recv().await, AlignedValue::Aligned(_)));
 
         tx0.send(9).await;
-        assert!(matches!(group.recv().await, AlignedValue::Unaligned((0, 9))));
+        assert!(matches!(
+            group.recv().await,
+            AlignedValue::Unaligned((0, 9))
+        ));
     }
 }

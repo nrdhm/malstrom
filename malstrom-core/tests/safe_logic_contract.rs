@@ -10,7 +10,9 @@ use malstrom_core::{
     channels::operator_io::{Input, Output},
     runtime::SingleThreadRuntime,
     snapshot::{NoPersistence, SnapshotBarrier},
-    stream::{BuildContext, Logic, LogicBuilder, Malstrom as _, Operator, OperatorContext, SafeLogic},
+    stream::{
+        BuildContext, Logic, LogicBuilder, Malstrom as _, Operator, OperatorContext, SafeLogic,
+    },
     types::{Barrier, DataMessage, Kvt, Message},
     worker::StreamProvider,
 };
@@ -35,10 +37,9 @@ impl Logic<(), Msg> for Source {
             output.send(Message::Data(DataMessage::new(0, 0, 0))).await;
             let (cb_tx, _cb_rx) = tokio::sync::mpsc::channel(1);
             output
-                .send(Message::AbsBarrier(Barrier::Snapshot(SnapshotBarrier::new(
-                    Box::new(NoPersistence),
-                    cb_tx,
-                ))))
+                .send(Message::AbsBarrier(Barrier::Snapshot(
+                    SnapshotBarrier::new(Box::new(NoPersistence), cb_tx),
+                )))
                 .await;
             output.send(Message::Data(DataMessage::new(1, 1, 1))).await;
             output.send(Message::Epoch(usize::MAX)).await;
@@ -52,11 +53,7 @@ struct Recorder {
 }
 
 impl SafeLogic<Msg, Msg> for Recorder {
-    async fn on_schedule(
-        &mut self,
-        _output: &mut Output<Msg>,
-        _ctx: &mut OperatorContext,
-    ) -> bool {
+    async fn on_schedule(&mut self, _output: &mut Output<Msg>, _ctx: &mut OperatorContext) -> bool {
         self.events.send("schedule").unwrap();
         false
     }

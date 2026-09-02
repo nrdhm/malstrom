@@ -9,11 +9,11 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 
+use malstrom_core::runtime::RuntimeFlavor;
 use malstrom_core::runtime::communication::{
     OperatorOperatorComm, ReqResReceiver, ReqResResponder, ReqResSender, StreamReceiver,
     StreamSender, WorkerCoordinatorComm,
 };
-use malstrom_core::runtime::RuntimeFlavor;
 use malstrom_core::types::{OperatorId, WorkerId};
 
 /// A sender for in-process operator-to-operator streams.
@@ -65,9 +65,7 @@ pub struct MemoryReqResReceiver {
 
 #[async_trait]
 impl ReqResReceiver for MemoryReqResReceiver {
-    async fn recv(
-        &self,
-    ) -> Result<(Vec<u8>, Box<dyn ReqResResponder>), Box<dyn Error>> {
+    async fn recv(&self) -> Result<(Vec<u8>, Box<dyn ReqResResponder>), Box<dyn Error>> {
         let (msg, resp_tx) = self.rx.recv_async().await?;
         Ok((msg, Box::new(MemoryResponder { tx: Some(resp_tx) })))
     }
@@ -184,9 +182,7 @@ impl MemoryFlavor {
 impl RuntimeFlavor for MemoryFlavor {
     type Communication = MemoryComm;
 
-    fn communication(
-        &mut self,
-    ) -> Result<Self::Communication, Box<dyn Error + Send + Sync>> {
+    fn communication(&mut self) -> Result<Self::Communication, Box<dyn Error + Send + Sync>> {
         Ok(self.comm.clone())
     }
 

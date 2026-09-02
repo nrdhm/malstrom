@@ -128,7 +128,7 @@ impl ClusterHandle {
         let responses = self
             .workers
             .iter()
-            .map(|(wid, (_, client))| client.send::<_, bool>(msg.clone()));
+            .map(|(_wid, (_, client))| client.send::<_, bool>(msg.clone()));
         join_all(responses).await;
         self.workers.retain(|wid, _| new_set.contains(wid));
         self.config_version = Some(next_version);
@@ -254,9 +254,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use async_trait::async_trait;
-    use crate::runtime::communication::{ReqResReceiver, ReqResResponder, ReqResSender};
+    use crate::runtime::communication::{ReqResReceiver, ReqResSender};
     use crate::types::distributable::Distributable;
+    use async_trait::async_trait;
     use std::collections::HashMap;
     use std::sync::{Arc, Mutex};
 
@@ -306,7 +306,10 @@ mod tests {
             to_worker: WorkerId,
         ) -> Result<Box<dyn ReqResSender>, Box<dyn std::error::Error + Send + Sync>> {
             let (tx, rx) = flume::unbounded();
-            self.channels.lock().unwrap().insert(to_worker, (tx.clone(), rx));
+            self.channels
+                .lock()
+                .unwrap()
+                .insert(to_worker, (tx.clone(), rx));
             Ok(Box::new(MockSender { tx }))
         }
     }
@@ -367,15 +370,20 @@ mod tests {
         // worker 0: initial startup protocol, then runtime messages
         let comm_w0 = comm.clone();
         let log_w0 = Arc::clone(&log);
-        let w0 = tokio::spawn(async move { fake_worker(0, comm_w0.take_receiver(0), log_w0).await });
+        let w0 =
+            tokio::spawn(async move { fake_worker(0, comm_w0.take_receiver(0), log_w0).await });
         state.start_build(&[0]).await;
         state.start_execution(&[0]).await;
 
         // rescale 1 -> 2: worker 1's channel materializes inside `reconfigure`
         let comm_w1 = comm.clone();
         let log_w1 = Arc::clone(&log);
-        let w1 = tokio::spawn(async move { fake_worker(1, comm_w1.take_receiver(1), log_w1).await });
-        state.reconfigure(IndexSet::from([0, 1]), &comm).await.unwrap();
+        let w1 =
+            tokio::spawn(async move { fake_worker(1, comm_w1.take_receiver(1), log_w1).await });
+        state
+            .reconfigure(IndexSet::from([0, 1]), &comm)
+            .await
+            .unwrap();
 
         w0.await.unwrap();
         w1.await.unwrap();
@@ -387,8 +395,14 @@ mod tests {
                 .map(|(_, m)| *m)
                 .collect::<Vec<_>>()
         };
-        assert_eq!(kinds(0), vec!["StartBuild", "StartExecution", "Reconfigure"]);
-        assert_eq!(kinds(1), vec!["StartBuild", "StartExecution", "Reconfigure"]);
+        assert_eq!(
+            kinds(0),
+            vec!["StartBuild", "StartExecution", "Reconfigure"]
+        );
+        assert_eq!(
+            kinds(1),
+            vec!["StartBuild", "StartExecution", "Reconfigure"]
+        );
         assert_eq!(state.workers.len(), 2);
         assert_eq!(state.config_version, Some(0));
     }

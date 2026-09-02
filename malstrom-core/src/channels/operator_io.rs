@@ -518,12 +518,10 @@ mod test {
         let output: Output<(NoKey, NoData, i32)> = Output::new_unlinked(full_broadcast);
         let mut closed = output.get_closed_signal();
 
-        let timed_out = tokio::time::timeout(
-            std::time::Duration::from_millis(20),
-            closed.wait_for(),
-        )
-        .await
-        .is_err();
+        let timed_out =
+            tokio::time::timeout(std::time::Duration::from_millis(20), closed.wait_for())
+                .await
+                .is_err();
         assert!(timed_out, "must stay pending until the output closes");
 
         output.close();
@@ -545,12 +543,9 @@ mod test {
             .send(Message::Data(DataMessage::new(NoKey, NoData, 0)))
             .await;
 
-        let timed_out = tokio::time::timeout(
-            std::time::Duration::from_millis(20),
-            input.recv(),
-        )
-        .await
-        .is_err();
+        let timed_out = tokio::time::timeout(std::time::Duration::from_millis(20), input.recv())
+            .await
+            .is_err();
         assert!(timed_out, "a closed output must drop messages");
     }
 

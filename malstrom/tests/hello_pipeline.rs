@@ -32,7 +32,11 @@ fn pipeline_runs_on_single_thread_runtime() {
         .execute()
         .unwrap();
 
-    let values: Vec<i32> = sink_test.drain_vec(..).into_iter().map(|d| d.value).collect();
+    let values: Vec<i32> = sink_test
+        .drain_vec(..)
+        .into_iter()
+        .map(|d| d.value)
+        .collect();
     assert_eq!(values, (0..=10).map(|x| x * 2).collect::<Vec<_>>());
 }
 
@@ -47,6 +51,10 @@ fn pipeline_runs_on_multi_thread_runtime() {
         .execute()
         .unwrap();
 
-    let values: Vec<i32> = sink_test.drain_vec(..).into_iter().map(|d| d.value).collect();
+    let values: Vec<i32> = sink_test
+        .drain_vec(..)
+        .into_iter()
+        .map(|d| d.value)
+        .collect();
     assert_eq!(values, (0..=10).map(|x| x * 2).collect::<Vec<_>>());
 }

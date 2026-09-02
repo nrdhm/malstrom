@@ -117,8 +117,12 @@ mod tests {
         link(&mut out_a, &mut input);
         link(&mut out_b, &mut input);
 
-        out_a.send(Message::Data(DataMessage::new(1u64, 1, 1))).await;
-        out_b.send(Message::Data(DataMessage::new(2u64, 2, 2))).await;
+        out_a
+            .send(Message::Data(DataMessage::new(1u64, 1, 1)))
+            .await;
+        out_b
+            .send(Message::Data(DataMessage::new(2u64, 2, 2)))
+            .await;
 
         let mut seen = Vec::new();
         for _ in 0..2 {

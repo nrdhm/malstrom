@@ -29,9 +29,6 @@ pub(crate) enum RuntimeMessage {
     ExecutionComplete,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub(crate) struct ExecutionComplete;
-
 #[cfg(test)]
 mod tests {
     use super::{BuildInformation, RuntimeMessage, StartBuild, StartExecution};
@@ -63,7 +60,10 @@ mod tests {
     #[test]
     fn runtime_messages_round_trip() {
         let snap = RuntimeMessage::Snapshot(9);
-        assert!(matches!(RuntimeMessage::decode(&snap.encode()), RuntimeMessage::Snapshot(9)));
+        assert!(matches!(
+            RuntimeMessage::decode(&snap.encode()),
+            RuntimeMessage::Snapshot(9)
+        ));
 
         let reconfig = RuntimeMessage::Reconfigure((IndexSet::from([0]), 2));
         match RuntimeMessage::decode(&reconfig.encode()) {

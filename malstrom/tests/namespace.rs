@@ -10,12 +10,14 @@ use malstrom::channels::alignment::AlignmentGroup;
 use malstrom::channels::operator_io::{Input, Output, full_broadcast, link};
 use malstrom::channels::recv_trait::Receiver;
 use malstrom::channels::spsc;
-use malstrom::coordinator::{Coordinator, CoordinatorExecutionError, CoordinatorApi, ApiRequestError};
-use malstrom::runtime::{MultiThreadRuntime, RuntimeFlavor, SingleThreadRuntime};
+use malstrom::coordinator::{
+    ApiRequestError, Coordinator, CoordinatorApi, CoordinatorExecutionError,
+};
 use malstrom::runtime::communication::{
     OperatorOperatorComm, ReqResReceiver, ReqResResponder, ReqResSender, StreamReceiver,
     StreamSender, WorkerCoordinatorComm,
 };
+use malstrom::runtime::{MultiThreadRuntime, RuntimeFlavor, SingleThreadRuntime};
 use malstrom::snapshot::{
     NoPersistence, PersistenceBackend, PersistenceClient, SnapshotBarrier, SnapshotVersion,
     deserialize_state, serialize_state,
@@ -24,17 +26,17 @@ use malstrom::stream::{
     BuildContext, DirectLogic, InitialStreamBuilder, Logic, LogicBuilder, Malstrom, Operator,
     OperatorContext, SafeLogic, SafeLogicWrapper, StreamBuilder,
 };
+use malstrom::types::distributable::Distributable;
 use malstrom::types::{
-    Barrier, Data, DataMessage, Kvt, Key, MaybeData, MaybeKey, MaybeTime, Message, NoData, NoKey,
+    Barrier, Data, DataMessage, Key, Kvt, MaybeData, MaybeKey, MaybeTime, Message, NoData, NoKey,
     NoTime, OnceTime, OperatorId, OperatorPartitioner, ReconfigComplete, RescaleMessage,
     SuspendMarker, Timestamp,
 };
-use malstrom::types::distributable::Distributable;
 use malstrom::worker::{InnerRuntimeBuilder, StreamProvider, Worker, WorkerBuilder};
 
 // operator-layer modules re-exported by the facade
-use malstrom::keyed::{KeyDistribute, KeyLocal, WorkerBroadcast, WorkerPartitioner};
 use malstrom::keyed::distributed::rendezvous_select;
+use malstrom::keyed::{KeyDistribute, KeyLocal, WorkerBroadcast, WorkerPartitioner};
 use malstrom::operators::{
     Cloned, Filter, FilterMap, Flatten, Inspect, Map, Sink, Source as _, Split, StatefulMap,
     TtlMap, Union,

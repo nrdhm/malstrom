@@ -159,7 +159,7 @@ sequenceDiagram
     R->>O: Message::AbsBarrier / Message::Rescale (in-band!)
     O->>O: each operator persists its state / moves keys
     O->>P: PersistenceClient::persist(operator_id, state)
-    Note over O: barrier clones align in channels; when the last clone drops, callback fires
+    Note over O: barrier clones align in channels — when the last clone drops, callback fires
     W-->>C: respond(true) → coordinator commits version v
 ```
 

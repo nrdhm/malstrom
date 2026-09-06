@@ -22,3 +22,7 @@ website/.vitepress/dist/
 
 .env*
 .*.log
+
+# Python docs toolchain (uv)
+.venv/
+site/

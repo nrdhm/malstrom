@@ -2,8 +2,8 @@
 
 > **Last refreshed:** 2026-08-30
 
-Reviewed `fork/new-scheduler-split..HEAD` (7 commits) against
-[`.agents/notes/implemented/testing/2026-08-25-core-test-plan.md`](../../.agents/notes/implemented/testing/2026-08-25-core-test-plan.md)
+Reviewed `fork/new-scheduler-split..HEAD` (7 commits) against the implemented test-plan note
+`.agents/notes/implemented/testing/2026-08-25-core-test-plan.md`
 and ran the suite locally.
 
 Verified results:

@@ -19,6 +19,7 @@ dependency list in `03-dependencies.md` against `malstrom-core/Cargo.toml`):
 | 03 | [dependencies.md](03-dependencies.md) | Every non-dev dependency of `malstrom-core`: what it's used for, in which modules, plus dead-code findings |
 | 04 | [modules.md](04-modules.md) | How the `malstrom-core/src/*` modules connect: ground-up layers, mermaid dependency diagram, runtime dataflow, edge inventory |
 | 05 | [architecture.md](05-architecture.md) | Distilled high-level architecture: core entities, crate layering, job anatomy, operator loop, message path (local/remote), snapshot coordination |
+| 06 | [channels.md](06-channels.md) | The channels in the kernel: same-worker data-plane (`spsc`, `Output`/`Input`, `AlignmentGroup`) and control/cross-thread (`watch`, `oneshot`, `broadcast`, `mpsc`, `flume`) |
 
 ## Conventions
 
@@ -55,10 +56,4 @@ drift (new deps to document, removed deps to delete). Requires GNU `sed`, `awk` 
 
 ## Related
 
-- [`../.agents/notes/`](../../.agents/notes/README.md) — RFC-style decision records and
-  proposals (Agent Notes) for the codebase, organized by lifecycle and class. The
-  `new-scheduler` fixes that were previously tracked as a task list now live there as
-  implemented notes (compilation, runtime execution/termination, test suite) plus proposed
-  follow-ups.
-- [`docs/reviews/`](../reviews/README.md) — code reviews with remediation sketches
-  (currently: the `sources` module).
+- [`docs/reviews/`](../reviews/README.md) — code reviews with remediation sketches.

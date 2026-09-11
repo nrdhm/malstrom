@@ -3,7 +3,7 @@ use std::{collections::HashMap, rc::Rc, sync::Mutex};
 use indexmap::IndexSet;
 use thiserror::Error;
 use tokio::{runtime::LocalRuntime, sync::mpsc};
-use tracing::info;
+use tracing::{info, instrument};
 
 use crate::{
     channels::signal::SignalHandle,
@@ -53,6 +53,7 @@ where
         })
     }
 
+    #[instrument(skip_all)]
     pub(super) fn execute(
         self,
         sys_msg_sender: mpsc::Sender<SysMessage<P::Client>>,

@@ -26,3 +26,8 @@ malstrom-macros = { path = "../malstrom-macros" }
 
 [dev-dependencies]
 malstrom-testkit = { path = "../malstrom-testkit" }
+opentelemetry = "0.32"
+opentelemetry-otlp = "0.32"
+opentelemetry_sdk = "0.32"
+tracing-opentelemetry = "0.33"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

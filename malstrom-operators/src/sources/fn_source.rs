@@ -3,9 +3,11 @@
 //! All of these are stateless (`PartitionState = ()`); stateful sources implement
 //! [`SourceImpl`] directly and are wrapped with [`Source::from_impl`].
 
-use std::{cell::RefCell, future::Future, marker::PhantomData, rc::Rc};
+use std::{cell::RefCell, fmt::Debug, future::Future, marker::PhantomData, rc::Rc, time::Duration};
 
 use futures::{Stream, StreamExt};
+use rand::{random_bool, random_range};
+use tokio::time::sleep;
 
 use crate::sources::{Source, SourceImpl, SourcePartition};
 use malstrom_core::types::{Data, Key, NoKey, OnceTime, Timestamp, distributable::Distributable};
@@ -28,7 +30,7 @@ impl<V> FromIteratorSource<V> {
 
 impl<V> SourceImpl for FromIteratorSource<V>
 where
-    V: Distributable + Data,
+    V: Distributable + Data + Debug,
 {
     type PartitionKey = NoKey;
     type Value = V;
@@ -58,7 +60,7 @@ pub struct FromIteratorPartition<V> {
 
 impl<V> SourcePartition for FromIteratorPartition<V>
 where
-    V: Distributable + Data,
+    V: Distributable + Data + Debug,
 {
     type PartitionKey = NoKey;
     type Value = V;
@@ -66,10 +68,15 @@ where
     type State = ();
 
     async fn poll(&mut self) -> Option<(V, OnceTime)> {
-        self.iter
+        // sleep(Duration::from_millis(random_range(100..200))).await;
+        eprintln!("poll start");
+        let x = self
+            .iter
             .as_mut()
             .and_then(|it| it.next())
-            .map(|v| (v, OnceTime::MIN))
+            .map(|v| (v, OnceTime::MIN));
+        eprintln!("poll end");
+        x
     }
 
     async fn snapshot(&self) {}

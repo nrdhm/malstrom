@@ -46,8 +46,9 @@ reversal. The rejection hinged on two facts; each needs a contained answer:
 If both hold, the completion authority (the distribute op, or a coordinator on the data plane)
 merges per-partition exhaustion into `Epoch(MAX)` through the existing frontier machinery, and
 `PartitionFinished`, the per-source comm channels, and the hardcoded worker 0 disappear — the
-review's smell #10 resolved as originally intended (see
-[the review](../../../../docs/reviews/sources-module-review.md), §10).
+review's smell #10 (the bespoke `CommUtility` completion protocol: shared channel id, hardcoded
+worker 0, "a stray delivery on another worker must not panic — just ignore it") resolved as
+originally intended.
 
 The reassessment should first **pin down the exact hazard** with a written ordering argument
 (or a test that reproduces it on the current code), then decide whether the in-band signal

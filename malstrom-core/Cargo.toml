@@ -36,3 +36,7 @@ futures = "0.3.31"
 flume = "0.11.1"
 malstrom-macros = { path = "../malstrom-macros"}
 pin-project = "1.1.10"
+
+[dev-dependencies]
+proptest = "1.5.0"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

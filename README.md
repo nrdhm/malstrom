@@ -82,12 +82,3 @@ one of the strongest and fastest tidal currents in the world.
 Concise, code-linked notes about the project, its branches and dependencies live in
 [`docs/overviews/`](docs/overviews/README.md). After notable changes, refresh their
 stamps and the dependency diff with `scripts/refresh-overviews.sh`.
-
-# Agent Notes
-
-Design decisions and proposals affecting this codebase are recorded as RFC-style
-[Agent Notes](.agents/notes/README.md) — the *why* and *what we gave up*, the parts code
-and docs can't carry. They live under `.agents/notes/`, organized by lifecycle
-(`proposed/`, `implemented/`, `rejected/`, `archived/`) and class (`architecture`,
-`bug-fix`, `feature`, `process`, `simplification`, `testing`). Every non-trivial change
-adds or updates one.

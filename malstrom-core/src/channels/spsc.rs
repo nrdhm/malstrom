@@ -63,13 +63,13 @@ impl<T> Sender<T> {
     }
 
     /// Send a message without respecting the capacity
-    pub(crate) fn force_send(&self, msg: T) {
-        let mut shared = self.shared.borrow_mut();
-        shared.queue.push_back(msg);
-        if let Some(waker) = shared.recv_waker.take() {
-            waker.wake();
-        }
-    }
+    // pub(crate) fn force_send(&self, msg: T) {
+    //     let mut shared = self.shared.borrow_mut();
+    //     shared.queue.push_back(msg);
+    //     if let Some(waker) = shared.recv_waker.take() {
+    //         waker.wake();
+    //     }
+    // }
 
     /// Future which completes once the receiver of this channel has been dropped
     pub(crate) fn wait_receiver_gone(&self) -> ReceiverGone<'_, T> {
@@ -122,6 +122,14 @@ impl<'a, T> Future for Send<'a, T> {
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Self::Output> {
         let mut shared = self.sender.shared.borrow_mut();
+        if !shared.has_receiver {
+            // The receiver is gone (e.g. the terminal operator's output, whose tail
+            // receiver is dropped at build time) — drop the message instead of
+            // queueing it. Queuing would eventually fill the bounded channel and
+            // block the upstream operator forever.
+            self.value.take();
+            return Poll::Ready(());
+        }
         if shared.capacity > shared.queue.len() {
             if let Some(v) = self.value.take() {
                 shared.queue.push_back(v);
@@ -265,5 +273,20 @@ mod tests {
         assert_not_impl!(Sender<()>, Clone);
         assert_not_impl!(Receiver<()>, Copy);
         assert_not_impl!(Receiver<()>, Clone);
+    }
+
+    /// Regression: a receiver parked on an empty channel must be woken when a message
+    /// is sent (the spsc waker inversion woke the wrong side, forcing busy-polling).
+    #[tokio::test]
+    async fn parked_receiver_wakes_on_send() {
+        let (tx, mut rx) = unbounded();
+        // park a receiver on the empty channel and register its waker
+        let timed_out = tokio::time::timeout(std::time::Duration::from_millis(20), rx.recv())
+            .await
+            .is_err();
+        assert!(timed_out, "receiver must park on an empty channel");
+        // a send must wake it without any further polling from the receiver
+        tx.send("wake me").await;
+        assert_eq!(rx.recv().await, "wake me");
     }
 }

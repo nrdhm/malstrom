@@ -116,3 +116,45 @@ impl com::WorkerCoordinatorComm for InterThreadCommunication<(Vec<u8>, oneshot::
         Ok(Box::new(ReqResSender::new(tx)))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::runtime::communication::{
+        OperatorOperatorComm, ReqResResponder, WorkerCoordinatorComm,
+    };
+
+    /// Regression: operator→operator channels created from different comm handles must
+    /// land on the same underlying channel (the `ConnectionKey` direction used to be
+    /// inconsistent between the sender and receiver sides).
+    #[tokio::test]
+    async fn operator_channels_connect_on_same_connection_key() {
+        let channels = OperatorChannels::default();
+        let worker_a = OperatorCommunication::new(Arc::clone(&channels), 0);
+        let worker_b = OperatorCommunication::new(Arc::clone(&channels), 1);
+
+        // worker 0's operator 42 sends to worker 1; worker 1 receives from worker 0
+        let mut sender = worker_a.new_sender(1, 42).await.unwrap();
+        let mut receiver = worker_b.new_receiver(0, 42).await.unwrap();
+        sender.send(vec![1, 2, 3]).await.unwrap();
+        assert_eq!(receiver.recv().await.unwrap(), vec![1, 2, 3]);
+    }
+
+    /// Regression: coordinator↔worker req/res must connect on the same key from both
+    /// sides (`coordinator_to_worker(w)` and `worker_to_coordinator()` on worker w).
+    #[tokio::test]
+    async fn coordinator_worker_connect_on_same_connection_key() {
+        let channels = CoordinatorChannels::default();
+        let coordinator = CoordinatorCommunication::new(Arc::clone(&channels), WorkerId::MAX);
+        let worker = CoordinatorCommunication::new(Arc::clone(&channels), 3);
+
+        let sender = coordinator.coordinator_to_worker(3).await.unwrap();
+        let receiver = worker.worker_to_coordinator().await.unwrap();
+
+        let send_task = tokio::spawn(async move { sender.send(b"ping".to_vec()).await.unwrap() });
+        let (msg, mut responder) = receiver.recv().await.unwrap();
+        assert_eq!(msg, b"ping");
+        responder.respond(b"pong".to_vec()).await.unwrap();
+        assert_eq!(send_task.await.unwrap(), b"pong");
+    }
+}

@@ -1,11 +1,10 @@
-use malstrom_core::channels::operator_io::{Input, Output, link};
-use malstrom_core::stream::InitialStreamBuilder;
-use malstrom_core::stream::{Operator, SafeLogic, StreamBuilder};
-use malstrom_core::types::{DataMessage, Kvt, MaybeData, MaybeKey, MaybeTime, Message, Sealed};
-use std::marker::PhantomData;
-use std::rc::Rc;
+use malstrom_core::channels::operator_io::Input;
+use malstrom_core::stream::StreamBuilder;
+use malstrom_core::types::{Kvt, MaybeData, MaybeKey, MaybeTime, Sealed};
 
+/// Trait with union() method.
 pub trait Union<Msg: Kvt>: Sealed {
+    /// Merge self with the given streams into one.
     fn union(
         self,
         name: impl Into<String>,
@@ -21,46 +20,128 @@ where
     Msg::Timestamp: MaybeTime,
 {
     fn union(
-        self,
+        mut self,
         name: impl Into<String>,
         inputs: impl IntoIterator<Item = StreamBuilder<Msg>>,
     ) -> StreamBuilder<Msg> {
-        let rt = self.get_runtime();
-        let mut unioned_input = Input::new_unlinked();
+        let mut united_input = Input::new_unlinked();
         let name: String = name.into();
 
-        for (i, mut stream) in std::iter::once(self).chain(inputs.into_iter()).enumerate() {
-            // add a dummy operator to forward messages, we must do this because we can
-            // not get an output out of a StreamBuilder
-            let mut forward_op = Operator::direct(
-                format!("{}-{i}", name),
-                Forward(PhantomData::<Msg>).into_logic(),
-            );
-            // the forward operator gets the streams tail input, i.e. the input which receives from the
-            // last operator in the given stream
-            std::mem::swap(&mut stream.tail, &mut forward_op.input);
-            // link our forward output to the unioned input
-            link(&mut forward_op.output, &mut unioned_input);
-            rt.lock().unwrap().add_operator(forward_op);
+        self.forward_tail_to(format!("{}-0", name), &mut united_input);
+
+        for (i, mut stream) in inputs.into_iter().enumerate() {
+            stream.forward_tail_to(format!("{}-{}", name, i + 1), &mut united_input);
         }
-        StreamBuilder {
-            tail: unioned_input,
-            runtime: rt,
-        }
+        self.with_new_tail(united_input)
     }
 }
 
-struct Forward<Msg>(PhantomData<Msg>);
-impl<Msg> SafeLogic<Msg, Msg> for Forward<Msg>
-where
-    Msg: Kvt,
-{
-    async fn on_data(
-        &mut self,
-        data_message: DataMessage<Msg>,
-        output: &mut Output<Msg>,
-        ctx: &mut malstrom_core::stream::OperatorContext,
-    ) {
-        output.send(Message::Data(data_message)).await;
+#[cfg(test)]
+mod tests {
+    use crate::operators::Source as _;
+    use crate::operators::*;
+    use crate::sinks::StatelessSink;
+    use crate::sinks::VecSink;
+    use crate::sources::Source;
+    use indexmap::IndexSet;
+    use malstrom_testkit::get_test_rt;
+    use opentelemetry::trace::TracerProvider as _;
+    use opentelemetry_sdk::trace::SdkTracerProvider;
+    use opentelemetry_sdk::Resource;
+    use std::sync::OnceLock;
+    use tracing_subscriber::fmt::format::FmtSpan;
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::util::SubscriberInitExt;
+
+    /// Tempo OTLP endpoint; overridable with `OTEL_EXPORTER_OTLP_ENDPOINT` or
+    /// `TEMPO_OTLP_ENDPOINT`. When unset, only local logs are installed.
+    const TEMPO_OTLP_ENDPOINT: &str = "http://localhost:4318";
+
+    /// Keeps the tracer provider alive for the whole test process.
+    static TRACER_PROVIDER: OnceLock<SdkTracerProvider> = OnceLock::new();
+
+    fn tempo_endpoint() -> Option<String> {
+        std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
+            .ok()
+            .or_else(|| std::env::var("TEMPO_OTLP_ENDPOINT").ok())
+            .or_else(|| (!TEMPO_OTLP_ENDPOINT.is_empty()).then(|| TEMPO_OTLP_ENDPOINT.to_string()))
+    }
+
+    /// Builds an OTLP HTTP exporter pointed at the configured Tempo endpoint.
+    ///
+    /// `with_simple_exporter` exports synchronously when a span closes, which avoids
+    /// requiring a Tokio runtime and flushes spans before the test process exits.
+    fn tempo_tracer(endpoint: &str) -> opentelemetry_sdk::trace::Tracer {
+        use opentelemetry_otlp::WithExportConfig;
+
+        let provider = TRACER_PROVIDER.get_or_init(|| {
+            let exporter = opentelemetry_otlp::SpanExporter::builder()
+                .with_http()
+                .with_endpoint(endpoint)
+                .build()
+                .expect("failed to build OTLP span exporter for Tempo");
+            SdkTracerProvider::builder()
+                .with_simple_exporter(exporter)
+                .with_resource(
+                    Resource::builder()
+                        .with_service_name("malstrom-operators-tests")
+                        .build(),
+                )
+                .build()
+        });
+        provider.tracer("malstrom-operators-tests")
+    }
+
+    /// Installs a `tracing` subscriber for tests, safe to call more than once.
+    ///
+    /// The filter is read from `RUST_LOG` (e.g. `RUST_LOG=debug`) and defaults to `info`
+    /// when the variable is unset. Output goes through the test harness writer, so it is
+    /// shown on failure or when running with `--nocapture`.
+    ///
+    /// If a Tempo endpoint is configured (see [`tempo_endpoint`]), spans are exported to
+    /// it via OTLP/HTTP as well.
+    pub fn init_logs() {
+        use tracing_subscriber::{EnvFilter, fmt};
+
+        let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+        let subscriber = tracing_subscriber::registry()
+            .with(filter)
+            .with(
+                fmt::layer()
+                    .with_span_events(FmtSpan::CLOSE)
+                    .with_test_writer(),
+            );
+
+        if let Some(endpoint) = tempo_endpoint() {
+            let tracer = tempo_tracer(&endpoint);
+            let _ = subscriber
+                .with(tracing_opentelemetry::layer().with_tracer(tracer))
+                .try_init();
+        } else {
+            let _ = subscriber.try_init();
+        }
+    }
+
+    #[test]
+    fn union_unites() {
+        init_logs();
+        let collector = VecSink::new();
+        let rt = get_test_rt(|provider| {
+            let a = provider
+                .new_stream()
+                .source("source-a", Source::from_iterator(0..10));
+            let b = provider
+                .new_stream()
+                .source("source-b", Source::from_iterator(10..20));
+            b.union("fan-in", vec![a])
+                .sink("sink", StatelessSink::new(collector.clone()));
+        });
+        rt.execute().unwrap();
+
+        let collected: IndexSet<usize> = collector.into_iter().map(|x| x.value).collect();
+        // The order of values is not specified; they appear as available.
+        // TODO: debug high latency before ending.
+        let expected: IndexSet<usize> = (10..20).chain(0..10).collect();
+        assert_eq!(expected, collected)
     }
 }

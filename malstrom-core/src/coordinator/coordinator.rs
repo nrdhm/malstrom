@@ -91,11 +91,12 @@ pub enum CoordinatorExecutionError {
 
 /// Create a new coordinator loop. This creates a coordinator and starts it.
 /// The returned future resolves once the coordinator terminates
+#[tracing::instrument(skip_all)]
 async fn coordinator_loop<C, P>(
     state: SerializableClusterHandle,
     requests: flume::Receiver<ApiRequest>,
     communication_backend: C,
-    mut persistence_backend: P,
+    persistence_backend: P,
 ) -> Result<(), CoordinatorError>
 where
     C: Send + Sync + WorkerCoordinatorComm,
@@ -106,8 +107,12 @@ where
         .await
         .map_err(|_| CoordinatorError::Communication)?;
     // start job on all workers
-    state.start_build().await;
-    state.start_execution().await;
+    state
+        .start_build(&state.workers.keys().copied().collect::<Vec<_>>())
+        .await;
+    state
+        .start_execution(&state.workers.keys().copied().collect::<Vec<_>>())
+        .await;
 
     loop {
         // either wake on API request or loop duration elapsed

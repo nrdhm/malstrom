@@ -1,11 +1,7 @@
 use std::hash::Hash;
 
 use futures::{StreamExt, stream::FuturesUnordered};
-use indexmap::{IndexMap, IndexSet};
-
-use crate::channels::spsc;
-
-use super::spsc::Receiver;
+use indexmap::IndexMap;
 
 /// A group of [Receiver]s which will pause each receiver when the last message received
 /// satisfies a given condition.
@@ -75,7 +71,7 @@ where
         let _ = self.receivers.swap_remove(key);
     }
 
-    /// retain only the those keys where keep returns true
+    /// Retain only keys for which `keep` returns true.
     pub fn retain(&mut self, mut keep: impl FnMut(&K) -> bool) {
         self.receivers.retain(|k, _| keep(k));
     }
@@ -119,6 +115,7 @@ where
 
         loop {
             // TODO: left biased
+            // ... is this the place to intertwine united values?
             match recv_futures.next().await {
                 Some((key, aligned_receiver, msg)) => {
                     if (self.condition)(&msg) {
@@ -136,7 +133,7 @@ where
                         .map(|(key, x)| {
                             (
                                 key.clone(),
-                                x.paused.take().expect("Expected paused message"),
+                                x.paused.take().expect("Paused message to be saved"),
                             )
                         })
                         .collect();
@@ -157,7 +154,75 @@ pub enum AlignedValue<K, T> {
 
 #[cfg(test)]
 mod tests {
-    fn todo() {
-        unimplemented!()
+    use super::{AlignedValue, AlignmentGroup};
+    use crate::channels::{recv_trait::Receiver as _, spsc};
+
+    /// A condition on the payload: values equal to the sentinel "pause" the channel.
+    fn is_barrier(v: &u64) -> bool {
+        *v == u64::MAX
+    }
+
+    /// A non-barrier message on a single channel passes through immediately.
+    #[tokio::test]
+    async fn unaligned_passes_through() {
+        let (tx, rx) = spsc::unbounded();
+        let mut group: AlignmentGroup<usize, spsc::Receiver<u64>, _> =
+            AlignmentGroup::new([(0usize, rx)], is_barrier);
+        tx.send(1).await;
+        let v = group.recv().await;
+        assert!(matches!(v, AlignedValue::Unaligned((0, 1))));
+    }
+
+    /// A barrier on one channel is held until every channel has reported a barrier,
+    /// then all barriers are emitted together.
+    #[tokio::test]
+    async fn barrier_held_until_all_channels_report() {
+        let (tx0, rx0) = spsc::unbounded();
+        let (tx1, rx1) = spsc::unbounded();
+        let mut group: AlignmentGroup<usize, spsc::Receiver<u64>, _> =
+            AlignmentGroup::new([(0usize, rx0), (1, rx1)], is_barrier);
+
+        // only one channel barred -> recv must not complete within the grace period
+        tx0.send(u64::MAX).await;
+        let timed_out = tokio::time::timeout(std::time::Duration::from_millis(50), group.recv())
+            .await
+            .is_err();
+        assert!(
+            timed_out,
+            "barrier must be held until all channels are barred"
+        );
+
+        // now both channels are barred -> all barriers are emitted at once
+        tx1.send(u64::MAX).await;
+        let v = group.recv().await;
+        match v {
+            AlignedValue::Aligned(items) => {
+                assert_eq!(
+                    items.len(),
+                    2,
+                    "both paused barriers must be emitted together"
+                );
+                assert!(items.iter().all(|(_, x)| *x == u64::MAX));
+            }
+            _ => panic!("expected aligned barriers"),
+        }
+    }
+
+    /// After alignment the group can receive again.
+    #[tokio::test]
+    async fn alignment_recovers() {
+        let (tx0, rx0) = spsc::unbounded();
+        let (tx1, rx1) = spsc::unbounded();
+        let mut group: AlignmentGroup<usize, spsc::Receiver<u64>, _> =
+            AlignmentGroup::new([(0usize, rx0), (1, rx1)], is_barrier);
+        tx0.send(u64::MAX).await;
+        tx1.send(u64::MAX).await;
+        assert!(matches!(group.recv().await, AlignedValue::Aligned(_)));
+
+        tx0.send(9).await;
+        assert!(matches!(
+            group.recv().await,
+            AlignedValue::Unaligned((0, 9))
+        ));
     }
 }

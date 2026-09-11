@@ -54,6 +54,16 @@ macro_rules! msg {
 
 /// A message which gets processed in Malstrom
 /// Messages always include a timestamp and content.
+///
+/// # Example
+/// ```
+/// use malstrom_core::types::DataMessage;
+///
+/// let msg = DataMessage::<(u64, String, u64)>::new(1, "value".to_string(), 2);
+/// assert_eq!(msg.key, 1);
+/// assert_eq!(msg.value, "value");
+/// assert_eq!(msg.timestamp, 2);
+/// ```
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DataMessage<M: Kvt> {
     /// The key of the message. The message key controls how a message is distributed in a job
@@ -124,6 +134,15 @@ where
 /// Most messages will be of the data flavour, i.e. data to be processed,
 /// however JetStream also uses its data channels to coordinate snapshoting
 /// and rescaling
+///
+/// # Example
+/// ```
+/// use malstrom_core::types::{DataMessage, Message};
+///
+/// let data: Message<(u64, u64, u64)> =
+///     Message::Data(DataMessage::new(1, 2, 3));
+/// assert!(matches!(data, Message::Data(_)));
+/// ```
 #[derive(Clone)]
 pub enum Message<M: Kvt> {
     /// A data record flowing through the data stream
@@ -270,5 +289,55 @@ impl Drop for SuspendMarker {
         if Rc::strong_count(&self.callback) == 1 {
             self.callback.borrow_mut().send(()).now_or_never().unwrap();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{DataMessage, Kvt, Message};
+    use crate::types::distributable::Distributable;
+    use crate::types::{NoData, NoKey, NoTime};
+
+    /// `DataMessage` is the record that crosses every operator channel — its serde
+    /// round-trip must preserve key/value/timestamp exactly.
+    #[test]
+    fn data_message_round_trips() {
+        type M = (u64, String, usize);
+        let msg: DataMessage<M> = DataMessage::new(7, "value".to_string(), 42);
+        let encoded = msg.clone().encode();
+        let decoded = DataMessage::<M>::decode(&encoded);
+        assert_eq!(decoded.key, msg.key);
+        assert_eq!(decoded.value, msg.value);
+        assert_eq!(decoded.timestamp, msg.timestamp);
+    }
+
+    /// `Kvt` is implemented for unit (root/system streams) and tuples.
+    #[test]
+    fn kvt_impls() {
+        fn assert_kvt<M: Kvt>() {}
+        assert_kvt::<()>();
+        assert_kvt::<(u64, u64, u64)>();
+        assert_kvt::<(NoKey, NoData, NoTime)>();
+    }
+
+    /// `DataMessage::new` boxes the values into the tuple stream type.
+    #[test]
+    fn data_message_new() {
+        let msg: DataMessage<(u64, u64, u64)> = DataMessage::new(1u64, 2u64, 3u64);
+        assert_eq!(msg.key, 1);
+        assert_eq!(msg.value, 2);
+        assert_eq!(msg.timestamp, 3);
+    }
+
+    /// `Message` variants are constructible from their payload types.
+    #[test]
+    fn message_payloads_are_constructible() {
+        type M = (u64, u64, u64);
+        let data: DataMessage<M> = DataMessage::new(1u64, 2u64, 3u64);
+        let m = Message::<M>::Data(data.clone());
+        assert!(matches!(m, Message::Data(d) if d == data));
+
+        let epoch = Message::<M>::Epoch(5u64);
+        assert!(matches!(epoch, Message::Epoch(5)));
     }
 }

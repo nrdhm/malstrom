@@ -45,22 +45,81 @@ mod tests {
     use crate::sources::Source;
     use indexmap::IndexSet;
     use malstrom_testkit::get_test_rt;
+    use opentelemetry::trace::TracerProvider as _;
+    use opentelemetry_sdk::trace::SdkTracerProvider;
+    use opentelemetry_sdk::Resource;
+    use std::sync::OnceLock;
     use tracing_subscriber::fmt::format::FmtSpan;
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::util::SubscriberInitExt;
+
+    /// Tempo OTLP endpoint; overridable with `OTEL_EXPORTER_OTLP_ENDPOINT` or
+    /// `TEMPO_OTLP_ENDPOINT`. When unset, only local logs are installed.
+    const TEMPO_OTLP_ENDPOINT: &str = "http://localhost:4318";
+
+    /// Keeps the tracer provider alive for the whole test process.
+    static TRACER_PROVIDER: OnceLock<SdkTracerProvider> = OnceLock::new();
+
+    fn tempo_endpoint() -> Option<String> {
+        std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
+            .ok()
+            .or_else(|| std::env::var("TEMPO_OTLP_ENDPOINT").ok())
+            .or_else(|| (!TEMPO_OTLP_ENDPOINT.is_empty()).then(|| TEMPO_OTLP_ENDPOINT.to_string()))
+    }
+
+    /// Builds an OTLP HTTP exporter pointed at the configured Tempo endpoint.
+    ///
+    /// `with_simple_exporter` exports synchronously when a span closes, which avoids
+    /// requiring a Tokio runtime and flushes spans before the test process exits.
+    fn tempo_tracer(endpoint: &str) -> opentelemetry_sdk::trace::Tracer {
+        use opentelemetry_otlp::WithExportConfig;
+
+        let provider = TRACER_PROVIDER.get_or_init(|| {
+            let exporter = opentelemetry_otlp::SpanExporter::builder()
+                .with_http()
+                .with_endpoint(endpoint)
+                .build()
+                .expect("failed to build OTLP span exporter for Tempo");
+            SdkTracerProvider::builder()
+                .with_simple_exporter(exporter)
+                .with_resource(
+                    Resource::builder()
+                        .with_service_name("malstrom-operators-tests")
+                        .build(),
+                )
+                .build()
+        });
+        provider.tracer("malstrom-operators-tests")
+    }
 
     /// Installs a `tracing` subscriber for tests, safe to call more than once.
     ///
     /// The filter is read from `RUST_LOG` (e.g. `RUST_LOG=debug`) and defaults to `info`
     /// when the variable is unset. Output goes through the test harness writer, so it is
     /// shown on failure or when running with `--nocapture`.
+    ///
+    /// If a Tempo endpoint is configured (see [`tempo_endpoint`]), spans are exported to
+    /// it via OTLP/HTTP as well.
     pub fn init_logs() {
         use tracing_subscriber::{EnvFilter, fmt};
 
         let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-        let _ = fmt()
-            .with_env_filter(filter)
-            .with_span_events(FmtSpan::CLOSE)
-            .with_test_writer()
-            .try_init();
+        let subscriber = tracing_subscriber::registry()
+            .with(filter)
+            .with(
+                fmt::layer()
+                    .with_span_events(FmtSpan::CLOSE)
+                    .with_test_writer(),
+            );
+
+        if let Some(endpoint) = tempo_endpoint() {
+            let tracer = tempo_tracer(&endpoint);
+            let _ = subscriber
+                .with(tracing_opentelemetry::layer().with_tracer(tracer))
+                .try_init();
+        } else {
+            let _ = subscriber.try_init();
+        }
     }
 
     #[test]

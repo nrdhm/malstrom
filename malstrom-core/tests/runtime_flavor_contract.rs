@@ -4,12 +4,13 @@
 
 mod common;
 
-use common::{MemoryComm, MemoryFlavor};
+use common::{init_logs, MemoryComm, MemoryFlavor};
 use malstrom_core::runtime::RuntimeFlavor;
 use malstrom_core::runtime::communication::{OperatorOperatorComm, WorkerCoordinatorComm};
 
 #[tokio::test]
 async fn operator_stream_round_trip() {
+    init_logs();
     let comm = MemoryComm::new(0);
     let sender = comm.new_sender(1, 7).await.unwrap();
     let receiver = comm.new_receiver(1, 7).await.unwrap();
@@ -20,6 +21,7 @@ async fn operator_stream_round_trip() {
 
 #[tokio::test]
 async fn worker_coordinator_req_res_round_trip() {
+    init_logs();
     let comm = MemoryComm::new(0);
     let receiver = comm.worker_to_coordinator().await.unwrap();
     let sender = comm.coordinator_to_worker(0).await.unwrap();
@@ -34,6 +36,7 @@ async fn worker_coordinator_req_res_round_trip() {
 
 #[tokio::test]
 async fn flavor_communication_and_worker_id() {
+    init_logs();
     let mut flavor = MemoryFlavor::new(3);
     assert_eq!(flavor.this_worker_id(), 3);
     let comm = flavor.communication().unwrap();

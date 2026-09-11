@@ -16,6 +16,9 @@
 //!    bounded queue and then blocked forever, stalling the whole pipeline before a
 //!    rescale could be processed.
 
+mod common;
+
+use common::init_logs;
 use std::sync::{
     Arc,
     atomic::{AtomicBool, Ordering},
@@ -109,6 +112,7 @@ impl Logic<Msg, Msg> for Forward {
 
 #[test]
 fn rescale_scales_up_without_deadlock_and_job_completes() {
+    init_logs();
     let (tx_seen, rx_seen) = flume::unbounded();
     let finish = Arc::new(AtomicBool::new(false));
     let finish_test = Arc::clone(&finish);

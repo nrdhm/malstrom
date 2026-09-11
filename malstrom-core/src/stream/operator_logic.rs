@@ -1,17 +1,15 @@
-use std::{
-    hash::{Hash, Hasher},
-    marker::PhantomData,
-};
+use tracing::Instrument;
+use tracing::debug_span;
+use tracing::instrument;
 
+use crate::types::Message;
+use crate::types::ReconfigComplete;
+use crate::types::distributed::Acquire;
+use crate::types::distributed::Collect;
 use crate::{
-    channels::operator_io::{Input, Output, full_broadcast},
-    snapshot::SnapshotBarrier,
-    stream::{OperatorContext, WorkerBuildContext},
-    types::distributed::{Acquire, Collect, Interrogate},
-    types::{
-        Barrier, Data, DataMessage, Kvt, MaybeKey, MaybeTime, Message, ReconfigComplete,
-        RescaleMessage, SuspendMarker,
-    },
+    channels::operator_io::{Input, Output},
+    stream::OperatorContext,
+    types::{Barrier, DataMessage, Kvt, RescaleMessage, SuspendMarker, distributed::Interrogate},
 };
 
 use super::BuildContext;
@@ -91,6 +89,7 @@ where
     N: Kvt,
     F: AsyncFnMut(&mut Input<M>, &mut Output<N>, &mut OperatorContext) + 'static,
 {
+    #[instrument(skip_all)]
     async fn apply(
         &mut self,
         input: &mut Input<M>,
@@ -242,6 +241,7 @@ where
     N: Kvt<Key = M::Key, Timestamp = M::Timestamp>,
     L: SafeLogic<M, N>,
 {
+    #[tracing::instrument(skip_all)]
     async fn apply(
         &mut self,
         input: &mut Input<M>,
@@ -249,11 +249,24 @@ where
         ctx: &mut OperatorContext,
     ) {
         // pump the schedule until it makes no progress, then handle one input message
-        loop {
-            if !self.implementation.on_schedule(output, ctx).await {
-                break;
+        async {
+            loop {
+                if !self.implementation.on_schedule(output, ctx).await {
+                    break;
+                }
             }
         }
+        .instrument(debug_span!("loop on_schedule"))
+        .await;
+        // tracing::debug_span!("loop on_schedule")
+        //     .in_scope(async || {
+        //         loop {
+        //             if !self.implementation.on_schedule(output, ctx).await {
+        //                 break;
+        //             }
+        //         }
+        //     })
+        //     .await;
         match input.recv().await {
             Message::Data(data_message) => {
                 self.implementation.on_data(data_message, output, ctx).await

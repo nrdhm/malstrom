@@ -47,6 +47,7 @@ where
     M::Value: Distributable,
     M::Timestamp: Distributable,
 {
+    #[tracing::instrument(skip_all)]
     async fn apply(
         &mut self,
         input: &mut Input<M>,

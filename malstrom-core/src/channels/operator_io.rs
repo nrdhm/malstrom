@@ -6,17 +6,14 @@ use crate::{
     channels::{
         alignment::{AlignedValue, AlignmentGroup},
         recv_trait::Receiver,
-        signal::{Signal, SignalHandle},
     },
-    snapshot::SnapshotBarrier,
-    types::{
-        Barrier, Kvt, MaybeTime, Message, OperatorId, OperatorPartitioner, SuspendMarker, Timestamp,
-    },
+    types::{Barrier, Kvt, MaybeTime, Message, OperatorId, OperatorPartitioner},
 };
-use futures::{FutureExt, StreamExt, TryFutureExt, stream::FuturesUnordered};
+use futures::FutureExt;
 use itertools::Itertools;
-use std::{rc::Rc, usize};
-use tokio::sync::{oneshot, watch};
+use std::rc::Rc;
+use tokio::sync::watch;
+use tracing::instrument;
 
 /// Operator Output
 pub struct Output<M: Kvt> {
@@ -36,9 +33,9 @@ impl<M: Kvt> Output<M> {
     /// Create a new Sender with **no** associated Receiver
     /// Link a receiver with [link].
     pub fn new_unlinked(partitioner: impl OperatorPartitioner<M>) -> Self {
-        /// Allow NoTime type to indicate a final output
-        /// even if send is never called on this output
-        let finalized_signal = Signal::new(M::Timestamp::CHECK_FINISHED(&None));
+        // Allow NoTime type to indicate a final output
+        // even if send is never called on this output
+        // let finalized_signal = Signal::new(M::Timestamp::CHECK_FINISHED(&None));
         let this = Self {
             senders: Vec::new(),
             partitioner: Box::new(partitioner),
@@ -141,9 +138,11 @@ impl<M: Kvt> Output<M> {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct ClosedSignal(watch::Receiver<bool>);
 
 impl ClosedSignal {
+    #[instrument]
     pub(crate) fn wait_for(&mut self) -> impl Future<Output = ()> + '_ {
         // can ignore result because Err just means Sender was dropped
         async move {
@@ -160,11 +159,11 @@ pub(crate) struct RootOutput {
 impl RootOutput {
     // send a system message, this method is not async to allow sending
     // from a different or no runtime
-    pub(crate) fn send_system(&mut self, msg: Message<()>) {
-        for s in self.senders.iter() {
-            s.force_send(msg.clone())
-        }
-    }
+    // pub(crate) fn send_system(&mut self, msg: Message<()>) {
+    //     for s in self.senders.iter() {
+    //         s.force_send(msg.clone())
+    //     }
+    // }
 }
 
 /// State of the upstream sender providing us messages

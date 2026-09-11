@@ -1,11 +1,7 @@
 use std::hash::Hash;
 
 use futures::{StreamExt, stream::FuturesUnordered};
-use indexmap::{IndexMap, IndexSet};
-
-use crate::channels::spsc;
-
-use super::spsc::Receiver;
+use indexmap::IndexMap;
 
 /// A group of [Receiver]s which will pause each receiver when the last message received
 /// satisfies a given condition.
@@ -75,7 +71,7 @@ where
         let _ = self.receivers.swap_remove(key);
     }
 
-    /// retain only the those keys where keep returns true
+    /// Retain only keys for which `keep` returns true.
     pub fn retain(&mut self, mut keep: impl FnMut(&K) -> bool) {
         self.receivers.retain(|k, _| keep(k));
     }
@@ -119,6 +115,7 @@ where
 
         loop {
             // TODO: left biased
+            // ... is this the place to intertwine united values?
             match recv_futures.next().await {
                 Some((key, aligned_receiver, msg)) => {
                     if (self.condition)(&msg) {
@@ -136,7 +133,7 @@ where
                         .map(|(key, x)| {
                             (
                                 key.clone(),
-                                x.paused.take().expect("Expected paused message"),
+                                x.paused.take().expect("Paused message to be saved"),
                             )
                         })
                         .collect();

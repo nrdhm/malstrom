@@ -190,3 +190,15 @@ impl RuntimeFlavor for MemoryFlavor {
         self.worker_id
     }
 }
+
+/// Installs a `tracing` subscriber for tests, safe to call more than once.
+///
+/// The filter is read from `RUST_LOG` (e.g. `RUST_LOG=debug`) and defaults to `info`
+/// when the variable is unset. Output goes through the test harness writer, so it is
+/// shown on failure or when running with `--nocapture`.
+pub fn init_logs() {
+    use tracing_subscriber::{EnvFilter, fmt};
+
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    let _ = fmt().with_env_filter(filter).with_test_writer().try_init();
+}

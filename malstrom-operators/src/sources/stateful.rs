@@ -31,7 +31,7 @@ use malstrom_core::types::{
 /// constructors) and implement `snapshot`/`collect` as no-ops.
 pub trait SourceImpl: 'static {
     /// Identifies a partition (one shard / split / file / topic-partition / …).
-    type PartitionKey: Distributable + Key;
+    type PartitionKey: Distributable + Key + std::fmt::Debug;
     /// Values this source emits.
     type Value: Distributable + Data;
     /// Timestamps this source emits.
@@ -284,8 +284,8 @@ where
 }
 
 /// Marker a reader op sends to the discovery coordinator once a partition is exhausted.
-#[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Clone)]
-struct PartitionFinished<PartitionKey>(PartitionKey);
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Clone, Debug)]
+struct PartitionFinished<PartitionKey: std::fmt::Debug>(PartitionKey);
 
 struct SourcePartitionOp<SrcImpl: SourceImpl> {
     partitions: IndexMap<SrcImpl::PartitionKey, SrcImpl::Partition>,
@@ -376,11 +376,13 @@ impl<SrcImpl>
 where
     SrcImpl: SourceImpl,
 {
+    #[tracing::instrument(skip_all)]
     async fn on_schedule(
         &mut self,
         output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
         ctx: &mut OperatorContext,
     ) -> bool {
+        eprintln!("on_schedule start");
         let mut polls: FuturesUnordered<_> = self
             .partitions
             .iter_mut()
@@ -393,6 +395,7 @@ where
             Some((part, Some((data, timestamp)))) => {
                 let msg = DataMessage::new(part.clone(), data, timestamp);
                 output.send(Message::Data(msg)).await;
+                eprintln!("on_schedule end: fetched data");
                 true
             }
             // partition finished
@@ -401,13 +404,19 @@ where
                 // we can not mutate while it is borrowed
                 let part = part.clone();
                 self.partitions.swap_remove(&part);
-                self.com_utility
+                let r = self
+                    .com_utility
                     .send(0, PartitionFinished(part.clone()))
                     .await;
+                r.expect("PartitionFinished to be sent");
+                eprintln!("on_schedule end: partition finished");
                 true
             }
             // no partitions
-            None => false,
+            None => {
+                eprintln!("on_schedule end: no partitions");
+                false
+            }
         }
     }
 

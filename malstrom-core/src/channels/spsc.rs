@@ -63,13 +63,13 @@ impl<T> Sender<T> {
     }
 
     /// Send a message without respecting the capacity
-    pub(crate) fn force_send(&self, msg: T) {
-        let mut shared = self.shared.borrow_mut();
-        shared.queue.push_back(msg);
-        if let Some(waker) = shared.recv_waker.take() {
-            waker.wake();
-        }
-    }
+    // pub(crate) fn force_send(&self, msg: T) {
+    //     let mut shared = self.shared.borrow_mut();
+    //     shared.queue.push_back(msg);
+    //     if let Some(waker) = shared.recv_waker.take() {
+    //         waker.wake();
+    //     }
+    // }
 
     /// Future which completes once the receiver of this channel has been dropped
     pub(crate) fn wait_receiver_gone(&self) -> ReceiverGone<'_, T> {

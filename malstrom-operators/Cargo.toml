@@ -26,3 +26,4 @@ malstrom-macros = { path = "../malstrom-macros" }
 
 [dev-dependencies]
 malstrom-testkit = { path = "../malstrom-testkit" }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

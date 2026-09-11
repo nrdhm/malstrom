@@ -1,18 +1,13 @@
 use std::{collections::HashMap, rc::Rc, sync::Mutex};
 
 use futures::FutureExt as _;
-use indexmap::IndexSet;
-use thiserror::Error;
 use tokio::{runtime::LocalRuntime, sync::mpsc};
-use tracing::info;
 
 use crate::{
-    channels::signal::SignalHandle,
-    coordinator::messages::BuildInformation,
-    runtime::{OperatorOperatorComm, RuntimeFlavor, communication::WorkerCoordinatorComm},
-    snapshot::{NoPersistence, PersistenceBackend, PersistenceClient, SnapshotVersion},
+    runtime::RuntimeFlavor,
+    snapshot::PersistenceBackend,
     stream::{DirectLogic, LogicBuilder, Operator, WorkerBuildContext},
-    types::{Kvt, OperatorId, WorkerId},
+    types::{Kvt, OperatorId},
     worker::{Worker, WorkerExecutionError, root_logic::RootLogic, sys_message::SysMessage},
 };
 
@@ -96,6 +91,7 @@ impl InnerRuntimeBuilder {
     }
 
     /// Spawn the root operator task. Not joined by [Worker::execute].
+    #[tracing::instrument(skip_all)]
     pub(crate) fn add_root_operator<B>(&mut self, operator: Operator<(), B, ()>)
     where
         B: LogicBuilder<(), ()>,
@@ -109,6 +105,7 @@ impl InnerRuntimeBuilder {
     }
 
     /// Register an operator with the runtime; returns its id.
+    #[tracing::instrument(skip_all)]
     pub fn add_operator<In, B, Out>(&mut self, mut operator: Operator<In, B, Out>) -> OperatorId
     where
         In: Kvt,

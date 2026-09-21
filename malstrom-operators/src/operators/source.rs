@@ -5,7 +5,7 @@ use malstrom_core::types::{Data, Kvt, MaybeKey, NoData, NoKey, NoTime, Sealed, T
 pub trait Source<M: Kvt, S>: Sealed {
     /// Produce new messages into a stream. This method can only be called
     /// on a stream which does not yet have any other source. To use multiple sources
-    /// create multiple streams and merge them by calling (.union())[StreamBuilder::union].
+    /// create multiple streams and merge them by calling (.union())[crate::operators::Union::union].
     ///
     /// # Example
     ///

@@ -1,4 +1,4 @@
-//! A [malstrom::runtime::RuntimeFlavor](RuntimeFlavors) using OS threads to provision workers
+//! A [RuntimeFlavor](crate::runtime::RuntimeFlavor) using OS threads to provision workers
 mod communication;
 mod multi;
 mod single;

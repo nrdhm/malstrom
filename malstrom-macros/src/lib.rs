@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Data, DeriveInput, Fields, Path, Type, parse_macro_input};
 
-/// Like [`tracing::instrument`], but records the span at `DEBUG` level.
+/// Like `tracing::instrument`, but records the span at `DEBUG` level.
 ///
 /// `tracing::instrument` defaults to `INFO`, which makes spans of hot internal
 /// functions noisy at the default filter and forces every call site to spell out

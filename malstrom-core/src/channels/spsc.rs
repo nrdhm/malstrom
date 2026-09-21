@@ -1,5 +1,5 @@
 //! A dead simple non-threaded unbounded channel
-//! Inspiration taken from https://docs.rs/local-channel
+//! Inspiration taken from <https://docs.rs/local-channel>
 
 use std::{
     cell::RefCell,

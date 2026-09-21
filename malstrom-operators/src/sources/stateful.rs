@@ -87,7 +87,7 @@ pub trait SourcePartition {
 }
 
 /// A source providing records for processing. Wrap a [SourceImpl] with one of the
-/// `Source::from_*` constructors (from [crate::sources::fn_source]) or
+/// `Source::from_*` constructors or
 /// [Source::from_impl].
 pub struct Source<SrcImpl>(SrcImpl);
 

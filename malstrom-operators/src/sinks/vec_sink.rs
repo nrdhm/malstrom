@@ -6,7 +6,7 @@ use std::{ops::RangeBounds, sync::Arc, sync::Mutex};
 /// A Helper to write values into a shared vector and take them out
 /// again.
 /// This is mainly useful to extract values from a stream in unit tests.
-/// This struct uses an Arc<Mutex<Vec<T>> internally, so it can be freely
+/// This struct uses an `Arc<Mutex<Vec<T>>>` internally, so it can be freely
 /// cloned
 #[derive(Clone)]
 pub struct VecSink<T> {

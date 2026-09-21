@@ -107,7 +107,7 @@ where
 {
     /// Create a new stream operator from the given name and a function which will return the
     /// actually scheduled function at build time. This is useful to utilize information from the
-    /// [BuildContext]. If information from the [BuildContext] is not needed, consider calling
+    /// [BuildContext](crate::stream::BuildContext). If information from the [BuildContext](crate::stream::BuildContext) is not needed, consider calling
     /// [Self::direct] instead.
     ///
     /// # Example

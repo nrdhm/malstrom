@@ -12,7 +12,7 @@ pub trait Inspect<Msg: Kvt, Inspector>: Sealed {
     /// Inspect takes a closure of function which is called on every data
     /// message.
     ///
-    /// To inspect the current event time see [`crate::operators::timely::InspectFrontier::inspect_frontier`].
+    /// To inspect the current event time see [`crate::operators::time::InspectFrontier`].
     ///
     /// ```rust
     /// use malstrom_operators::operators::*;

@@ -3,7 +3,7 @@
 > **Last refreshed:** 2026-09-06
 
 The transport types used to move data and control signals through `malstrom-core`. Channels
-are split into two groups: the stream-data edges in [`channels/`](../../malstrom-core/src/channels/mod.rs)
+are split into two groups: the stream-data edges in [`channels/`](https://github.com/MalstromDevelopers/malstrom/blob/main/malstrom-core/src/channels/mod.rs)
 (same-worker operator edges) and the `tokio::sync` + `flume` channel families used for
 control plumbing and cross-thread communication.
 
@@ -14,11 +14,11 @@ itself.
 
 | Type | File | Role |
 |---|---|---|
-| `Sender<T>` / `Receiver<T>` | [`channels/spsc.rs`](../../malstrom-core/src/channels/spsc.rs) | The low-level bounded SPSC queue (`CAPACITY = 1024`). Async future-based `send()`/`recv()` with wakers; backpressure via `send_waker`/`recv_waker`; receiver-gone detection (`has_receiver`, `ReceiverGone`). `Send::poll` drops the message when no receiver exists (terminal-sink case). Created with `spsc::unbounded()`. |
-| `Output<M>` / `Input<M>` | [`channels/operator_io.rs`](../../malstrom-core/src/channels/operator_io.rs) | The operator-facing channel types, built on `spsc`. `Output` fans out to N spsc senders via an `OperatorPartitioner` (data) or broadcast (system messages), tracks its frontier, and carries a `closed_signal` (`watch::Sender<bool>`). `Input` fans in from N spsc receivers, aligns barriers, and merges epochs into a frontier. `link()` creates one spsc edge and wires `Output` ↔ `Input`. |
-| `AlignmentGroup<K, R, F>` | [`channels/alignment.rs`](../../malstrom-core/src/channels/alignment.rs) | A receiver combinator, not a channel. Wraps N receivers plus a condition (e.g. "is this a barrier?"); pauses channels whose message matches, emits `AlignedValue::Aligned(...)` only once **all** channels have paused. This is how operator `Input`s synchronize barriers across multiple upstream edges. |
-| `Receiver` trait | [`channels/recv_trait.rs`](../../malstrom-core/src/channels/recv_trait.rs) | The small async `recv()` abstraction implemented by both spsc `Receiver` and `AlignmentGroup`. Carries a `TODO: do we still need this?` and a commented-out `IndexMap` impl. |
-| `Signal` / `SignalHandle` | [`channels/signal.rs`](../../malstrom-core/src/channels/signal.rs)  | Internal watch-based signal built on `watch::channel(bool)`. Largely vestigial — its tests are commented out and `SignalHandle` is imported but unused in `operator_io.rs`. |
+| `Sender<T>` / `Receiver<T>` | [`channels/spsc.rs`](https://github.com/MalstromDevelopers/malstrom/blob/main/malstrom-core/src/channels/spsc.rs) | The low-level bounded SPSC queue (`CAPACITY = 1024`). Async future-based `send()`/`recv()` with wakers; backpressure via `send_waker`/`recv_waker`; receiver-gone detection (`has_receiver`, `ReceiverGone`). `Send::poll` drops the message when no receiver exists (terminal-sink case). Created with `spsc::unbounded()`. |
+| `Output<M>` / `Input<M>` | [`channels/operator_io.rs`](https://github.com/MalstromDevelopers/malstrom/blob/main/malstrom-core/src/channels/operator_io.rs) | The operator-facing channel types, built on `spsc`. `Output` fans out to N spsc senders via an `OperatorPartitioner` (data) or broadcast (system messages), tracks its frontier, and carries a `closed_signal` (`watch::Sender<bool>`). `Input` fans in from N spsc receivers, aligns barriers, and merges epochs into a frontier. `link()` creates one spsc edge and wires `Output` ↔ `Input`. |
+| `AlignmentGroup<K, R, F>` | [`channels/alignment.rs`](https://github.com/MalstromDevelopers/malstrom/blob/main/malstrom-core/src/channels/alignment.rs) | A receiver combinator, not a channel. Wraps N receivers plus a condition (e.g. "is this a barrier?"); pauses channels whose message matches, emits `AlignedValue::Aligned(...)` only once **all** channels have paused. This is how operator `Input`s synchronize barriers across multiple upstream edges. |
+| `Receiver` trait | [`channels/recv_trait.rs`](https://github.com/MalstromDevelopers/malstrom/blob/main/malstrom-core/src/channels/recv_trait.rs) | The small async `recv()` abstraction implemented by both spsc `Receiver` and `AlignmentGroup`. Carries a `TODO: do we still need this?` and a commented-out `IndexMap` impl. |
+| `Signal` / `SignalHandle` | [`channels/signal.rs`](https://github.com/MalstromDevelopers/malstrom/blob/main/malstrom-core/src/channels/signal.rs)  | Internal watch-based signal built on `watch::channel(bool)`. Largely vestigial — its tests are commented out and `SignalHandle` is imported but unused in `operator_io.rs`. |
 
 ## Control and cross-thread channels (outside `channels/`)
 

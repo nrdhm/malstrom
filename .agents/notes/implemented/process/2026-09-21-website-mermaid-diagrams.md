@@ -12,9 +12,11 @@ rendered as a literal code fence.
 The repository already relies on Mermaid diagrams, so this was a gap, not a hypothetical:
 
 - `docs/overviews/04-modules.md` has the crate dependency diagram and a runtime dataflow
-  diagram; `docs/overviews/05-architecture.md` has five more. These render on the **MkDocs
-  `docs/` site**, whose `mkdocs.yml` configures the `mermaid2` plugin (dark/light theme
-  expression wired to MaterialX's palette).
+  diagram; `docs/overviews/05-architecture.md` has five more. These rendered on the **MkDocs
+  `docs/` site** at the time (its `mkdocs.yml` configured the `mermaid2` plugin with a
+  dark/light theme expression wired to MaterialX's palette); that surface has since moved to
+  mdBook + `mdbook-mermaid` — see
+  [mdbook-rustdoc-migration](2026-09-21-mdbook-rustdoc-migration.md).
 - `Status.md` recorded the TODO: *"wire the internals section into the website? want to have a
   mermaid diagram with StartBuild protocol visualized"*.
 - `website/internals/StartBuild.md` was a one-line stub, and the `internals/` pages were not in
@@ -74,10 +76,11 @@ live.
 - ` ```mermaid ` blocks in `website/` render as diagrams and follow VitePress light/dark mode.
   Verified with `npm ci && npm run docs:build` (the StartBuild sequence diagram and its encoded
   `graph=` attribute are present in the built page bundle).
-- The website and MkDocs sites now each pin a Mermaid version; shared diagrams must stay in a
-  conservative syntax subset that both render. The MkDocs theming needed a JS expression against
-  MaterialX's palette; VitePress's dark mode toggles differently, so its wiring is the likely
-  source of future rendering bugs.
+- The website and the maintainer book each pin a Mermaid version; shared diagrams must stay in
+  a conservative syntax subset that both render. The book (mdBook + `mdbook-mermaid`) is
+  covered by [mdbook-rustdoc-migration](2026-09-21-mdbook-rustdoc-migration.md); VitePress's
+  dark mode toggles differently from each, so its wiring is the likely source of future
+  rendering bugs.
 - **Bundle weight** — Mermaid is a sizeable client dependency; the build warns about a >500 kB
   chunk. Lazy per-page init is a possible follow-up if it becomes a problem.
 - **Toolchain change** — the website now builds with npm, not bun; the Pages workflow and

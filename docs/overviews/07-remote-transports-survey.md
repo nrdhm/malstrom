@@ -6,7 +6,7 @@
 > what that means for Malstrom's future remote transport. Facts below were verified from
 > `timely_communication` and `arroyo-worker` source on 2026-09-14. The design proposal that
 > borrows their shapes is
-> [`.agents/notes/proposed/architecture/2026-09-13-unify-operator-io-edge-abstractions.md`](../../.agents/notes/proposed/architecture/2026-09-13-unify-operator-io-edge-abstractions.md).
+> [`.agents/notes/proposed/architecture/2026-09-13-unify-operator-io-edge-abstractions.md`](https://github.com/MalstromDevelopers/malstrom/blob/main/.agents/notes/proposed/architecture/2026-09-13-unify-operator-io-edge-abstractions.md).
 
 ## Both write their own TCP transport
 

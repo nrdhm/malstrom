@@ -13,7 +13,7 @@
 > (build, snapshot, rescale, suspend). Operators exchange **Messages** through channels;
 > state is snapshotted via **barriers that travel in-band inside the message stream** — this
 > is what makes processing exactly-once (ABS algorithm, see
-> [`snapshot/mod.rs`](../../malstrom-core/src/snapshot/mod.rs)).
+> [`snapshot/mod.rs`](https://github.com/MalstromDevelopers/malstrom/blob/main/malstrom-core/src/snapshot/mod.rs)).
 
 ## Core entities
 

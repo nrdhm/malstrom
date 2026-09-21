@@ -59,7 +59,7 @@ several of its "must fix" items are still open and are re-listed below.
    and names the partition: worker 0 is the discovery coordinator and is always in the build-time
    worker set, so `WorkerIdNotConnected` is an invariant violation, not a shutdown race. Failing
    loud matches the branch's
-   [fail-loud direction](../../.agents/notes/proposed/architecture/2026-09-19-fail-loud-on-dangling-operator-edges.md).
+   [fail-loud direction](https://github.com/MalstromDevelopers/malstrom/blob/main/.agents/notes/proposed/architecture/2026-09-19-fail-loud-on-dangling-operator-edges.md).
 
 7. ~~**Union test TODO.**~~ **Resolved 2026-09-21.** Replaced
    `// TODO: debug high latency before ending.` in `union.rs` with a comment recording the
@@ -69,7 +69,7 @@ several of its "must fix" items are still open and are re-listed below.
    `StreamBuilder` method no longer exists; union builds its edges with `OperatorBuilder` and
    the `swap_tail` / `link_to_input` / `with_new_tail` helpers. The reuse caveat now lives on
    `StreamBuilder::swap_tail` and in
-   [`stream-builder-union-refactor`](../../.agents/notes/implemented/architecture/2026-09-14-stream-builder-union-refactor.md).
+   [`stream-builder-union-refactor`](https://github.com/MalstromDevelopers/malstrom/blob/main/.agents/notes/implemented/architecture/2026-09-14-stream-builder-union-refactor.md).
    See [`union-refactor-review.md`](union-refactor-review.md).
 
 ## Structural / policy concerns
@@ -81,7 +81,7 @@ several of its "must fix" items are still open and are re-listed below.
 
 10. ~~**Agent-note coverage.**~~ **Resolved 2026-09-21.** The `OperatorBuilder` / `Forward` /
     union/split refactor is covered by
-    [`stream-builder-union-refactor`](../../.agents/notes/implemented/architecture/2026-09-14-stream-builder-union-refactor.md),
+    [`stream-builder-union-refactor`](https://github.com/MalstromDevelopers/malstrom/blob/main/.agents/notes/implemented/architecture/2026-09-14-stream-builder-union-refactor.md),
     which was stale (it described the superseded `forward_tail_to` design) and is now moved to
     `implemented/` and corrected to the shipped `OperatorBuilder` + `forward_logic.rs`
     mechanism. Inbound links from the spsc-mpsc and fail-loud notes were repaired.
@@ -106,7 +106,7 @@ several of its "must fix" items are still open and are re-listed below.
     website joining/splitting guide, and doc-links in `split.rs`/`sink.rs`. Restored `Cloned`
     as the thin broadcast wrapper over `Split` it always was, now taking `impl Into<String>` to
     match `Split`. See the rationale in
-    [`cloned.rs`](../../malstrom-operators/src/operators/cloned.rs): it is kept for the
+    [`cloned.rs`](https://github.com/MalstromDevelopers/malstrom/blob/main/malstrom-operators/src/operators/cloned.rs): it is kept for the
     ergonomic, intention-revealing `cloned(name, N)` spelling of fan-out, not for any runtime
     capability `Split` lacks.
 

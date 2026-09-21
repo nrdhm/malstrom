@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-/// API handle for the [Coordinator]. Use this to send commands (like a rescale-command)
+/// API handle for the [Coordinator](crate::coordinator::Coordinator). Use this to send commands (like a rescale-command)
 /// to the coordinator
 pub struct CoordinatorApi {
     req_tx: flume::Sender<ApiRequest>,

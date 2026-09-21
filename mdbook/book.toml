@@ -1,0 +1,24 @@
+[book]
+title = "Malstrom Internals"
+authors = ["Malstrom Developers"]
+description = "Malstrom maintainer documentation: architecture overviews and code reviews."
+language = "en"
+# The book sources live in `docs/` (kept there for the refresh tooling and the
+# stable links); this directory is only the mdBook project.
+src = "../docs"
+
+[build]
+# Output stays inside this project directory, so the repo root stays clean.
+build-dir = "book"
+
+[output.html]
+# `mdbook-mermaid install` places these here (next to this `book.toml`).
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
+git-repository-url = "https://github.com/MalstromDevelopers/malstrom"
+edit-url-template = "https://github.com/MalstromDevelopers/malstrom/edit/main/{path}"
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[output.html.search]
+enable = true

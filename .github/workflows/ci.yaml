@@ -49,3 +49,32 @@ jobs:
 
       - name: Test
         run: cargo test --workspace
+
+      # Rustdoc warnings are gated; the intra-doc links were cleaned when the docs
+      # surface moved to mdBook + rustdoc (see
+      # .agents/notes/proposed/process/2026-09-21-mdbook-rustdoc-migration.md).
+      - name: Rustdoc
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.97.1
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install mdBook
+        run: cargo install mdbook mdbook-mermaid --locked
+
+      - name: Build the internals book
+        working-directory: mdbook
+        run: |
+          mdbook-mermaid install .
+          mdbook build

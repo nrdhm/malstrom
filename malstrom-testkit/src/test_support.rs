@@ -82,7 +82,7 @@ pub fn temp_force_flush() {
 /// Output goes through the test harness writer, so it is shown on failure or when
 /// running with `--nocapture`.
 ///
-/// If `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is set (see [`tempo_endpoint`]), spans
+/// If `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is set, spans
 /// are exported to it via OTLP/HTTP as well.
 pub fn tempo_init_tracing() {
     use tracing_subscriber::{EnvFilter, fmt};

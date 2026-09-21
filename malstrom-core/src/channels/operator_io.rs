@@ -120,7 +120,7 @@ impl<M: Kvt> Output<M> {
     }
 
     /// Mark this output as closed, causing downstream operators watching
-    /// [get_closed_signal] to stop.
+    /// `get_closed_signal` to stop.
     /// Mark this output as closed; further sends are dropped.
     pub fn close(&self) {
         // `send_replace` (not `send`): `watch::Sender::send` is a no-op when there are

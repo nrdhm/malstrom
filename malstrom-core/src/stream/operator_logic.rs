@@ -103,7 +103,7 @@ where
 
 /// This trait provides a way to implement logic with no risk of breaking internal messaging invariants.
 /// Usually it does not make sense to implement this trait directly. Consider using
-/// [malstrom::operators::StatefulLogic](StatefulLogic) instead.
+/// `StatefulLogic` (`malstrom-operators`) instead.
 ///
 /// # Example
 /// ```

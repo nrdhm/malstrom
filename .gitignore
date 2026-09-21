@@ -25,3 +25,8 @@ website/.vitepress/dist/
 
 # Python docs toolchain (uv)
 .venv/
+
+# mdBook build output and its generated Mermaid assets (`mdbook-mermaid install`)
+mdbook/book/
+mdbook/mermaid.min.js
+mdbook/mermaid-init.js

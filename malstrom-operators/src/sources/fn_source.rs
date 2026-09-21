@@ -12,7 +12,7 @@ use malstrom_core::types::{Data, NoKey, OnceTime, Timestamp, distributable::Dist
 
 /// An untimed source reading from an iterator.
 ///
-/// Every record is timestamped with [`OnceTime(false)`]; the stream finishes with
+/// Every record is timestamped with `OnceTime(false)`; the stream finishes with
 /// `OnceTime(true)`.
 pub struct FromIteratorSource<V> {
     iter: Option<Box<dyn Iterator<Item = V>>>,

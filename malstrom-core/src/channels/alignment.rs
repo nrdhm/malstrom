@@ -4,7 +4,7 @@ use futures::{StreamExt, stream::FuturesUnordered};
 use indexmap::IndexMap;
 use log::debug;
 
-/// A group of [Receiver]s which will pause each receiver when the last message received
+/// A group of [`Receiver`](super::recv_trait::Receiver)s which will pause each receiver when the last message received
 /// satisfies a given condition.
 /// The receiver is unpaused once all receivers have met the condition.
 /// Messages satisfying the condition are not immediatly emitted, but instead all emitted once

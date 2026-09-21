@@ -58,6 +58,10 @@ where
     ) -> StreamBuilder<(In::Key, T, In::Timestamp)>;
 }
 
+// The `In: Kvt` bound is needed to name the associated types in the aliased type;
+// clippy's `type_alias_bounds` fires because bounds on a type alias are not enforced at
+// the alias itself, but removing it breaks `In::Key`/`In::Timestamp`.
+#[allow(type_alias_bounds)]
 type StatelessOperator<In: Kvt, T, L> = Operator<In, DirectLogic<L>, (In::Key, T, In::Timestamp)>;
 
 impl<In, T, L, X> StatelessOp<In, T, L> for X

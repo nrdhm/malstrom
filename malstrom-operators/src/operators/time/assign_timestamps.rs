@@ -33,7 +33,7 @@ where
     fn assign_timestamps<TO: Timestamp>(
         self,
         name: impl Into<String>,
-        mut assigner: impl FnMut(&DataMessage<Msg>) -> TO + 'static,
+        assigner: impl FnMut(&DataMessage<Msg>) -> TO + 'static,
     ) -> NeedsEpochs<(Msg::Key, Msg::Value, TO)> {
         let operator = Operator::direct(
             name.into(),

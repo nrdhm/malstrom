@@ -53,8 +53,8 @@ impl ReqResResponder {
 #[async_trait]
 impl com::ReqResResponder for ReqResResponder {
     async fn respond(&mut self, msg: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
-        /// as per trait implementation note we ignore sends after the first one
-        /// see [com::ReqResResponder::respond] doc
+        // as per trait implementation note we ignore sends after the first one
+        // see [com::ReqResResponder::respond] doc
         match self.0.take() {
             Some(sender) => {
                 let _ = sender.send(msg);

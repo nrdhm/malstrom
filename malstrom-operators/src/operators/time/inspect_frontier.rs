@@ -48,7 +48,7 @@ where
         output: &mut Output<Msg>,
         _ctx: &mut OperatorContext,
     ) {
-        output.send(Message::Data(data_message));
+        output.send(Message::Data(data_message)).await;
     }
 
     async fn on_epoch(

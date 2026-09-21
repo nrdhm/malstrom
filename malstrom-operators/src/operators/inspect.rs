@@ -59,7 +59,7 @@ where
     fn inspect(
         self,
         name: impl Into<String>,
-        mut inspector: Inspector,
+        inspector: Inspector,
     ) -> StreamBuilder<(Msg::Key, Msg::Value, Msg::Timestamp)> {
         let operator = Operator::direct(
             name.into(),

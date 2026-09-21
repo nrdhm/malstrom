@@ -24,7 +24,7 @@ use indexmap::IndexSet;
 use malstrom_macros::instrument_debug;
 use std::time::Duration;
 use thiserror::Error;
-use tracing::info;
+use tracing::{info, warn};
 
 /// Coordinator which controls a Malstrom job.
 /// The coordinator coordinates job start/stop, rescaling and snapshotting.
@@ -153,7 +153,11 @@ where
                     if diff != 0 {
                         let worker_set: IndexSet<WorkerId> = (0..desired).collect();
                         info!("Starting rescale to {worker_set:?}");
-                        state.reconfigure(worker_set, &communication_backend).await;
+                        if let Err(err) =
+                            state.reconfigure(worker_set, &communication_backend).await
+                        {
+                            warn!("Rescale failed: {err}");
+                        }
                         info!("Rescale complete");
                     }
                 }

@@ -131,8 +131,8 @@ mod tests {
         let worker_b = OperatorCommunication::new(Arc::clone(&channels), 1);
 
         // worker 0's operator 42 sends to worker 1; worker 1 receives from worker 0
-        let mut sender = worker_a.new_sender(1, 42).await.unwrap();
-        let mut receiver = worker_b.new_receiver(0, 42).await.unwrap();
+        let sender = worker_a.new_sender(1, 42).await.unwrap();
+        let receiver = worker_b.new_receiver(0, 42).await.unwrap();
         sender.send(vec![1, 2, 3]).await.unwrap();
         assert_eq!(receiver.recv().await.unwrap(), vec![1, 2, 3]);
     }

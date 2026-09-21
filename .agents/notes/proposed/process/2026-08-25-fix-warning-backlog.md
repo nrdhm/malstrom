@@ -80,28 +80,23 @@ their existing levels; individual group members are allowed on top of them.
 
 ### Step 1 — Mechanical rustc sweep
 
-Re-enable and clear the compiler-guided rustc lints, one group at a time. Delete dead imports
-and drop or `_`-rename unused bindings. **Watch grouped `use` lines**: rustc reports the whole
-group as unused when only part is, so edit per item rather than dropping the line (dropping a
-needed import broke `PhantomData` during this work). Order: `unused_imports` (25),
-`unused_variables` (5), `unused_mut` (1), `unused_macros` (1), `unused_doc_comments` (2),
-`unused_must_use` (3), then the tail (`unreachable_code`, `dropping_references`,
-`type_alias_bounds`).
+Re-enable and clear the compiler-guided rustc lints, one group at a time: `unused_imports`,
+`unused_variables`, `unused_mut`, `unused_macros`, `unused_doc_comments`, `unused_must_use`,
+then the tail (`unreachable_code`, `dropping_references`, `type_alias_bounds`). Delete dead
+imports and drop or `_`-rename unused bindings. **Watch grouped `use` lines** (rustc reports the
+whole group when only part is unused) and **per-target reporting** (an import unused in the lib
+target may be needed by the test target — move it there, don't delete it).
 
-**Progress:** `unused_imports` done (2026-09-21) — `cargo fix --all-targets` applied most
-(36 files), the remaining 9 grouped/test-module imports were hand-fixed, and the
-`unused_imports = "allow"` line was removed from `[workspace.lints.rust]`. Note the per-target
-subtlety: an import can be unused in the lib target but needed by the test target (e.g.
-`SafeLogic` in `assign_timestamps.rs`), in which case it moves to the test module's own import
-rather than being deleted.
+**Done (2026-09-21):** all of the above; every `allow` line removed. `unused_mut` via
+`cargo fix`, the rest hand-fixed. Findings worth keeping:
 
-`unused_variables` done (2026-09-21) — 35 `_`-prefix renames across 15 files (unused trait-default
-and impl params), and the `allow` removed. **One scoped exception:**
-`malstrom-distributed/src/routers/interrogate.rs::apply` carries
-`#[allow(unused_variables)]` — its data-message arm is an unfinished `todo!()`, so the written
-`route`/`send` tail is unreachable and `output`/`msg`/`versioned_data` read as unused.
-Implementing that router (behaviour change) is deferred; the scoped allow is the only lint
-exception introduced so far and must be removed when the stub is implemented.
+- `unused_must_use` surfaced a **real bug**: `operators/time/inspect_frontier.rs::on_data`
+sent without `.await`, dropping every data message — fixed.
+- Two reasoned scoped `#[allow]`s remain: `routers/interrogate.rs::apply`
+ (`#[allow(unused_variables, unreachable_code)]`) — its data-message arm is a `todo!()` stub, so
+the written `route`/`send` tail is unreachable (remove when the router is implemented); and
+`operators/stateless_op.rs` (`#[allow(type_alias_bounds)]`) — the alias body needs `In: Kvt` to
+name `In::Key`, so the lint's suggested removal does not compile.
 
 ### Step 2 — Mechanical clippy one-offs
 

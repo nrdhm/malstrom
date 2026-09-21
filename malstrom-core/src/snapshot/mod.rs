@@ -91,7 +91,7 @@ impl Drop for SnapshotBarrier {
     fn drop(&mut self) {
         // kinda ugly, but works
         if Rc::strong_count(&self.callback) == 1 {
-            self.callback.borrow_mut().send(()).now_or_never().unwrap();
+            let _ = self.callback.borrow_mut().send(()).now_or_never().unwrap();
         }
     }
 }

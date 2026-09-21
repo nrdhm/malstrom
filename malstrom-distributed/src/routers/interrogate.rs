@@ -49,10 +49,10 @@ where
 
     // The first `select!` arm below is an unfinished stub: its `DataMessage` arm is
     // `todo!()`, so the already-written `self.route(..)` / `output.send(..)` tail is
-    // unreachable and `output`/`msg`/`versioned_data` read as unused. Behaviour is left
-    // unchanged (the stub still panics); allow the lint rather than delete intended code
+    // unreachable (and `output`/`msg`/`versioned_data` read as unused). Behaviour is left
+    // unchanged (the stub still panics); allow the lints rather than delete intended code
     // or silently implement the router. TODO: implement the data-message arm.
-    #[allow(unused_variables)]
+    #[allow(unused_variables, unreachable_code)]
     pub(super) async fn apply(
         mut self,
         input: &mut spsc::Receiver<RouterInput<M>>,

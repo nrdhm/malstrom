@@ -166,7 +166,7 @@ where
         msg: Message<M>,
         ctx: &OperatorContext,
     ) -> Option<VersionedMessage<M>> {
-        /// local version will be assigned downstream by distributor
+        // local version will be assigned downstream by distributor
         let msg = match msg {
             Message::AbsBarrier(b) => self.handle_abs_barrier(b).await.map(Message::AbsBarrier),
             Message::ReconfigComplete(r) => Some(Message::ReconfigComplete(

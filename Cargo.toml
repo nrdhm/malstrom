@@ -25,16 +25,9 @@ members = [
 # no lint rules ignored.
 missing-docs = "allow"
 async_fn_in_trait = "allow"
-unused_mut = "allow"
-unused_macros = "allow"
-unused_must_use = "allow"
-unused_doc_comments = "allow"
 dead_code = "allow"
 private_interfaces = "allow"
 refining_impl_trait_reachable = "allow"
-unreachable_code = "allow"
-dropping_references = "allow"
-type_alias_bounds = "allow"
 
 [workspace.lints.clippy]
 # `correctness` stays denied by policy (the add-ci-checks gate).

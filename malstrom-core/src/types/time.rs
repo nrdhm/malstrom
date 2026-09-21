@@ -161,8 +161,8 @@ mod proptests {
     use super::Timestamp;
     use proptest::prelude::*;
 
-    /// `merge` must be a commutative, associative, idempotent meet (min for the
-    /// numeric impls), and monotone: merging with a larger value never advances.
+    // `merge` must be a commutative, associative, idempotent meet (min for the
+    // numeric impls), and monotone: merging with a larger value never advances.
     proptest! {
         #[test]
         fn usize_merge_is_min(a: usize, b: usize) {

@@ -212,24 +212,6 @@ impl Barrier {
     }
 }
 
-macro_rules! impl_from_variants {
-    ($($variant:ident($variant_type:ty)),* $(,)?) => {
-        $(
-            impl<M, K, V, T> From<$variant_type> for Message<M>
-            where
-                M: Kvt<Key = K, Value = V, Timestamp = T>,
-                K: MaybeKey,
-                V: MaybeData,
-                T: MaybeTime,
-            {
-                fn from(value: $variant_type) -> Self {
-                    Message::$variant(value)
-                }
-            }
-        )*
-    };
-}
-
 /// Indicates a reconfiguration in the amount of workers
 /// participating in the computation
 #[derive(Debug, Clone)]
@@ -307,7 +289,7 @@ impl SuspendMarker {
 impl Drop for SuspendMarker {
     fn drop(&mut self) {
         if Rc::strong_count(&self.callback) == 1 {
-            self.callback.borrow_mut().send(()).now_or_never().unwrap();
+            let _ = self.callback.borrow_mut().send(()).now_or_never().unwrap();
         }
     }
 }

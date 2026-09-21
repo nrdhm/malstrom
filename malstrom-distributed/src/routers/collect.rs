@@ -48,7 +48,7 @@ where
     M::Key: Key + Distributable,
 {
     pub(super) fn new(interrogate: InterrogateRouter<M>) -> Self {
-        /// TODO we could short circuit to [UpgradingRouter] here if no collectable keys
+        // TODO we could short circuit to [UpgradingRouter] here if no collectable keys
         Self {
             this_version: interrogate.this_version,
             this_worker: interrogate.this_worker,
@@ -117,10 +117,8 @@ where
                     },
                     // last instance of collect message dropped
                     None => {
-                        // need to drop mut ref so we can take the Option
-                        drop(current_collect);
-                        // PANIC: We know it is Some because we just dropped the mut ref to it in
-                        // the line above
+                        // PANIC: We know it is Some because `current_collect` (the mutable
+                        // borrow of `self.current_collect`) ends here under NLL
                         let finished_collect = self.current_collect.take().expect("Must be Some");
                         // create acquire message
                         let acquire = WireAcquire::new(finished_collect.key, finished_collect.states);

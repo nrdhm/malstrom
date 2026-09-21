@@ -17,14 +17,14 @@ fn main() {
         .unwrap()
 }
 
-fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
+fn build_dataflow(provider: &mut dyn StreamProvider) {
     provider
         .new_stream()
         .source("iter-source", Source::from_iterator(0..=100))
         .key_distribute("key-by-value", |_| 0, rendezvous_select)
         .stateful_map("sum", async |_key, value, state: i32| {
             let state = state + value;
-            (state.clone(), Some(state))
+            (state, Some(state))
         })
         .inspect("print", async |x, _ctx_| println!("{}", x.value));
 }

@@ -7,7 +7,7 @@ use {
     malstrom::sinks::{StatefulSink, StatefulSinkImpl, StatefulSinkPartition},
     malstrom::snapshot::NoPersistence,
     malstrom::sources::Source,
-    malstrom::types::{DataMessage, MaybeTime, Timestamp},
+    malstrom::types::{DataMessage, MaybeTime},
     malstrom::worker::StreamProvider,
 };
 // #region sink_impl
@@ -53,7 +53,7 @@ impl FileSinkPartition {
     fn new(file_path: String, next_line_no: Option<usize>) -> Self {
         let file = OpenOptions::new()
             .create_new(true)
-            .write(true)
+            
             .append(true)
             .open(file_path)
             .unwrap();

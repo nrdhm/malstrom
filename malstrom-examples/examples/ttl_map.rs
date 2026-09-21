@@ -32,7 +32,7 @@ fn build_running_total_dataflow(provider: &mut dyn StreamProvider) {
     let (ontime, _late) = provider
         .new_stream()
         .source("source", Source::from_enumerated_iterator(1..=25))
-        .key_local("key-local", |x| ()) // only one key
+        .key_local("key-local", |_x| ()) // only one key
         .assign_timestamps("assigner", |msg| msg.timestamp)
         .generate_epochs("generate", |msg, _| Some(msg.timestamp));
 

@@ -31,7 +31,7 @@ where
         // open file in append-mode, creating it if it does not exist
         let mut file = OpenOptions::new()
             .create_new(true)
-            .write(true)
+            
             .append(true)
             .open(file_path)
             .unwrap();

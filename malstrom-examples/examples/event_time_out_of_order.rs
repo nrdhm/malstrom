@@ -1,5 +1,4 @@
 //! Example job showcasing the role of epochs in tracking event time
-use std::u8;
 
 use chrono::{Datelike, NaiveDate, TimeDelta};
 use indexmap::IndexMap;
@@ -108,20 +107,21 @@ impl StatefulLogic<((i32, u32), Transaction, TransactionTime), f32, f32> for Tra
         state: &mut IndexMap<(i32, u32), f32>,
         output: &mut Output<((i32, u32), f32, TransactionTime)>,
     ) {
-        // remove all closed months from state
+        // remove all closed months from state; collect first, then send (the
+        // closure is synchronous and cannot await the output)
+        let mut closed = Vec::new();
         state.retain(|(year, month), balance| {
             if (year, month) <= (&epoch.0.year(), &epoch.0.month()) {
-                output.send(Message::Data(DataMessage::new(
-                    (*year, *month),
-                    *balance,
-                    epoch.clone(),
-                )));
+                closed.push(((*year, *month), *balance, epoch.clone()));
                 false
             } else {
                 // retain state
                 true
             }
         });
+        for (k, v, ts) in closed {
+            output.send(Message::Data(DataMessage::new(k, v, ts))).await;
+        }
     }
 }
 

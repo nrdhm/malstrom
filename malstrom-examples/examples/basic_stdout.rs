@@ -15,7 +15,7 @@ fn main() {
         .unwrap()
 }
 
-fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
+fn build_dataflow(provider: &mut dyn StreamProvider) {
     let stream = provider.new_stream().source(
         // this is an operator
         "iter-source",

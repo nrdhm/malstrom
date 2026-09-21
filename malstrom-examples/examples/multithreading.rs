@@ -1,8 +1,7 @@
 //! A multithreaded program
-use malstrom::keyed::rendezvous_select;
 use malstrom::operators::Source as _;
 use malstrom::operators::*;
-use malstrom::runtime::{MultiThreadRuntime, SingleThreadRuntime};
+use malstrom::runtime::MultiThreadRuntime;
 use malstrom::snapshot::NoPersistence;
 use malstrom::sources::Source;
 use malstrom::worker::StreamProvider;
@@ -18,7 +17,7 @@ fn main() {
         .unwrap()
 }
 
-fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
+fn build_dataflow(provider: &mut dyn StreamProvider) {
     provider
         .new_stream()
         .source("iter-source", Source::from_iterator(0..=10))

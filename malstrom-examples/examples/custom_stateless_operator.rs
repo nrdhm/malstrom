@@ -8,7 +8,7 @@ use malstrom::snapshot::NoPersistence;
 use malstrom::sources::Source;
 use malstrom::types::Kvt;
 
-use malstrom::types::{Data, DataMessage, MaybeKey, Message, Timestamp};
+use malstrom::types::{Data, DataMessage, Message};
 use malstrom::worker::StreamProvider;
 
 // #region custom_impl
@@ -47,7 +47,7 @@ fn main() {
         .unwrap()
 }
 
-fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
+fn build_dataflow(provider: &mut dyn StreamProvider) {
     let data = [vec![1, 2, 3, 4], vec![5, 6, 7], vec![8, 9, 10]];
     provider
         .new_stream()

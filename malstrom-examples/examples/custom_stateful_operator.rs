@@ -7,7 +7,7 @@ use malstrom::runtime::SingleThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;
 use malstrom::sources::Source;
-use malstrom::types::{Data, DataMessage, Key, Kvt, Message, Timestamp};
+use malstrom::types::{DataMessage, Kvt, Message, Timestamp};
 use malstrom::worker::StreamProvider;
 
 // #region custom_impl
@@ -30,7 +30,7 @@ where
                 msg.key,
                 key_state,
                 msg.timestamp,
-            )));
+            ))).await;
             None
         } else {
             Some(key_state)
@@ -48,7 +48,7 @@ where
         if *epoch == Msg::Timestamp::MAX {
             // emit all states
             for (k, v) in state.drain(..) {
-                output.send(Message::Data(DataMessage::new(k, v, Msg::Timestamp::MAX)));
+                output.send(Message::Data(DataMessage::new(k, v, Msg::Timestamp::MAX))).await;
             }
         }
     }
@@ -64,7 +64,7 @@ fn main() {
         .unwrap()
 }
 
-fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
+fn build_dataflow(provider: &mut dyn StreamProvider) {
     let data = 0..=100;
     provider
         .new_stream()

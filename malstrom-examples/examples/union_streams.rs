@@ -15,7 +15,7 @@ fn main() {
         .unwrap()
 }
 
-fn build_dataflow(provider: &mut dyn StreamProvider) -> () {
+fn build_dataflow(provider: &mut dyn StreamProvider) {
     let numbers = provider
         .new_stream()
         .source("iter-source", Source::from_iterator(0..=10));

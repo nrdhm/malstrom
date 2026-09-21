@@ -43,6 +43,11 @@ Agent Notes record decisions and rationale for maintainers and agents. A user-fa
 may need both (a docs update *and* a note), but the note is not the docs page and the docs
 page is not the note.
 
+For **local review only**, `notes/dev.sh` renders these notes as a throwaway mdBook (Mermaid
+included) from a generated copy under `notes/src/`. It does not publish anything, does not
+touch `.agents/notes`, and is not the docs build — see
+[agent-notes-review-book](implemented/process/2026-09-21-agent-notes-review-book.md).
+
 ## Classification
 
 Each Agent Note belongs to one path-encoded class from the closed set below; the class

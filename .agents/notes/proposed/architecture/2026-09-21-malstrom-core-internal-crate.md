@@ -103,16 +103,36 @@ flowchart TD
     T["collapse-kernel-test-support-into-testkit"] --> X
     A["coordinator-targeting/alignment simplifications"] --> X
     X["malstrom-core-internal extraction"]
+
+    classDef done stroke:#2e7d32,stroke-width:2px;
+    classDef wip stroke:#b8860b,stroke-width:2px;
+    classDef todo stroke:#888,stroke-width:1px;
+    class W wip;
+    class X wip;
+    class K,S1,S2,S3,T,A todo;
 ```
 
-| Before (proposed note) | Why it must precede |
-|---|---|
-| [replace-operator-io-spsc-with-tokio-mpsc](2026-09-13-replace-operator-io-spsc-with-tokio-mpsc.md) | owns the edge-channel semantics (`Option<T>` vs `pending`, `SendError`); the thing to move should be final |
-| [unify-operator-io-edge-abstractions](2026-09-13-unify-operator-io-edge-abstractions.md) | **reshapes `spsc`, `recv_trait`, `alignment`** — three moved items; move the unified interface, not the old one |
-| [fail-loud-on-dangling-operator-edges](2026-09-19-fail-loud-on-dangling-operator-edges.md) | adds a sender-gone signal to `spsc` and build-time graph validation; depends on the two above |
-| [collapse-kernel-test-support-into-testkit](../../proposed/testing/2026-09-16-collapse-kernel-test-support-into-testkit.md) | deletes the kernel's `test-support` feature and self-dev-dep; the extraction changes how siblings depend on core — do it with two crates, not three |
-| [point-k8s-and-kafka-at-local-malstrom](../../proposed/process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md) | `malstrom-k8s/runtime` and `malstrom-kafka` still pin the published crates.io `malstrom 0.1.0`; a crate-graph change is invisible to them until they build locally |
-| [fix-warning-backlog](../../proposed/process/2026-08-25-fix-warning-backlog.md) (Step 0) | sets `[workspace.lints]` and requires `[lints] workspace = true` on every crate; the new crate should inherit the final config |
+| Before (proposed note) | Why it must precede | State (2026-09-21) |
+|---|---|---|
+| [replace-operator-io-spsc-with-tokio-mpsc](2026-09-13-replace-operator-io-spsc-with-tokio-mpsc.md) | owns the edge-channel semantics (`Option<T>` vs `pending`, `SendError`); the thing to move should be final | todo |
+| [unify-operator-io-edge-abstractions](2026-09-13-unify-operator-io-edge-abstractions.md) | **reshapes `spsc`, `recv_trait`, `alignment`** — three moved items; move the unified interface, not the old one | todo |
+| [fail-loud-on-dangling-operator-edges](2026-09-19-fail-loud-on-dangling-operator-edges.md) | adds a sender-gone signal to `spsc` and build-time graph validation; depends on the two above | todo |
+| [collapse-kernel-test-support-into-testkit](../../proposed/testing/2026-09-16-collapse-kernel-test-support-into-testkit.md) | deletes the kernel's `test-support` feature and self-dev-dep; the extraction changes how siblings depend on core — do it with two crates, not three | todo |
+| [point-k8s-and-kafka-at-local-malstrom](../../proposed/process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md) | `malstrom-k8s/runtime` and `malstrom-kafka` still pin the published crates.io `malstrom 0.1.0`; a crate-graph change is invisible to them until they build locally | todo |
+| [fix-warning-backlog](../../proposed/process/2026-08-25-fix-warning-backlog.md) (Step 0) | sets `[workspace.lints]` and requires `[lints] workspace = true` on every crate; the new crate should inherit the final config | **in progress** — Steps 1–3 done, Step 4 open |
+
+**Progress (2026-09-21).**
+
+- The extraction's **safe subset** (the cycle-free, relation-free items) has already shipped:
+  `worker::InnerRuntimeBuilder` and `Output`/`Input::add_another_one` → `pub(crate)`;
+  `stream::Forward`/`OperatorBuilder` doc-hidden; `Operator::input`/`output` → `pub(crate)`.
+  The crate move itself (`spsc`/`alignment`/`recv_trait`/`runtime::communication`) still awaits
+  the prerequisites below.
+- [fix-warning-backlog](../../proposed/process/2026-08-25-fix-warning-backlog.md) is the one
+  prerequisite being advanced: Step 0 (explicit `allow` list + widened gate) landed, Steps 1–3
+  (unused lints, mechanical clippy lints, `missing_docs`) are done, Step 4 (judgment lints)
+  remains.
+- All other prerequisites are untouched.
 
 **Cheap, not prerequisites (do the simple edit before freezing the type):**
 [coordinator-targeting-and-alignment-simplifications](../../proposed/simplification/2026-08-30-coordinator-targeting-and-alignment-simplifications.md)
@@ -139,8 +159,10 @@ cycle-free, relation-free items first (`stream::Forward`, `stream::OperatorBuild
    `channels::recv_trait`, `stream::Forward`, `stream::OperatorBuilder`,
    `runtime::communication`. Update `malstrom-core` and the sibling crates to import from
    `malstrom_core_internal::…`.
-3. **Make `InnerRuntimeBuilder` `pub(crate)`** in `malstrom-core` (it has no external consumer —
-   a standalone win independent of this note).
+3. ~~**Make `InnerRuntimeBuilder` `pub(crate)`**~~ — **done 2026-09-21** (with
+   `StreamBuilder::runtime` and the unused `get_runtime` removed). Also done from the audit's
+   safe subset: `stream::Forward`/`OperatorBuilder` doc-hidden, `Operator::input`/`output`
+   `pub(crate)`, `Output`/`Input::add_another_one` `pub(crate)`.
 4. **Re-export during transition** where `operator_io`/`stream` need the moved items
    (`pub use malstrom_core_internal::channels::{spsc, alignment, recv_trait}` under
    `#[doc(hidden)]`), then drop the re-exports once siblings import the new crate directly.

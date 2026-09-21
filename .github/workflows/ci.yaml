@@ -78,3 +78,8 @@ jobs:
         run: |
           mdbook-mermaid install .
           mdbook build
+
+      # Renders the Agent Notes as a throwaway book (generated `src/` + SUMMARY);
+      # catches a broken note link or missing doc without publishing anything.
+      - name: Build the agent-notes book
+        run: notes/dev.sh build

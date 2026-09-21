@@ -31,11 +31,17 @@ Rust-native. Content and the `overviews/` conventions are unchanged; only the to
   directory, keeping the repo root clean). `docs/SUMMARY.md` is the book's table of contents
   (introduction, overviews, reviews).
 - **Mermaid.** `[preprocessor.mermaid] command = "mdbook-mermaid"` plus
-  `additional-js = ["mermaid.min.js", "mermaid-init.js"]`. The two asset files are produced by
+  `additional-js = ["mermaid.min.js", "mermaid-init.js"]`. The library is produced by
   `mdbook-mermaid install .` run **inside `mdbook/`** — mdBook resolves `additional-js`
-  relative to the `book.toml` directory. They are git-ignored and regenerated in CI (and on
-  first `mdbook/docs-dev.sh` run). All **7** diagrams (`04-modules.md`: 2,
-  `05-architecture.md`: 5) render.
+  relative to the `book.toml` directory — and is git-ignored; `mermaid-init.js` is
+  **committed** with a theme-aware replacement (see below). All **7** diagrams
+  (`04-modules.md`: 2, `05-architecture.md`: 5) render.
+- **Theme-aware Mermaid.** `mdbook-mermaid`'s stock `mermaid-init.js` reads the theme before
+  mdBook applies the saved one and only reloads on specific button clicks, so diagrams stayed
+  light in dark mode. Both books commit a replacement init that renders after mdBook applies
+  the theme (`dark` for `ayu`/`navy`/`coal`, else `default`) and reloads on a light/dark
+  polarity change. `mdbook-mermaid install` skips an existing `mermaid-init.js`, so the custom
+  one survives.
 - **Link rewrites.** mdBook serves `src/` as the book root and does not copy files outside it,
   so the 12 links that escaped `docs/` (`../../malstrom-core/src/...`, `../../.agents/notes/...`)
   were rewritten to stable GitHub blob URLs

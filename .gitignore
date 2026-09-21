@@ -20,16 +20,18 @@ website/.vitepress/cache/
 website/.vitepress/dist/
 .vscode
 
-# Project-local pi coding-agent config (trust-gated, often personal)
-.pi/
-
 .env*
 .*.log
 
 # Python docs toolchain (uv)
 .venv/
 
-# mdBook build output and its generated Mermaid assets (`mdbook-mermaid install`)
+# mdBook build output and its generated Mermaid assets (`mdbook-mermaid install`).
+# `mermaid-init.js` is committed (a custom theme-aware init); only the library is generated.
 mdbook/book/
 mdbook/mermaid.min.js
-mdbook/mermaid-init.js
+
+# Agent Notes review book: generated staging `src/`, build output, Mermaid library
+notes/src/
+notes/book/
+notes/mermaid.min.js

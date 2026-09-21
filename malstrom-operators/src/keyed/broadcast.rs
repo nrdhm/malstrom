@@ -59,7 +59,7 @@ where
         &mut self,
         input: &mut Input<M>,
         output: &mut Output<N>,
-        ctx: &mut malstrom_core::stream::OperatorContext,
+        _ctx: &mut malstrom_core::stream::OperatorContext,
     ) {
         match input.recv().await {
             Message::Data(d) => {
@@ -103,7 +103,7 @@ where
         &mut self,
         input: &mut Input<M>,
         output: &mut Output<N>,
-        ctx: &mut malstrom_core::stream::OperatorContext,
+        _ctx: &mut malstrom_core::stream::OperatorContext,
     ) {
         match input.recv().await {
             Message::Data(d) => {

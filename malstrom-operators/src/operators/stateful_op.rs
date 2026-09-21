@@ -163,7 +163,7 @@ where
     async fn on_schedule(
         &mut self,
         output: &mut Output<(In::Key, T, In::Timestamp)>,
-        ctx: &mut OperatorContext,
+        _ctx: &mut OperatorContext,
     ) -> bool {
         self.logic.on_schedule(&mut self.state, output).await;
         false
@@ -174,7 +174,7 @@ where
         &mut self,
         msg: DataMessage<In>,
         output: &mut Output<(In::Key, T, In::Timestamp)>,
-        ctx: &mut OperatorContext,
+        _ctx: &mut OperatorContext,
     ) {
         let key = msg.key.to_owned();
         let key_state = self.state.swap_remove(&key).unwrap_or_default();
@@ -189,7 +189,7 @@ where
         &mut self,
         epoch: &<In as Kvt>::Timestamp,
         output: &mut Output<(In::Key, T, In::Timestamp)>,
-        ctx: &mut OperatorContext,
+        _ctx: &mut OperatorContext,
     ) {
         self.logic.on_epoch(epoch, &mut self.state, output).await;
     }
@@ -198,7 +198,7 @@ where
     async fn on_barrier(
         &mut self,
         barrier: &mut Barrier,
-        output: &mut Output<(In::Key, T, In::Timestamp)>,
+        _output: &mut Output<(In::Key, T, In::Timestamp)>,
         ctx: &mut OperatorContext,
     ) {
         barrier.persist(&self.state, &ctx.operator_id);
@@ -208,8 +208,8 @@ where
     async fn on_interrogate(
         &mut self,
         interrogate: &mut crate::keyed::distributed::Interrogate<<In as Kvt>::Key>,
-        output: &mut Output<(In::Key, T, In::Timestamp)>,
-        ctx: &mut OperatorContext,
+        _output: &mut Output<(In::Key, T, In::Timestamp)>,
+        _ctx: &mut OperatorContext,
     ) {
         interrogate.add_keys(self.state.keys().map(|k| k.to_owned()));
     }
@@ -218,7 +218,7 @@ where
     async fn on_collect(
         &mut self,
         collect: &mut crate::keyed::distributed::Collect<<In as Kvt>::Key>,
-        output: &mut Output<(In::Key, T, In::Timestamp)>,
+        _output: &mut Output<(In::Key, T, In::Timestamp)>,
         ctx: &mut OperatorContext,
     ) {
         if let Some(x) = self.state.swap_remove(collect.get_key()) {
@@ -230,7 +230,7 @@ where
     async fn on_acquire(
         &mut self,
         acquire: &mut crate::keyed::distributed::Acquire<<In as Kvt>::Key>,
-        output: &mut Output<(In::Key, T, In::Timestamp)>,
+        _output: &mut Output<(In::Key, T, In::Timestamp)>,
         ctx: &mut OperatorContext,
     ) {
         if let Some(st) = acquire.take_state(&ctx.operator_id) {

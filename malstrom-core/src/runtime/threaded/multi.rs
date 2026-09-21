@@ -57,7 +57,7 @@ where
         let coordinator_thread = {
             let persistence = self.persistence.clone();
             let comm = CoordinatorCommunication::new(Arc::clone(&coord_channels), WorkerId::MAX);
-            let shared = Arc::clone(&coord_channels);
+            let _shared = Arc::clone(&coord_channels);
             std::thread::spawn(move || {
                 coordinator
                     .execute(self.parrallelism, self.snapshots, persistence, comm)

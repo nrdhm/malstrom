@@ -57,7 +57,7 @@ where
                     .await;
                 RouterKind::Interrogating(router)
             }
-            RouterInput::Complete(reconfig_complete) => todo!(),
+            RouterInput::Complete(_reconfig_complete) => todo!(),
         }
     }
 

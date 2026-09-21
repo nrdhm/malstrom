@@ -458,7 +458,7 @@ where
     async fn on_barrier(
         &mut self,
         barrier: &mut Barrier,
-        output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
+        _output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
         ctx: &mut OperatorContext,
     ) {
         let mut snapshot: IndexMap<SrcImpl::PartitionKey, SrcImpl::PartitionState> =
@@ -473,7 +473,7 @@ where
     async fn on_collect(
         &mut self,
         collect: &mut Collect<SrcImpl::PartitionKey>,
-        output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
+        _output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
         ctx: &mut OperatorContext,
     ) {
         let part = collect.get_key();
@@ -486,8 +486,8 @@ where
     async fn on_interrogate(
         &mut self,
         interrogate: &mut Interrogate<SrcImpl::PartitionKey>,
-        output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
-        ctx: &mut OperatorContext,
+        _output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
+        _ctx: &mut OperatorContext,
     ) {
         interrogate.add_keys(self.partitions.keys().cloned());
     }

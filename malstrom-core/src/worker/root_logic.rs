@@ -20,9 +20,9 @@ impl<P: PersistenceClient> Logic<(), ()> for RootLogic<P> {
     #[instrument_debug(skip_all)]
     async fn apply(
         &mut self,
-        input: &mut Input<()>,
+        _input: &mut Input<()>,
         output: &mut Output<()>,
-        ctx: &mut crate::stream::OperatorContext,
+        _ctx: &mut crate::stream::OperatorContext,
     ) {
         while let Some(sys_msg) = self.0.recv().await {
             match sys_msg {

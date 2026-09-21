@@ -50,7 +50,7 @@ where
         &mut self,
         input: &mut Input<M>,
         output: &mut Output<()>,
-        ctx: &mut OperatorContext,
+        _ctx: &mut OperatorContext,
     ) {
         match input.recv().await {
             Message::Data(d) => self.sink_impl.sink(d),

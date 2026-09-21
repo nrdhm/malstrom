@@ -120,7 +120,7 @@ where
     /// # Arguments
     /// * `rescale` - The rescale message containing the complete set of workers
     /// * `ctx` - The operator context needed to create new receiver and sender connections
-    async fn handle_rescale(&mut self, rescale: &RescaleMessage, ctx: &OperatorContext) {
+    async fn handle_rescale(&mut self, rescale: &RescaleMessage, _ctx: &OperatorContext) {
         let all_workers = rescale.get_all_workers();
         let existing_workers: IndexSet<WorkerId> = self.clients.keys().map(|x| *x).collect();
         let new_workers = all_workers.difference(&existing_workers);

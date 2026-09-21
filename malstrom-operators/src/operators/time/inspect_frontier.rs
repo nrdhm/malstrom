@@ -46,7 +46,7 @@ where
         &mut self,
         data_message: DataMessage<Msg>,
         output: &mut Output<Msg>,
-        ctx: &mut OperatorContext,
+        _ctx: &mut OperatorContext,
     ) {
         output.send(Message::Data(data_message));
     }
@@ -54,7 +54,7 @@ where
     async fn on_epoch(
         &mut self,
         epoch: &<Msg as Kvt>::Timestamp,
-        output: &mut Output<Msg>,
+        _output: &mut Output<Msg>,
         ctx: &mut OperatorContext,
     ) {
         (self.inspector)(epoch, ctx).await;

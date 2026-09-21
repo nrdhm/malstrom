@@ -101,7 +101,7 @@ where
         &mut self,
         data_message: DataMessage<In>,
         output: &mut Output<(In::Key, T, In::Timestamp)>,
-        ctx: &mut malstrom_core::stream::OperatorContext,
+        _ctx: &mut malstrom_core::stream::OperatorContext,
     ) {
         (self.logic).on_data(data_message, output).await;
     }
@@ -110,7 +110,7 @@ where
         &mut self,
         epoch: &<In as Kvt>::Timestamp,
         output: &mut Output<(In::Key, T, In::Timestamp)>,
-        ctx: &mut malstrom_core::stream::OperatorContext,
+        _ctx: &mut malstrom_core::stream::OperatorContext,
     ) {
         (self.logic).on_epoch(&epoch, output).await;
     }

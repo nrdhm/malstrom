@@ -133,7 +133,7 @@ pub trait SafeLogic<M: Kvt, N: Kvt<Key = M::Key>>: Sized + 'static {
     /// Called whenever this operator is scheduled by its worker.
     /// Return `true` if this call performed work (e.g. emitted messages) — the
     /// scheduler will keep calling until no more work remains.
-    async fn on_schedule(&mut self, output: &mut Output<N>, ctx: &mut OperatorContext) -> bool {
+    async fn on_schedule(&mut self, _output: &mut Output<N>, _ctx: &mut OperatorContext) -> bool {
         false
     }
 

@@ -62,7 +62,7 @@ where
         &mut self,
         input: &mut malstrom_core::channels::operator_io::Input<In>,
         output: &mut malstrom_core::channels::operator_io::Output<Out>,
-        ctx: &mut malstrom_core::stream::OperatorContext,
+        _ctx: &mut malstrom_core::stream::OperatorContext,
     ) {
         match input.recv().await {
             Message::Data(d) => {
@@ -112,7 +112,7 @@ mod tests {
             &mut self,
             data_message: DataMessage<Msg>,
             output: &mut malstrom_core::channels::operator_io::Output<Msg>,
-            ctx: &mut malstrom_core::stream::OperatorContext,
+            _ctx: &mut malstrom_core::stream::OperatorContext,
         ) {
             output.send(Message::Data(data_message)).await;
         }
@@ -120,8 +120,8 @@ mod tests {
         async fn on_epoch(
             &mut self,
             epoch: &<Msg as Kvt>::Timestamp,
-            output: &mut malstrom_core::channels::operator_io::Output<Msg>,
-            ctx: &mut malstrom_core::stream::OperatorContext,
+            _output: &mut malstrom_core::channels::operator_io::Output<Msg>,
+            _ctx: &mut malstrom_core::stream::OperatorContext,
         ) {
             self.0.give(epoch.clone());
         }

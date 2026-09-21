@@ -181,7 +181,7 @@ where
     async fn handle_remote_message(
         &mut self,
         msg: AlignedValue<WorkerId, WireMessage<M>>,
-        ctx: &OperatorContext,
+        _ctx: &OperatorContext,
     ) -> Option<VersionedMessage<M>> {
         let (sender, wire_message) = match msg {
             AlignedValue::Unaligned(wire_message) => wire_message,

@@ -66,7 +66,7 @@ where
         match msg {
             TargetedMessage::Data(data) => self.handle_data(data, output, ctx).await,
             TargetedMessage::Other(message) => match message {
-                Message::Data(data_message) => unreachable!(),
+                Message::Data(_data_message) => unreachable!(),
                 Message::Epoch(epoch) => self.handle_epoch(epoch, output).await,
                 Message::Rescale(rescale) => self.handle_rescale(rescale, output, ctx).await,
                 Message::ReconfigComplete(reconfig) => {

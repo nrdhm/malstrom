@@ -95,6 +95,14 @@ subtlety: an import can be unused in the lib target but needed by the test targe
 `SafeLogic` in `assign_timestamps.rs`), in which case it moves to the test module's own import
 rather than being deleted.
 
+`unused_variables` done (2026-09-21) — 35 `_`-prefix renames across 15 files (unused trait-default
+and impl params), and the `allow` removed. **One scoped exception:**
+`malstrom-distributed/src/routers/interrogate.rs::apply` carries
+`#[allow(unused_variables)]` — its data-message arm is an unfinished `todo!()`, so the written
+`route`/`send` tail is unreachable and `output`/`msg`/`versioned_data` read as unused.
+Implementing that router (behaviour change) is deferred; the scoped allow is the only lint
+exception introduced so far and must be removed when the stub is implemented.
+
 ### Step 2 — Mechanical clippy one-offs
 
 Re-enable and clear the lints needing no design judgment: `let_and_return`,

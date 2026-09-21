@@ -174,7 +174,9 @@ Rust gives only two visibilities that help here: `pub` and `pub(crate)`. To expr
 
 ## Recommended hide list (landable, ordered)
 
-Steps are independent; 1–3 are mechanical and low-risk.
+Steps are independent. Items 1–3 (the cycle-free, relation-free set the extraction note calls
+out) are **done**; the rest depend on the edge-unification notes and the k8s/kafka +
+warning-backlog prerequisites — see the extraction note's Ordering section.
 
 1. ~~**`worker::InnerRuntimeBuilder` → `pub(crate)`.**~~ **Done 2026-09-21.** Made `pub(crate)`
    (with `StreamBuilder::runtime` field and the unused `get_runtime` removed); its `pub`
@@ -185,8 +187,9 @@ Steps are independent; 1–3 are mechanical and low-risk.
    re-exports); both are used only by `malstrom-operators`. `Operator::input`/`output` are now
    `pub(crate)` (union/split route through `OperatorBuilder` + `swap_input`/`link_to_input`/
    `get_*_mut`), so the operator's internals are no longer part of the public surface.
-3. **`Output`/`Input::add_another_one`** — make them `pub(crate)` (their only caller is
-   `link` in the same module). Removes the `spsc` type leak from the public method set.
+3. ~~**`Output`/`Input::add_another_one`**~~ **Done 2026-09-21.** Both are now
+   `pub(crate)` (their only caller is `link` in the same module), so no `spsc` type appears
+   in a public signature anymore.
 4. **Introduce an explicit internal tier.** Wrap `spsc`, `alignment`, `recv_trait`,
    `types::distributed`, and `runtime::communication` behind either a `#[doc(hidden)]` module
    or an `internal-api` feature, and have the sibling crates import from there. Decide between

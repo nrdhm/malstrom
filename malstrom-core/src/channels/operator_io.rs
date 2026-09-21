@@ -45,7 +45,8 @@ impl<M: Kvt> Output<M> {
         this
     }
     /// add another one sender
-    pub fn add_another_one(&mut self, tx: spsc::Sender<Message<M>>) {
+    /// Add a raw sender to this output (internal edge wiring; used by [`link`]).
+    pub(crate) fn add_another_one(&mut self, tx: spsc::Sender<Message<M>>) {
         self.senders.push(Rc::new(tx));
     }
 
@@ -191,7 +192,8 @@ impl<M: Kvt> Input<M> {
         }
     }
     /// add another one receiver
-    pub fn add_another_one(&mut self, rx: spsc::Receiver<Message<M>>) {
+    /// Add a raw receiver to this input (internal edge wiring; used by [`link`]).
+    pub(crate) fn add_another_one(&mut self, rx: spsc::Receiver<Message<M>>) {
         // receiver keys are 0-based so they line up with `frontiers`
         let next_key = self.receivers.keys().last().map_or(0, |k| k + 1);
         self.receivers.insert(next_key, rx);

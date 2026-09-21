@@ -1,0 +1,41 @@
+[package]
+name = "malstrom-testkit"
+version = "0.1.0"
+edition = "2024"
+description = "Test utilities for Malstrom: an operator tester, in-memory comm backends and capture persistence."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/MalstromDevelopers/malstrom"
+readme = "../README.md"
+categories = [
+    "concurrency",
+]
+keywords = [
+    "stream",
+    "data",
+    "framework",
+    "streaming",
+    "distributed",
+]
+
+[lints]
+workspace = true
+
+[dependencies]
+malstrom-core = { path = "../malstrom-core" }
+async-trait = "0.1.85"
+futures = "0.3.31"
+indexmap = { version = "2.1.0", features = ["serde"] }
+tokio = { version = "1.47.1", features = ["rt", "sync"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+opentelemetry = "0.32"
+opentelemetry-otlp = "0.32"
+opentelemetry_sdk = "0.32"
+tracing-opentelemetry = "0.33"
+tracing = { version = "0.1.40", features = [
+    "log",
+    "max_level_trace"
+] }
+malstrom-macros = { path = "../malstrom-macros" }
+
+[dev-dependencies]
+itertools = "0.11.0"

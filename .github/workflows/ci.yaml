@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - 'main'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.97.1
+          components: rustfmt, clippy
+
+      - name: Verify agent notes
+        run: python3 scripts/verify-agent-notes.py
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      # `malstrom-k8s-proto` compiles the shared gRPC protos (exchange.proto +
+      # k8s_operator_api.proto) with tonic_build in its build.rs, which needs a
+      # `protoc` binary — CI runners do not provide one, so install it and keep the
+      # whole workspace in the gate (no exclusions; all k8s crates are first-class
+      # parts of the repo).
+      - name: Install protoc
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
+      # Full warning gate. `missing-docs` is temporarily allowed at the workspace level
+      # (root Cargo.toml) because the ~30 gaps left by the crate splits are a separate,
+      # larger docs pass; every other lint is enforced here. The `allow` is removed when
+      # that pass lands — see .agents/notes/proposed/process/2026-08-25-fix-warning-backlog.md.
+      - name: Clippy (warnings)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Check
+        run: cargo check --workspace --all-targets
+
+      - name: Test
+        run: cargo test --workspace

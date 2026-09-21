@@ -1,18 +1,14 @@
 use std::{collections::HashMap, rc::Rc, sync::Mutex};
 
 use futures::FutureExt as _;
-use indexmap::IndexSet;
-use thiserror::Error;
+use malstrom_macros::instrument_debug;
 use tokio::{runtime::LocalRuntime, sync::mpsc};
-use tracing::info;
 
 use crate::{
-    channels::signal::SignalHandle,
-    coordinator::messages::BuildInformation,
-    runtime::{OperatorOperatorComm, RuntimeFlavor, communication::WorkerCoordinatorComm},
-    snapshot::{NoPersistence, PersistenceBackend, PersistenceClient, SnapshotVersion},
+    runtime::RuntimeFlavor,
+    snapshot::PersistenceBackend,
     stream::{DirectLogic, LogicBuilder, Operator, WorkerBuildContext},
-    types::{Kvt, OperatorId, WorkerId},
+    types::{Kvt, OperatorId},
     worker::{Worker, WorkerExecutionError, root_logic::RootLogic, sys_message::SysMessage},
 };
 
@@ -40,7 +36,7 @@ where
         let (tx, rx) = mpsc::channel::<SysMessage<P::Client>>(10);
         // takes care of forwarding system messages
 
-        let mut root_operator =
+        let root_operator =
             Operator::<(), _, ()>::direct("malstrom::root".to_string(), RootLogic::new(rx));
 
         let inner = Rc::new(Mutex::new(InnerRuntimeBuilder::new()));
@@ -53,12 +49,14 @@ where
         }
     }
 
+    #[instrument_debug(skip_all)]
+    /// launch the worker built
     pub fn execute(mut self) -> Result<(), WorkerExecutionError> {
         let mut inner = Rc::try_unwrap(self.inner)
             .map_err(|rc| WorkerExecutionError::UnfinishedStreams(Rc::strong_count(&rc) - 1))?
             .into_inner()
-            .expect("Lock poisened");
-        inner.add_operator(self.root_operator);
+            .expect("Lock poisoned");
+        inner.add_root_operator(self.root_operator);
 
         let worker = inner.operator_rt.block_on(Worker::new(
             self.persistence,
@@ -74,12 +72,16 @@ where
     }
 }
 
-pub(crate) struct InnerRuntimeBuilder {
+pub struct InnerRuntimeBuilder {
     // build_ctx will be sent here once available
     // TODO: replace with [tokio::sync::OnceCell]
     build_ctx: tokio::sync::broadcast::Sender<WorkerBuildContext>,
+    /// simple one-threaded tokio runtime
     operator_rt: Rc<LocalRuntime>,
     operator_tasks: HashMap<OperatorId, tokio::task::JoinHandle<()>>,
+    // the root operator task is kept separately: it only exists to inject system
+    // messages, so job completion must not wait for it
+    root_task: Option<tokio::task::JoinHandle<()>>,
 }
 
 impl InnerRuntimeBuilder {
@@ -88,13 +90,27 @@ impl InnerRuntimeBuilder {
             build_ctx: tokio::sync::broadcast::Sender::new(1),
             operator_rt: Rc::new(LocalRuntime::new().unwrap()),
             operator_tasks: HashMap::new(),
+            root_task: None,
         }
     }
 
-    pub(crate) fn add_operator<In, B, Out>(
-        &mut self,
-        mut operator: Operator<In, B, Out>,
-    ) -> OperatorId
+    /// Spawn the root operator task. Not joined by [Worker::execute].
+    #[instrument_debug(skip_all)]
+    pub(crate) fn add_root_operator<B>(&mut self, operator: Operator<(), B, ()>)
+    where
+        B: LogicBuilder<(), ()>,
+    {
+        let mut ctx_receiver = self.build_ctx.subscribe();
+        let task = self.operator_rt.spawn_local(async move {
+            let build_ctx = ctx_receiver.recv().map(Result::unwrap).await;
+            operator.start(build_ctx).await;
+        });
+        self.root_task = Some(task);
+    }
+
+    /// Register an operator with the runtime; returns its id.
+    #[instrument_debug(skip_all)]
+    pub fn add_operator<In, B, Out>(&mut self, mut operator: Operator<In, B, Out>) -> OperatorId
     where
         In: Kvt,
         B: LogicBuilder<In, Out>,
@@ -105,7 +121,7 @@ impl InnerRuntimeBuilder {
         let operator_name = operator.get_name().to_owned();
 
         let task = self.operator_rt.spawn_local(async move {
-            let build_ctx = ctx_receiver.recv().map(Result::unwrap);
+            let build_ctx = ctx_receiver.recv().map(Result::unwrap).await;
             operator.start(build_ctx).await;
         });
         if let Some(_) = self.operator_tasks.insert(operator_id, task) {

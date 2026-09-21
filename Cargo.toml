@@ -1,25 +1,75 @@
 [workspace]
 resolver = "2"
 members = [
+    "malstrom",
     "malstrom-core",
-    "malstrom-core/examples/*",
+    "malstrom-examples",
+    "malstrom-distributed",
+    "malstrom-operators",
+    "malstrom-testkit",
+    "malstrom-snapshot-slatedb",
     "malstrom-k8s/artifact-downloader",
     "malstrom-k8s/artifact-manager",
     "malstrom-k8s/operator",
     "malstrom-k8s/operator/crds",
+    "malstrom-k8s/proto",
     "malstrom-k8s/runtime",
     "malstrom-kafka",
     "malstrom-macros",
 ]
 
 [workspace.lints.rust]
-missing-docs = "warn"
+# Step 0 (see .agents/notes/proposed/process/2026-08-25-fix-warning-backlog.md): every
+# lint that currently fires is explicitly `allow`ed so the widened `-D warnings` gate is
+# green from the start. Each line is removed as its group is cleaned up; the final state has
+# no lint rules ignored.
+missing-docs = "allow"
+async_fn_in_trait = "allow"
+unused_imports = "allow"
+unused_variables = "allow"
+unused_mut = "allow"
+unused_macros = "allow"
+unused_must_use = "allow"
+unused_doc_comments = "allow"
+dead_code = "allow"
+private_interfaces = "allow"
+refining_impl_trait_reachable = "allow"
+unreachable_code = "allow"
+dropping_references = "allow"
+type_alias_bounds = "allow"
 
 [workspace.lints.clippy]
+# `correctness` stays denied by policy (the add-ci-checks gate).
 correctness = "deny"
 suspicious = "warn"
 complexity = "warn"
 perf = "warn"
 style = "warn"
-unwrap_used = {level = "warn", priority = 1}
 cargo = "warn"
+# Step 0: lints currently firing, explicitly allowed until their group is cleaned.
+# `priority = 1` keeps them from conflicting with their enabling group (lint_groups_priority).
+unwrap_used = {level = "allow", priority = 1}
+clone_on_copy = {level = "allow", priority = 1}
+option_map_unit_fn = {level = "allow", priority = 1}
+doc_lazy_continuation = {level = "allow", priority = 1}
+let_and_return = {level = "allow", priority = 1}
+redundant_field_names = {level = "allow", priority = 1}
+collapsible_if = {level = "allow", priority = 1}
+needless_borrow = {level = "allow", priority = 1}
+needless_borrows_for_generic_args = {level = "allow", priority = 1}
+module_inception = {level = "allow", priority = 1}
+empty_line_after_doc_comments = {level = "allow", priority = 1}
+unused_unit = {level = "allow", priority = 1}
+multiple_crate_versions = {level = "allow", priority = 1}
+map_clone = {level = "allow", priority = 1}
+useless_conversion = {level = "allow", priority = 1}
+derivable_impls = {level = "allow", priority = 1}
+redundant_closure = {level = "allow", priority = 1}
+too_many_arguments = {level = "allow", priority = 1}
+wrong_self_convention = {level = "allow", priority = 1}
+new_without_default = {level = "allow", priority = 1}
+type_complexity = {level = "allow", priority = 1}
+redundant_pattern_matching = {level = "allow", priority = 1}
+unnecessary_to_owned = {level = "allow", priority = 1}
+upper_case_acronyms = {level = "allow", priority = 1}
+await_holding_refcell_ref = {level = "allow", priority = 1}

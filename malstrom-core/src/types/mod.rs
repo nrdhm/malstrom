@@ -16,4 +16,8 @@ pub use sealed::sealed::Sealed;
 pub use time::{MaybeTime, NoTime, OnceTime, Timestamp};
 /// Uniquely identifies a worker in a JetStream cluster
 pub type WorkerId = u64;
-pub(crate) mod distributable;
+/// The [Distributable] wire-encoding trait. Public so operators and connectors
+/// can bound their APIs on it.
+pub mod distributable;
+/// The keyed state-movement protocol messages ([Acquire]/[Collect]/[Interrogate]).
+pub mod distributed;

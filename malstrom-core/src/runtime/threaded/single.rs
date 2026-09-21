@@ -7,6 +7,9 @@ use crate::{
         communication::{
             ReqResReceiver, ReqResSender, StreamReceiver, StreamSender, WorkerCoordinatorComm,
         },
+        threaded::communication::{
+            CoordinatorChannels, CoordinatorCommunication, OperatorChannels, OperatorCommunication,
+        },
     },
     snapshot::PersistenceBackend,
     types::{OperatorId, WorkerId},
@@ -67,7 +70,8 @@ pub enum ExecutionError {
 /// Useful for unit-tests.
 #[derive(Debug, Default, Clone)]
 pub struct SingleThreadRuntimeFlavor {
-    // comm_shared: Shared,
+    operator_channels: OperatorChannels,
+    coordinator_channels: CoordinatorChannels,
 }
 
 impl RuntimeFlavor for SingleThreadRuntimeFlavor {
@@ -75,9 +79,11 @@ impl RuntimeFlavor for SingleThreadRuntimeFlavor {
 
     fn communication(
         &mut self,
-    ) -> Result<Self::Communication, crate::runtime::runtime_flavor::CommunicationError> {
-        todo!()
-        // Ok(InterThreadCommunication::new(self.comm_shared.clone(), 0))
+    ) -> Result<Self::Communication, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(InterThreadCommunication {
+            operator: OperatorCommunication::new(self.operator_channels.clone(), 0),
+            coordinator: CoordinatorCommunication::new(self.coordinator_channels.clone(), 0),
+        })
     }
 
     fn this_worker_id(&self) -> u64 {
@@ -85,7 +91,13 @@ impl RuntimeFlavor for SingleThreadRuntimeFlavor {
     }
 }
 
-struct InterThreadCommunication;
+/// In-process communication for the single-thread runtime.
+/// Delegates to the shared inter-thread channel infrastructure
+/// ([crate::runtime::threaded::communication]).
+pub struct InterThreadCommunication {
+    operator: OperatorCommunication,
+    coordinator: CoordinatorCommunication,
+}
 
 #[async_trait]
 impl OperatorOperatorComm for InterThreadCommunication {
@@ -94,7 +106,7 @@ impl OperatorOperatorComm for InterThreadCommunication {
         to_worker: WorkerId,
         channel_id: OperatorId,
     ) -> Result<Box<dyn StreamSender>, Box<dyn std::error::Error>> {
-        todo!()
+        self.operator.new_sender(to_worker, channel_id).await
     }
 
     async fn new_receiver(
@@ -102,21 +114,22 @@ impl OperatorOperatorComm for InterThreadCommunication {
         from_worker: WorkerId,
         channel_id: OperatorId,
     ) -> Result<Box<dyn StreamReceiver>, Box<dyn std::error::Error>> {
-        todo!()
+        self.operator.new_receiver(from_worker, channel_id).await
     }
 }
 
+#[async_trait]
 impl WorkerCoordinatorComm for InterThreadCommunication {
     async fn worker_to_coordinator(
         &self,
-    ) -> Result<impl ReqResReceiver, Box<dyn std::error::Error>> {
-        todo!()
+    ) -> Result<Box<dyn ReqResReceiver>, Box<dyn std::error::Error + Send + Sync>> {
+        self.coordinator.worker_to_coordinator().await
     }
 
     async fn coordinator_to_worker(
         &self,
         to_worker: WorkerId,
-    ) -> Result<impl ReqResSender, Box<dyn std::error::Error>> {
-        todo!()
+    ) -> Result<Box<dyn ReqResSender>, Box<dyn std::error::Error + Send + Sync>> {
+        self.coordinator.coordinator_to_worker(to_worker).await
     }
 }

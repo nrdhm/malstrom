@@ -1,26 +1,23 @@
-use std::{collections::HashMap, rc::Rc, sync::Mutex};
+use std::{collections::HashMap, rc::Rc};
 
-use indexmap::IndexSet;
+use malstrom_macros::instrument_debug;
 use thiserror::Error;
 use tokio::{runtime::LocalRuntime, sync::mpsc};
 use tracing::info;
 
 use crate::{
-    channels::signal::SignalHandle,
     coordinator::messages::*,
     runtime::{
-        CommunicationError, OperatorOperatorComm, RuntimeFlavor,
+        OperatorOperatorComm,
         communication::{WorkerClient, WorkerCoordinatorComm},
     },
-    snapshot::{NoPersistence, PersistenceBackend, PersistenceClient, SnapshotVersion},
-    stream::{DirectLogic, Operator, WorkerBuildContext},
+    snapshot::{NoPersistence, PersistenceBackend, PersistenceClient},
+    stream::WorkerBuildContext,
     types::WorkerId,
-    worker::{
-        InnerRuntimeBuilder, coordination_task::CoordinationTask, root_logic::RootLogic,
-        sys_message::SysMessage,
-    },
+    worker::{coordination_task::CoordinationTask, sys_message::SysMessage},
 };
 
+/// represents one worker
 pub struct Worker<P, C> {
     persistence_backend: P,
     communication_backend: Rc<C>,
@@ -32,7 +29,7 @@ pub struct Worker<P, C> {
 impl<P, C> Worker<P, C>
 where
     P: PersistenceBackend,
-    C: OperatorOperatorComm + WorkerCoordinatorComm + 'static,
+    C: OperatorOperatorComm + WorkerCoordinatorComm + Sync + 'static,
 {
     pub(super) async fn new(
         persistence_backend: P,
@@ -53,6 +50,7 @@ where
         })
     }
 
+    #[instrument_debug(skip_all)]
     pub(super) fn execute(
         self,
         sys_msg_sender: mpsc::Sender<SysMessage<P::Client>>,
@@ -60,6 +58,7 @@ where
         operators: HashMap<u64, tokio::task::JoinHandle<()>>,
         build_ctx_sender: tokio::sync::broadcast::Sender<WorkerBuildContext>,
     ) -> Result<(), WorkerExecutionError> {
+        let (completion_tx, completion_rx) = tokio::sync::watch::channel(false);
         let (msg, build_responder) = self
             .comm_rt
             .block_on(self.coordinator_comm.recv::<StartBuild, ()>());
@@ -91,6 +90,7 @@ where
             self.persistence_backend,
             sys_msg_sender,
             self.coordinator_comm,
+            completion_rx,
         )
         .start(&self.comm_rt);
 
@@ -99,6 +99,11 @@ where
         let tasks = operators.into_values();
         operator_rt.block_on(futures::future::join_all(tasks));
         info!("Finished execution");
+
+        // dataflow is done — let the coordination task report completion to the
+        // coordinator, then wait for it to finish so the comm runtime can drop cleanly
+        let _ = completion_tx.send(true);
+        self.comm_rt.block_on(coord_task).unwrap();
 
         Ok(())
     }

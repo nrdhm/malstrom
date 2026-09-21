@@ -1,12 +1,6 @@
 use futures::FutureExt;
-use std::{
-    future::Future,
-    pin::Pin,
-    rc::Rc,
-    task::{Context, Poll},
-};
 use thiserror::Error;
-use tokio::sync::{Notify, watch};
+use tokio::sync::watch;
 
 pub(crate) struct Signal(watch::Sender<bool>, watch::Receiver<bool>);
 

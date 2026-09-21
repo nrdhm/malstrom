@@ -16,20 +16,15 @@ use crate::{
     runtime::communication::WorkerCoordinatorComm,
 };
 use crate::{
-    coordinator::{messages::BuildInformation, watchmap::ConditionIter},
-    snapshot::{
-        PersistenceBackend, PersistenceClient, SnapshotVersion, deserialize_state, serialize_state,
-    },
+    snapshot::{PersistenceBackend, PersistenceClient, serialize_state},
     types::WorkerId,
 };
-use async_trait::async_trait;
-use futures::{TryFutureExt, future::join_all};
-use indexmap::{IndexMap, IndexSet};
-use itertools::Itertools;
-use std::sync::Mutex;
-use std::{hash::Hash, sync::Arc, time::Duration};
+use futures::TryFutureExt;
+use indexmap::IndexSet;
+use malstrom_macros::instrument_debug;
+use std::time::Duration;
 use thiserror::Error;
-use tracing::{debug, error, info, warn};
+use tracing::info;
 
 /// Coordinator which controls a Malstrom job.
 /// The coordinator coordinates job start/stop, rescaling and snapshotting.
@@ -51,7 +46,7 @@ impl Coordinator {
     /// Start this Coordinator
     pub fn execute<
         C: WorkerCoordinatorComm + Send + Sync + 'static,
-        P: PersistenceBackend + Send,
+        P: PersistenceBackend + Send + Clone,
     >(
         self,
         default_scale: u64,
@@ -63,7 +58,7 @@ impl Coordinator {
             .enable_time()
             .build()?;
 
-        let cluster = load_or_create_cluster_handle(persistence, default_scale);
+        let cluster = load_or_create_cluster_handle(persistence.clone(), default_scale);
 
         let main_loop = rt.spawn(
             coordinator_loop(cluster, self.req.1, communication, persistence)
@@ -91,14 +86,15 @@ pub enum CoordinatorExecutionError {
 
 /// Create a new coordinator loop. This creates a coordinator and starts it.
 /// The returned future resolves once the coordinator terminates
+#[instrument_debug(skip_all)]
 async fn coordinator_loop<C, P>(
     state: SerializableClusterHandle,
     requests: flume::Receiver<ApiRequest>,
     communication_backend: C,
-    mut persistence_backend: P,
+    persistence_backend: P,
 ) -> Result<(), CoordinatorError>
 where
-    C: Send + WorkerCoordinatorComm,
+    C: Send + Sync + WorkerCoordinatorComm,
     P: Send + PersistenceBackend,
 {
     let mut state = state
@@ -106,8 +102,12 @@ where
         .await
         .map_err(|_| CoordinatorError::Communication)?;
     // start job on all workers
-    state.start_build().await;
-    state.start_execution().await;
+    state
+        .start_build(&state.workers.keys().copied().collect::<Vec<_>>())
+        .await;
+    state
+        .start_execution(&state.workers.keys().copied().collect::<Vec<_>>())
+        .await;
 
     loop {
         // either wake on API request or loop duration elapsed

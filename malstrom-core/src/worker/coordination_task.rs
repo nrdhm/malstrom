@@ -1,21 +1,13 @@
-use std::{collections::HashMap, rc::Rc, sync::Mutex};
-
 use indexmap::IndexSet;
-use thiserror::Error;
-use tokio::{runtime::LocalRuntime, sync::mpsc};
-use tracing::info;
+use malstrom_macros::instrument_debug;
+use tokio::sync::mpsc;
 
 use crate::{
-    channels::signal::SignalHandle,
-    coordinator::messages::{BuildInformation, RuntimeMessage},
-    runtime::{
-        OperatorOperatorComm, RuntimeFlavor,
-        communication::{WorkerClient, WorkerCoordinatorComm},
-    },
-    snapshot::{NoPersistence, PersistenceBackend, PersistenceClient, SnapshotVersion},
-    stream::{DirectLogic, Operator, WorkerBuildContext},
+    coordinator::messages::RuntimeMessage,
+    runtime::communication::WorkerClient,
+    snapshot::{PersistenceBackend, SnapshotVersion},
     types::WorkerId,
-    worker::{InnerRuntimeBuilder, root_logic::RootLogic, sys_message::SysMessage},
+    worker::sys_message::SysMessage,
 };
 
 /// Task for interacting with the central job coordinator
@@ -24,6 +16,8 @@ pub(super) struct CoordinationTask<P: PersistenceBackend> {
     persistence_backend: P,
     sys_msg_sender: mpsc::Sender<SysMessage<P::Client>>,
     coordinator_comm: WorkerClient,
+    /// Set to `true` by the worker once its dataflow has completed
+    completion: tokio::sync::watch::Receiver<bool>,
 }
 
 impl<P> CoordinationTask<P>
@@ -35,15 +29,18 @@ where
         persistence_backend: P,
         sys_msg_sender: mpsc::Sender<SysMessage<P::Client>>,
         coordinator_comm: WorkerClient,
+        completion: tokio::sync::watch::Receiver<bool>,
     ) -> Self {
         Self {
             worker_id: this_worker,
             persistence_backend,
             sys_msg_sender,
             coordinator_comm,
+            completion,
         }
     }
 
+    #[instrument_debug(skip_all, fields(worker_id = self.worker_id))]
     pub(super) fn start(self, comm_rt: &tokio::runtime::Runtime) -> tokio::task::JoinHandle<()> {
         comm_rt.spawn(async move {
             loop {
@@ -58,8 +55,7 @@ where
                         responder.respond(true).await;
                     }
                     RuntimeMessage::ExecutionComplete => {
-                        // following task already dropped
-                        let finished = self.sys_msg_sender.is_closed();
+                        let finished = *self.completion.borrow();
                         responder.respond(finished).await;
                         if finished {
                             return;
@@ -70,6 +66,7 @@ where
         })
     }
 
+    #[instrument_debug(skip(self))]
     async fn handle_snapshot(&self, version: SnapshotVersion) {
         let persistence_client = self
             .persistence_backend
@@ -80,10 +77,14 @@ where
             client: persistence_client,
             callback: tx,
         };
-        self.sys_msg_sender.send(msg).await;
+        self.sys_msg_sender
+            .send(msg)
+            .await
+            .expect("the msg to be sent");
         let _ = rx.recv().await;
     }
 
+    #[instrument_debug(skip(self))]
     async fn handle_reconfigure(&self, new_set: IndexSet<WorkerId>, new_version: u64) {
         let (tx, mut rx) = mpsc::channel(1);
         let msg = SysMessage::Reconfigure {
@@ -91,7 +92,10 @@ where
             new_version,
             callback: tx,
         };
-        self.sys_msg_sender.send(msg).await;
+        self.sys_msg_sender
+            .send(msg)
+            .await
+            .expect("the msg to be sent");
         let _ = rx.recv().await;
     }
 }

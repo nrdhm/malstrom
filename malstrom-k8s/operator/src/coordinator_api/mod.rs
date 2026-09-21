@@ -2,11 +2,8 @@ use std::time::Duration;
 
 use tonic::transport::{Channel, Endpoint};
 
-mod proto {
-    tonic::include_proto!("malstrom_k8s.k8s_operator");
-}
-pub use proto::coordinator_operator_service_client::CoordinatorOperatorServiceClient;
-pub use proto::RescaleRequest;
+pub use malstrom_k8s_proto::k8s_operator::coordinator_operator_service_client::CoordinatorOperatorServiceClient;
+pub use malstrom_k8s_proto::k8s_operator::RescaleRequest;
 
 pub async fn get_coord_api_client(
     endpoint: Endpoint,

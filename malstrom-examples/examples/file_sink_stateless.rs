@@ -1,0 +1,67 @@
+//! Example of a stateless sink writing to files on the local filesystem
+use std::{fs::OpenOptions, io::Write};
+use {
+    malstrom::keyed::{KeyDistribute, rendezvous_select},
+    malstrom::operators::{Map, Sink, Source as _},
+    malstrom::runtime::SingleThreadRuntime,
+    malstrom::sinks::{StatelessSink, StatelessSinkImpl},
+    malstrom::snapshot::NoPersistence,
+    malstrom::sources::Source,
+    malstrom::types::{DataMessage, MaybeTime},
+    malstrom::worker::StreamProvider,
+};
+// #region sink_impl
+/// Write records as lines to a file
+struct FileSink {
+    directory: String,
+}
+
+impl FileSink {
+    pub fn new(directory: String) -> Self {
+        Self { directory }
+    }
+}
+
+impl<T> StatelessSinkImpl<(String, String, T)> for FileSink
+where
+    T: MaybeTime,
+{
+    fn sink(&mut self, msg: DataMessage<(String, String, T)>) {
+        let file_path = format!("{}/{}.txt", self.directory, msg.key);
+        // open file in append-mode, creating it if it does not exist
+        let mut file = OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .append(true)
+            .open(file_path)
+            .unwrap();
+        file.write_all(msg.value.as_bytes()).unwrap();
+        file.write_all(b"\n").unwrap();
+    }
+}
+// #endregion sink_impl
+
+fn build_dataflow(provider: &mut dyn StreamProvider) {
+    std::fs::create_dir_all("/tmp/file-sink").unwrap();
+    provider
+        .new_stream()
+        .source("number", Source::from_iterator(0..5))
+        .key_distribute(
+            "key-by-value",
+            |msg| msg.value.to_string(),
+            rendezvous_select,
+        )
+        .map("int-to-string", async |value| value.to_string())
+        .sink(
+            "file-sink",
+            StatelessSink::new(FileSink::new("/tmp/file-sink".to_string())),
+        );
+}
+
+fn main() {
+    SingleThreadRuntime::builder()
+        .persistence(NoPersistence)
+        .build(build_dataflow)
+        .execute()
+        .unwrap();
+}

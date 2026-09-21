@@ -18,7 +18,7 @@ impl com::ReqResSender for ReqResSender {
         self.0
             .send_async((msg, repond_tx))
             .await
-            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>);
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
         respond_rx.await.map_err(Into::into)
     }
 }

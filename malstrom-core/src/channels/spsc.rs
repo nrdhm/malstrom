@@ -4,13 +4,9 @@
 use std::{
     cell::RefCell,
     collections::VecDeque,
-    pin::Pin,
     rc::Rc,
-    task::{Context, Poll, Waker},
+    task::{Poll, Waker},
 };
-
-use futures::Stream;
-use pin_project::pin_project;
 
 type Shared<T> = Rc<RefCell<SharedInner<T>>>;
 
@@ -24,32 +20,10 @@ struct SharedInner<T> {
     has_receiver: bool,
     recv_waker: Option<Waker>,
     send_waker: Option<Waker>,
+    /// woken when the receiver is dropped (used to detect downstream termination)
+    receiver_gone: Option<Waker>,
 }
-impl<T> SharedInner<T> {
-    // /// push a value into the shared buffer
-    // fn push(&mut self, value: T) {
-    //     if self.has_receiver {
-    //         self.queue.push_back(value);
-    //     }
-    // }
 
-    // /// Pop the last value from the buffer, None if the buffer
-    // /// is empty
-    // fn pop(&mut self) -> Option<T> {
-    //     self.queue.pop_front()
-    // }
-
-    // /// Check whether the buffer is empty
-    // fn is_empty(&self) -> bool {
-    //     self.queue.is_empty()
-    // }
-
-    /// Get a reference to the last value if any
-    /// without removing it
-    fn peek(&self) -> Option<&T> {
-        self.queue.front()
-    }
-}
 impl<T> Default for SharedInner<T> {
     fn default() -> Self {
         Self {
@@ -58,6 +32,7 @@ impl<T> Default for SharedInner<T> {
             capacity: CAPACITY,
             recv_waker: None,
             send_waker: None,
+            receiver_gone: None,
         }
     }
 }
@@ -77,12 +52,40 @@ impl<T> Sender<T> {
         }
     }
 
-    /// Send a message without respecting the capacity
-    pub(crate) fn force_send(&self, msg: T) {
-        let mut shared = self.shared.borrow_mut();
-        shared.queue.push_back(msg);
-        if let Some(waker) = shared.recv_waker.take() {
-            waker.wake();
+    /// Future which completes once the receiver of this channel has been dropped
+    pub(crate) fn wait_receiver_gone(&self) -> ReceiverGone<'_, T> {
+        ReceiverGone {
+            sender: self,
+            was_alive: false,
+        }
+    }
+}
+
+/// Future which completes once the channel's receiver has been dropped.
+/// If the receiver was already gone on the first poll (e.g. an unused tail
+/// receiver that was dropped during build), the future never resolves.
+pub struct ReceiverGone<'a, T> {
+    sender: &'a Sender<T>,
+    was_alive: bool,
+}
+
+impl<'a, T> Future for ReceiverGone<'a, T> {
+    type Output = ();
+
+    fn poll(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<()> {
+        let mut shared = self.sender.shared.borrow_mut();
+        if !self.was_alive {
+            // first poll: only start watching if a receiver is actually attached
+            self.was_alive = shared.has_receiver;
+            if !shared.has_receiver {
+                return Poll::Pending;
+            }
+        }
+        if !shared.has_receiver {
+            Poll::Ready(())
+        } else {
+            shared.receiver_gone = Some(cx.waker().clone());
+            Poll::Pending
         }
     }
 }
@@ -100,6 +103,14 @@ impl<'a, T> Future for Send<'a, T> {
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Self::Output> {
         let mut shared = self.sender.shared.borrow_mut();
+        if !shared.has_receiver {
+            // The receiver is gone (e.g. the terminal operator's output, whose tail
+            // receiver is dropped at build time) — drop the message instead of
+            // queueing it. Queuing would eventually fill the bounded channel and
+            // block the upstream operator forever.
+            self.value.take();
+            return Poll::Ready(());
+        }
         if shared.capacity > shared.queue.len() {
             if let Some(v) = self.value.take() {
                 shared.queue.push_back(v);
@@ -130,8 +141,7 @@ impl<T> Receiver<T> {
 }
 impl<T> super::recv_trait::Receiver for Receiver<T> {
     type Output = T;
-    /// Receive a message from the channel, returns None if the channel
-    /// contains no messages
+
     fn recv(&mut self) -> Receive<'_, T> {
         Receive(self)
     }
@@ -139,7 +149,11 @@ impl<T> super::recv_trait::Receiver for Receiver<T> {
 
 impl<T> Drop for Receiver<T> {
     fn drop(&mut self) {
-        self.shared.borrow_mut().has_receiver = false
+        let mut shared = self.shared.borrow_mut();
+        shared.has_receiver = false;
+        if let Some(waker) = shared.receiver_gone.take() {
+            waker.wake();
+        }
     }
 }
 
@@ -158,7 +172,7 @@ impl<'a, T> Future for Receive<'a, T> {
             }
             None => {
                 // let sender know we are waiting for a message
-                shared.send_waker = Some(cx.waker().clone());
+                shared.recv_waker = Some(cx.waker().clone());
                 debug_assert!({
                     // 2: One sender, one receiver
                     // <2: Only receiver (this one) left
@@ -182,6 +196,8 @@ pub fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
 
 #[cfg(test)]
 mod tests {
+    use crate::channels::recv_trait::Receiver as _;
+
     use super::*;
 
     /// If sending without a receiver the message should be dropped
@@ -198,7 +214,7 @@ mod tests {
     /// Send a message and receive it
     #[tokio::test]
     async fn send_and_receive() {
-        let (tx, rx) = unbounded();
+        let (tx, mut rx) = unbounded();
         tx.send("HelloWorld").await;
         assert_eq!(rx.recv().await, "HelloWorld")
     }
@@ -207,21 +223,11 @@ mod tests {
     /// order
     #[tokio::test]
     async fn send_and_receive_order() {
-        let (tx, rx) = unbounded();
+        let (tx, mut rx) = unbounded();
         tx.send("HelloWorld").await;
         tx.send("FooBar").await;
         assert_eq!(rx.recv().await, "HelloWorld");
         assert_eq!(rx.recv().await, "FooBar");
-    }
-
-    #[tokio::test]
-    async fn peek_does_not_remove() {
-        let (tx, rx) = unbounded();
-        tx.send(42);
-        tx.send(13);
-        assert_eq!(rx.peek_apply(|x| *x).unwrap(), 42);
-        assert_eq!(rx.recv().await, 42);
-        assert_eq!(rx.peek_apply(|x| *x).unwrap(), 13);
     }
 
     /// copied from https://users.rust-lang.org/t/a-macro-to-assert-that-a-type-does-not-implement-trait-bounds/31179
@@ -247,5 +253,20 @@ mod tests {
         assert_not_impl!(Sender<()>, Clone);
         assert_not_impl!(Receiver<()>, Copy);
         assert_not_impl!(Receiver<()>, Clone);
+    }
+
+    /// Regression: a receiver parked on an empty channel must be woken when a message
+    /// is sent (the spsc waker inversion woke the wrong side, forcing busy-polling).
+    #[tokio::test]
+    async fn parked_receiver_wakes_on_send() {
+        let (tx, mut rx) = unbounded();
+        // park a receiver on the empty channel and register its waker
+        let timed_out = tokio::time::timeout(std::time::Duration::from_millis(20), rx.recv())
+            .await
+            .is_err();
+        assert!(timed_out, "receiver must park on an empty channel");
+        // a send must wake it without any further polling from the receiver
+        tx.send("wake me").await;
+        assert_eq!(rx.recv().await, "wake me");
     }
 }

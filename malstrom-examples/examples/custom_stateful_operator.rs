@@ -26,11 +26,13 @@ where
     ) -> Option<Vec<Msg::Value>> {
         key_state.push(msg.value);
         if key_state.len() == self.0 {
-            output.send(Message::Data(DataMessage::new(
-                msg.key,
-                key_state,
-                msg.timestamp,
-            ))).await;
+            output
+                .send(Message::Data(DataMessage::new(
+                    msg.key,
+                    key_state,
+                    msg.timestamp,
+                )))
+                .await;
             None
         } else {
             Some(key_state)
@@ -48,7 +50,9 @@ where
         if *epoch == Msg::Timestamp::MAX {
             // emit all states
             for (k, v) in state.drain(..) {
-                output.send(Message::Data(DataMessage::new(k, v, Msg::Timestamp::MAX))).await;
+                output
+                    .send(Message::Data(DataMessage::new(k, v, Msg::Timestamp::MAX)))
+                    .await;
             }
         }
     }

@@ -1,7 +1,7 @@
 use indexmap::IndexSet;
 
-use malstrom_core_internal::{recv_trait::Receiver as _, spsc};
 use malstrom_core::types::{Key, Kvt, WorkerId, distributable::Distributable};
+use malstrom_core_internal::{recv_trait::Receiver as _, spsc};
 use {
     crate::ConfigVersion,
     crate::WorkerPartitioner,

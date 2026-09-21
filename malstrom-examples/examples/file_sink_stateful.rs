@@ -53,7 +53,6 @@ impl FileSinkPartition {
     fn new(file_path: String, next_line_no: Option<usize>) -> Self {
         let file = OpenOptions::new()
             .create_new(true)
-            
             .append(true)
             .open(file_path)
             .unwrap();

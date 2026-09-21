@@ -1,8 +1,8 @@
-use malstrom_core_internal::spsc;
 use malstrom_core::stream::BuildContext;
 use malstrom_core::types::{
     Key, Kvt, ReconfigComplete, RescaleMessage, distributable::Distributable,
 };
+use malstrom_core_internal::spsc;
 use {
     crate::Collect, crate::Interrogate, crate::WorkerPartitioner,
     crate::targeted_message::TargetedData, crate::versioned_message::VersionedData,

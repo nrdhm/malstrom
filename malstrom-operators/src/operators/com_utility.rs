@@ -6,7 +6,6 @@ use futures::{StreamExt, stream::FuturesUnordered};
 use indexmap::IndexSet;
 use thiserror::Error;
 
-use malstrom_core_internal::recv_trait::Receiver;
 use malstrom_core::runtime::{
     OperatorOperatorComm,
     communication::{OperatorCommReceiver, OperatorCommSender},
@@ -15,6 +14,7 @@ use malstrom_core::stream::{BuildContext, OperatorContext};
 use malstrom_core::types::{
     OperatorId, ReconfigComplete, RescaleMessage, WorkerId, distributable::Distributable,
 };
+use malstrom_core_internal::recv_trait::Receiver;
 
 struct SenderReceiver<T> {
     sender: OperatorCommSender<T>,

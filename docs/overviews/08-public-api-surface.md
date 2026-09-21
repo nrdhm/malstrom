@@ -174,9 +174,9 @@ Rust gives only two visibilities that help here: `pub` and `pub(crate)`. To expr
 
 ## Recommended hide list (landable, ordered)
 
-Steps are independent. Items 1–3 (the cycle-free, relation-free set the extraction note calls
-out) are **done**; the rest depend on the edge-unification notes and the k8s/kafka +
-warning-backlog prerequisites — see the extraction note's Ordering section.
+Steps are independent. Items 1–4 are **done** (item 4 only for the self-contained cluster —
+see below); items 5–6 are partly done / open. See the extraction note
+[`malstrom-core-internal-crate`](../../.agents/notes/implemented/architecture/2026-09-21-malstrom-core-internal-crate.md).
 
 1. ~~**`worker::InnerRuntimeBuilder` → `pub(crate)`.**~~ **Done 2026-09-21.** Made `pub(crate)`
    (with `StreamBuilder::runtime` field and the unused `get_runtime` removed); its `pub`
@@ -190,18 +190,18 @@ warning-backlog prerequisites — see the extraction note's Ordering section.
 3. ~~**`Output`/`Input::add_another_one`**~~ **Done 2026-09-21.** Both are now
    `pub(crate)` (their only caller is `link` in the same module), so no `spsc` type appears
    in a public signature anymore.
-4. **Introduce an explicit internal tier.** Wrap `spsc`, `alignment`, `recv_trait`,
-   `types::distributed`, and `runtime::communication` behind either a `#[doc(hidden)]` module
-   or an `internal-api` feature, and have the sibling crates import from there. Decide between
-   the "doc-hidden" and "feature-gated" mechanisms above; the feature gives enforcement.
-5. **Curate the `malstrom` facade.** Stop the wholesale
-   `pub use malstrom_core::{… all modules …}` and re-export a hand-picked user surface
-   (`stream::{Logic, SafeLogic, StreamBuilder, OperatorContext}`, `channels::operator_io`,
-   `types`, `runtime::{Single,Multi}ThreadRuntime`, `snapshot`, `worker::StreamProvider`,
-   `coordinator`). This is what actually fixes the end-user view.
-6. **Add a public-API snapshot test.** `cargo-public-api` (or a checked-in `cargo doc` JSON
-   diff) pins the *intended* user surface and fails when a new item leaks into it — the same
-   role `scripts/verify-agent-notes.py` plays for notes.
+4. ~~**Introduce an explicit internal tier**~~ **Done (in part) 2026-09-21.** The new
+   `malstrom-core-internal` crate holds `spsc`, `recv_trait` and `alignment`; core depends on
+   it and re-exports them `pub(crate)`, siblings import from it directly, and the facade does
+   not expose them. `types::distributed` and `runtime::communication` stayed in core: they
+   reference the public extension API (`Message`, `SafeLogic`, `BuildContext`), so moving them
+   would invert the dependency — deferred to the edge-unification work.
+5. **Curate the `malstrom` facade.** Sizeable progress: the moved edge internals are no longer
+   reachable via `malstrom::…`. The remaining `pub use malstrom_core::{… all modules …}` still
+   re-exports the coupled items (`stream::Forward`/`OperatorBuilder`, `types::distributed`),
+   which are only `#[doc(hidden)]`. A full item-level curation is still open.
+6. **Add a public-API snapshot test.** **Open** — not added; `malstrom/tests/namespace.rs`
+   (updated for the new surface) is the current regression anchor.
 
 ## Open questions
 

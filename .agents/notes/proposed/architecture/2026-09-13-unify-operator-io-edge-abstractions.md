@@ -244,6 +244,6 @@ Do not adopt:
   — prerequisite transport-level semantics; this note builds the interface on top.
 - [fail-loud-on-dangling-operator-edges](2026-09-19-fail-loud-on-dangling-operator-edges.md)
   — dependent: adds a sender-gone liveness primitive to the unified edge.
-- [malstrom-core-internal-crate](2026-09-21-malstrom-core-internal-crate.md) — **lands after
-  this note**: that extraction moves `spsc`/`recv_trait`/`alignment` into an internal crate,
-  so it must move the unified interface, not the pre-unification one.
+- [malstrom-core-internal-crate](../../implemented/architecture/2026-09-21-malstrom-core-internal-crate.md) — **already
+  landed, before this note**: it moved `spsc`/`recv_trait`/`alignment` into an internal crate,
+  so this note unifies the interface of modules that already moved.

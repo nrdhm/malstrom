@@ -178,6 +178,6 @@ legal shapes:
 - [replace-operator-io-spsc-with-tokio-mpsc](2026-09-13-replace-operator-io-spsc-with-tokio-mpsc.md) — **dependency**: owns the edge-channel semantics layer 2 builds on.
 - [stream-builder-union-refactor](../../implemented/architecture/2026-09-14-stream-builder-union-refactor.md) — the refactor that introduced the dangling edge; its "builder misuse" risk is this incident realized.
 - [unify-operator-io-edge-abstractions](2026-09-13-unify-operator-io-edge-abstractions.md) — the wider edge-layer direction.
-- [malstrom-core-internal-crate](2026-09-21-malstrom-core-internal-crate.md) — **lands after
-  this note**: the extraction moves `spsc` (and its new sender-gone signal) into an internal
-  crate, so the liveness work should be final first.
+- [malstrom-core-internal-crate](../../implemented/architecture/2026-09-21-malstrom-core-internal-crate.md) — **already
+  landed, before this note**: it moved `spsc` into an internal crate, so this note adds the
+  sender-gone signal to a module that already moved.

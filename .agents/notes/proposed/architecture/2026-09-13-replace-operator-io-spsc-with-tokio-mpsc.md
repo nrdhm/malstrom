@@ -166,7 +166,7 @@ layered on later without interface churn. Keep the domain machinery untouched:
 
 - [fail-loud-on-dangling-operator-edges](2026-09-19-fail-loud-on-dangling-operator-edges.md) — **dependent**: turns a sender-dropped edge from a hang into a named panic; needs this note's sender-gone/liveness primitive.
 - [unify-operator-io-edge-abstractions](2026-09-13-unify-operator-io-edge-abstractions.md) — prerequisite interface this note swaps the transport behind.
-- [malstrom-core-internal-crate](2026-09-21-malstrom-core-internal-crate.md) — **lands after
-  this note**: the extraction moves `spsc`/`recv_trait`/`alignment` into an internal crate, so
-  it must move the final transport, not the one this note replaces.
+- [malstrom-core-internal-crate](../../implemented/architecture/2026-09-21-malstrom-core-internal-crate.md) — **already
+  landed, before this note**: it moved the current `spsc`/`recv_trait`/`alignment` into an
+  internal crate, so this note reshapes modules that already moved (they may move again).
 - [stream-builder-union-refactor](../../implemented/architecture/2026-09-14-stream-builder-union-refactor.md) — the refactor whose dropped `add_operator` call caused the hang cited in `## Problem`.

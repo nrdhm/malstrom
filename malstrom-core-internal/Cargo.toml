@@ -1,0 +1,29 @@
+[package]
+name = "malstrom-core-internal"
+version = "0.1.0"
+edition = "2024"
+description = "Internal edge primitives for the Malstrom kernel: the SPSC edge channel, its receiver abstraction and the barrier alignment combinator. Not a public API."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/MalstromDevelopers/malstrom"
+readme = "../README.md"
+categories = [
+    "concurrency",
+]
+keywords = [
+    "stream",
+    "data",
+    "framework",
+    "streaming",
+    "distributed",
+]
+
+[lints]
+workspace = true
+
+[dependencies]
+futures = "0.3.31"
+indexmap = { version = "2.1.0", features = ["serde"] }
+log = { version = "0.4", features = ["max_level_trace", "release_max_level_info"] }
+
+[dev-dependencies]
+tokio = { version = "1.47.1", features = ["rt", "macros", "time"] }

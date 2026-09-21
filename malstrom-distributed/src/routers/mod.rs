@@ -1,4 +1,4 @@
-use malstrom_core::channels::spsc;
+use malstrom_core_internal::spsc;
 use malstrom_core::stream::BuildContext;
 use malstrom_core::types::{
     Key, Kvt, ReconfigComplete, RescaleMessage, distributable::Distributable,

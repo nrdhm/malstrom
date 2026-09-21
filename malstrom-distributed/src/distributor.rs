@@ -1,9 +1,7 @@
 use malstrom_macros::instrument_debug;
 
-use malstrom_core::channels::{
-    operator_io::{Input, Output},
-    recv_trait::Receiver,
-};
+use malstrom_core::channels::operator_io::{Input, Output};
+use malstrom_core_internal::recv_trait::Receiver;
 use malstrom_core::stream::{BuildContext, Logic, LogicBuilder, OperatorContext};
 use malstrom_core::types::{Key, Kvt, Message, distributable::Distributable};
 use {

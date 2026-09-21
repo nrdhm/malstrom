@@ -1,15 +1,16 @@
-//! Compile-time contract: every historical top-level path resolves through the
-//! `malstrom::` facade. A missing re-export fails this file at compile time — this is
-//! the cheapest "public API predictability" anchor for users, covering the facade
-//! (kernel + operators + distributed under one namespace).
+//! Compile-time contract: the curated top-level paths resolve through the `malstrom::`
+//! facade. A missing re-export fails this file at compile time — this is the cheapest
+//! "public API predictability" anchor for users, covering the facade (kernel + operators +
+//! distributed under one namespace).
+//!
+//! Edge internals (`spsc`, `recv_trait`, `alignment`) and `worker::InnerRuntimeBuilder`
+//! were intentionally moved behind `malstrom-core-internal` (not a public API) and are no
+//! longer nameable here — see `.agents/notes/implemented/architecture/2026-09-21-malstrom-core-internal-crate.md`.
 
 #![allow(unused_imports)]
 
 // kernel modules re-exported by the facade
-use malstrom::channels::alignment::AlignmentGroup;
 use malstrom::channels::operator_io::{Input, Output, full_broadcast, link};
-use malstrom::channels::recv_trait::Receiver;
-use malstrom::channels::spsc;
 use malstrom::coordinator::{
     ApiRequestError, Coordinator, CoordinatorApi, CoordinatorExecutionError,
 };
@@ -32,7 +33,7 @@ use malstrom::types::{
     NoTime, OnceTime, OperatorId, OperatorPartitioner, ReconfigComplete, RescaleMessage,
     SuspendMarker, Timestamp,
 };
-use malstrom::worker::{InnerRuntimeBuilder, StreamProvider, Worker, WorkerBuilder};
+use malstrom::worker::{StreamProvider, Worker, WorkerBuilder};
 
 // operator-layer modules re-exported by the facade
 use malstrom::keyed::distributed::rendezvous_select;

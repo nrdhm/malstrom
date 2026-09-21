@@ -1,6 +1,6 @@
 use indexmap::IndexSet;
 
-use malstrom_core::channels::{recv_trait::Receiver as _, spsc};
+use malstrom_core_internal::{recv_trait::Receiver as _, spsc};
 use malstrom_core::types::{Key, Kvt, RescaleMessage, WorkerId, distributable::Distributable};
 use {
     crate::ConfigVersion,

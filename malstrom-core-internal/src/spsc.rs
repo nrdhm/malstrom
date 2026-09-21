@@ -53,7 +53,7 @@ impl<T> Sender<T> {
     }
 
     /// Future which completes once the receiver of this channel has been dropped
-    pub(crate) fn wait_receiver_gone(&self) -> ReceiverGone<'_, T> {
+    pub fn wait_receiver_gone(&self) -> ReceiverGone<'_, T> {
         ReceiverGone {
             sender: self,
             was_alive: false,
@@ -144,7 +144,7 @@ impl<T> Receiver<T> {
         Self { shared }
     }
 }
-impl<T> super::recv_trait::Receiver for Receiver<T> {
+impl<T> crate::recv_trait::Receiver for Receiver<T> {
     type Output = T;
 
     fn recv(&mut self) -> Receive<'_, T> {
@@ -205,7 +205,7 @@ pub fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
 
 #[cfg(test)]
 mod tests {
-    use crate::channels::recv_trait::Receiver as _;
+    use crate::recv_trait::Receiver as _;
 
     use super::*;
 

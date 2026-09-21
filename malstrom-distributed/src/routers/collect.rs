@@ -1,6 +1,6 @@
 use indexmap::{IndexMap, IndexSet};
 
-use malstrom_core::channels::{recv_trait::Receiver, spsc};
+use malstrom_core_internal::{recv_trait::Receiver, spsc};
 use malstrom_core::types::{
     Key, Kvt, OperatorId, RescaleMessage, WorkerId, distributable::Distributable,
 };

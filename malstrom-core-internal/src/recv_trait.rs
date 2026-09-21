@@ -1,3 +1,6 @@
+//! The low-level receiver abstraction shared by the SPSC edge channel and the
+//! barrier alignment combinator.
+
 /// TODO: do we still need this trait?
 pub trait Receiver {
     /// what type it emits

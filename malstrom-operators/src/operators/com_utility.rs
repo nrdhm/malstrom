@@ -6,7 +6,7 @@ use futures::{StreamExt, stream::FuturesUnordered};
 use indexmap::IndexSet;
 use thiserror::Error;
 
-use malstrom_core::channels::recv_trait::Receiver;
+use malstrom_core_internal::recv_trait::Receiver;
 use malstrom_core::runtime::{
     OperatorOperatorComm,
     communication::{OperatorCommReceiver, OperatorCommSender},

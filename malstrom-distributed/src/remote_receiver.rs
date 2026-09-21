@@ -4,10 +4,11 @@ use indexmap::{IndexMap, IndexSet};
 
 use crate::versioned_message::VersionedMessage;
 use crate::wire_message::WireMessage;
-use malstrom_core::channels::alignment::AlignedValue;
+use malstrom_core_internal::alignment::AlignedValue;
 use malstrom_core::channels::operator_io::merge_timestamps;
-use malstrom_core::channels::recv_trait::Receiver;
-use malstrom_core::channels::{alignment::AlignmentGroup, operator_io::Input};
+use malstrom_core_internal::recv_trait::Receiver;
+use malstrom_core::channels::operator_io::Input;
+use malstrom_core_internal::alignment::AlignmentGroup;
 use malstrom_core::runtime::OperatorOperatorComm;
 use malstrom_core::runtime::communication::OperatorCommReceiver;
 use malstrom_core::runtime::communication::{OperatorCommSender, broadcast};

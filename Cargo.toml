@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "malstrom",
     "malstrom-core",
+    "malstrom-core-internal",
     "malstrom-examples",
     "malstrom-distributed",
     "malstrom-operators",

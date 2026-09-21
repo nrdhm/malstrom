@@ -1,21 +1,24 @@
+//! Barrier alignment: a receiver combinator that pauses channels meeting a condition
+//! and emits an aligned group once all of them have paused.
+
 use std::hash::Hash;
 
 use futures::{StreamExt, stream::FuturesUnordered};
 use indexmap::IndexMap;
 use log::debug;
 
-/// A group of [`Receiver`](super::recv_trait::Receiver)s which will pause each receiver when the last message received
+/// A group of [`Receiver`](crate::recv_trait::Receiver)s which will pause each receiver when the last message received
 /// satisfies a given condition.
 /// The receiver is unpaused once all receivers have met the condition.
 /// Messages satisfying the condition are not immediatly emitted, but instead all emitted once
 /// all receivers have met the condition. The order in which the paused messages are emitted is
 /// **not specified**
-pub struct AlignmentGroup<K, R: super::recv_trait::Receiver, F> {
+pub struct AlignmentGroup<K, R: crate::recv_trait::Receiver, F> {
     receivers: IndexMap<K, AlignedReceiver<R>>,
     condition: F,
 }
 
-struct AlignedReceiver<R: super::recv_trait::Receiver> {
+struct AlignedReceiver<R: crate::recv_trait::Receiver> {
     receiver: R,
     /// double duty as flag whether the receiver is paused and contains paused message
     paused: Option<R::Output>,
@@ -24,7 +27,7 @@ struct AlignedReceiver<R: super::recv_trait::Receiver> {
 impl<K, R, F> AlignmentGroup<K, R, F>
 where
     K: Hash + Eq,
-    R: super::recv_trait::Receiver,
+    R: crate::recv_trait::Receiver,
     F: Fn(&R::Output) -> bool,
 {
     /// Create a new AlignmentGroup with the given receivers and condition function
@@ -93,10 +96,10 @@ where
     }
 }
 
-impl<K, R, F> super::recv_trait::Receiver for AlignmentGroup<K, R, F>
+impl<K, R, F> crate::recv_trait::Receiver for AlignmentGroup<K, R, F>
 where
     K: Clone,
-    R: super::recv_trait::Receiver,
+    R: crate::recv_trait::Receiver,
     F: Fn(&R::Output) -> bool,
 {
     type Output = AlignedValue<K, R::Output>;
@@ -160,7 +163,7 @@ pub enum AlignedValue<K, T> {
 #[cfg(test)]
 mod tests {
     use super::{AlignedValue, AlignmentGroup};
-    use crate::channels::{recv_trait::Receiver as _, spsc};
+    use crate::{recv_trait::Receiver as _, spsc};
 
     /// A condition on the payload: values equal to the sentinel "pause" the channel.
     fn is_barrier(v: &u64) -> bool {

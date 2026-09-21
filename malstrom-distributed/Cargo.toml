@@ -22,6 +22,7 @@ workspace = true
 
 [dependencies]
 malstrom-core = { path = "../malstrom-core" }
+malstrom-core-internal = { path = "../malstrom-core-internal" }
 futures = "0.3.31"
 indexmap = { version = "2.1.0", features = ["serde"] }
 seahash = "4.1.0"

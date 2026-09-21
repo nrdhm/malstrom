@@ -1,6 +1,7 @@
 use std::{collections::VecDeque, hash::Hash};
 
 use indexmap::{IndexMap, IndexSet};
+use malstrom_macros::instrument_debug;
 use tokio::sync::oneshot;
 
 use malstrom_core::channels::{
@@ -47,6 +48,7 @@ where
     M::Value: Distributable,
     M::Timestamp: Distributable,
 {
+    #[instrument_debug(skip_all)]
     async fn apply(
         &mut self,
         input: &mut Input<M>,

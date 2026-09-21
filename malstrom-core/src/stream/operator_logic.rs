@@ -1,17 +1,16 @@
-use std::{
-    hash::{Hash, Hasher},
-    marker::PhantomData,
-};
+use log::debug;
+use malstrom_macros::instrument_debug;
+use tracing::Instrument;
+use tracing::debug_span;
 
+use crate::types::Message;
+use crate::types::ReconfigComplete;
+use crate::types::distributed::Acquire;
+use crate::types::distributed::Collect;
 use crate::{
-    channels::operator_io::{Input, Output, full_broadcast},
-    snapshot::SnapshotBarrier,
-    stream::{OperatorContext, WorkerBuildContext},
-    types::distributed::{Acquire, Collect, Interrogate},
-    types::{
-        Barrier, Data, DataMessage, Kvt, MaybeKey, MaybeTime, Message, ReconfigComplete,
-        RescaleMessage, SuspendMarker,
-    },
+    channels::operator_io::{Input, Output},
+    stream::OperatorContext,
+    types::{Barrier, DataMessage, Kvt, RescaleMessage, SuspendMarker, distributed::Interrogate},
 };
 
 use super::BuildContext;
@@ -91,6 +90,7 @@ where
     N: Kvt,
     F: AsyncFnMut(&mut Input<M>, &mut Output<N>, &mut OperatorContext) + 'static,
 {
+    #[instrument_debug(skip_all)]
     async fn apply(
         &mut self,
         input: &mut Input<M>,
@@ -148,27 +148,27 @@ pub trait SafeLogic<M: Kvt, N: Kvt<Key = M::Key>>: Sized + 'static {
     /// Called for every epoch reaching the operator
     async fn on_epoch(
         &mut self,
-        epoch: &<M as Kvt>::Timestamp,
-        output: &mut Output<N>,
-        ctx: &mut OperatorContext,
+        _epoch: &<M as Kvt>::Timestamp,
+        _output: &mut Output<N>,
+        _ctx: &mut OperatorContext,
     ) {
     }
 
     /// Called for every snapshot barrier reaching the operator
     async fn on_barrier(
         &mut self,
-        barrier: &mut Barrier,
-        output: &mut Output<N>,
-        ctx: &mut OperatorContext,
+        _barrier: &mut Barrier,
+        _output: &mut Output<N>,
+        _ctx: &mut OperatorContext,
     ) {
     }
 
     /// Called whenever a rescale message reaches the operator
     async fn on_rescale(
         &mut self,
-        rescale_message: &mut RescaleMessage,
-        output: &mut Output<N>,
-        ctx: &mut OperatorContext,
+        _rescale_message: &mut RescaleMessage,
+        _output: &mut Output<N>,
+        _ctx: &mut OperatorContext,
     ) {
     }
 
@@ -177,9 +177,9 @@ pub trait SafeLogic<M: Kvt, N: Kvt<Key = M::Key>>: Sized + 'static {
     /// The operator will not be scheduled again after this until the job is restarted.
     async fn on_suspend(
         &mut self,
-        suspend_marker: &mut SuspendMarker,
-        output: &mut Output<N>,
-        ctx: &mut OperatorContext,
+        _suspend_marker: &mut SuspendMarker,
+        _output: &mut Output<N>,
+        _ctx: &mut OperatorContext,
     ) {
     }
 
@@ -188,9 +188,9 @@ pub trait SafeLogic<M: Kvt, N: Kvt<Key = M::Key>>: Sized + 'static {
     /// holds in state
     async fn on_interrogate(
         &mut self,
-        interrogate: &mut Interrogate<<M as Kvt>::Key>,
-        output: &mut Output<N>,
-        ctx: &mut OperatorContext,
+        _interrogate: &mut Interrogate<<M as Kvt>::Key>,
+        _output: &mut Output<N>,
+        _ctx: &mut OperatorContext,
     ) {
     }
 
@@ -199,9 +199,9 @@ pub trait SafeLogic<M: Kvt, N: Kvt<Key = M::Key>>: Sized + 'static {
     /// No more messages of the given key will reach the operator after this message
     async fn on_collect(
         &mut self,
-        collect: &mut Collect<<M as Kvt>::Key>,
-        output: &mut Output<N>,
-        ctx: &mut OperatorContext,
+        _collect: &mut Collect<<M as Kvt>::Key>,
+        _output: &mut Output<N>,
+        _ctx: &mut OperatorContext,
     ) {
     }
 
@@ -210,17 +210,17 @@ pub trait SafeLogic<M: Kvt, N: Kvt<Key = M::Key>>: Sized + 'static {
     /// state.
     async fn on_acquire(
         &mut self,
-        acquire: &mut Acquire<<M as Kvt>::Key>,
-        output: &mut Output<N>,
-        ctx: &mut OperatorContext,
+        _acquire: &mut Acquire<<M as Kvt>::Key>,
+        _output: &mut Output<N>,
+        _ctx: &mut OperatorContext,
     ) {
     }
 
     async fn on_reconfig_complete(
         &mut self,
-        reconfig_complete: &ReconfigComplete,
-        output: &mut Output<N>,
-        ctx: &mut OperatorContext,
+        _reconfig_complete: &ReconfigComplete,
+        _output: &mut Output<N>,
+        _ctx: &mut OperatorContext,
     ) {
     }
 
@@ -242,6 +242,7 @@ where
     N: Kvt<Key = M::Key, Timestamp = M::Timestamp>,
     L: SafeLogic<M, N>,
 {
+    #[instrument_debug(skip(self, input, output))]
     async fn apply(
         &mut self,
         input: &mut Input<M>,
@@ -249,12 +250,20 @@ where
         ctx: &mut OperatorContext,
     ) {
         // pump the schedule until it makes no progress, then handle one input message
-        loop {
-            if !self.implementation.on_schedule(output, ctx).await {
-                break;
+        async {
+            loop {
+                if !self.implementation.on_schedule(output, ctx).await {
+                    break;
+                }
             }
         }
-        match input.recv().await {
+        .instrument(debug_span!("loop on_schedule"))
+        .await;
+
+        debug!("before input.recv");
+        let msg = input.recv().await;
+        debug!("after input.recv");
+        match msg {
             Message::Data(data_message) => {
                 self.implementation.on_data(data_message, output, ctx).await
             }

@@ -4,13 +4,9 @@
 use std::{
     cell::RefCell,
     collections::VecDeque,
-    pin::Pin,
     rc::Rc,
-    task::{Context, Poll, Waker},
+    task::{Poll, Waker},
 };
-
-use futures::Stream;
-use pin_project::pin_project;
 
 type Shared<T> = Rc<RefCell<SharedInner<T>>>;
 
@@ -27,13 +23,7 @@ struct SharedInner<T> {
     /// woken when the receiver is dropped (used to detect downstream termination)
     receiver_gone: Option<Waker>,
 }
-impl<T> SharedInner<T> {
-    /// Get a reference to the last value if any
-    /// without removing it
-    fn peek(&self) -> Option<&T> {
-        self.queue.front()
-    }
-}
+
 impl<T> Default for SharedInner<T> {
     fn default() -> Self {
         Self {
@@ -59,15 +49,6 @@ impl<T> Sender<T> {
         Send {
             sender: &self,
             value: RefCell::new(Some(msg)),
-        }
-    }
-
-    /// Send a message without respecting the capacity
-    pub(crate) fn force_send(&self, msg: T) {
-        let mut shared = self.shared.borrow_mut();
-        shared.queue.push_back(msg);
-        if let Some(waker) = shared.recv_waker.take() {
-            waker.wake();
         }
     }
 
@@ -160,8 +141,7 @@ impl<T> Receiver<T> {
 }
 impl<T> super::recv_trait::Receiver for Receiver<T> {
     type Output = T;
-    /// Receive a message from the channel, returns None if the channel
-    /// contains no messages
+
     fn recv(&mut self) -> Receive<'_, T> {
         Receive(self)
     }

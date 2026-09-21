@@ -5,6 +5,17 @@ edition = "2024"
 description = "User-facing operators, sinks and sources for Malstrom jobs."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/MalstromDevelopers/malstrom"
+readme = "../README.md"
+categories = [
+    "concurrency",
+]
+keywords = [
+    "stream",
+    "data",
+    "framework",
+    "streaming",
+    "distributed",
+]
 
 [lints]
 workspace = true

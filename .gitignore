@@ -25,4 +25,3 @@ website/.vitepress/dist/
 
 # Python docs toolchain (uv)
 .venv/
-site/

@@ -1,9 +1,8 @@
-use futures::{StreamExt, stream::FuturesUnordered};
-use indexmap::IndexMap;
-
 /// TODO: do we still need this trait?
 pub trait Receiver {
+    /// what type it emits
     type Output;
+    /// the logic to emit values
     async fn recv(&mut self) -> Self::Output;
 }
 

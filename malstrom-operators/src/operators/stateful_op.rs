@@ -2,18 +2,15 @@ use std::marker::PhantomData;
 
 use indexmap::IndexMap;
 
-use itertools::Itertools;
 use serde::{Serialize, de::DeserializeOwned};
 
-use malstrom_core::channels::operator_io::{Input, Output};
+use malstrom_core::channels::operator_io::Output;
 use malstrom_core::stream::{
-    BuildContext, DirectLogic, Logic, LogicBuilder, Malstrom, Operator, OperatorContext, SafeLogic,
-    SafeLogicWrapper, StreamBuilder,
+    BuildContext, LogicBuilder, Malstrom, Operator, OperatorContext, SafeLogic, SafeLogicWrapper,
+    StreamBuilder,
 };
-use malstrom_core::types::{
-    Barrier, Data, DataMessage, Key, Kvt, MaybeData, MaybeKey, MaybeTime, Message, Sealed,
-    Timestamp,
-};
+use malstrom_core::types::{Barrier, Data, DataMessage, Key, Kvt, Message, Sealed};
+use malstrom_macros::instrument_debug;
 
 pub trait State: Serialize + DeserializeOwned + Default + 'static {}
 impl<X> State for X where X: Default + Serialize + DeserializeOwned + 'static {}
@@ -162,6 +159,7 @@ where
     <In as Kvt>::Key: Key + State,
     S: State + 'static,
 {
+    #[instrument_debug(skip_all)]
     async fn on_schedule(
         &mut self,
         output: &mut Output<(In::Key, T, In::Timestamp)>,
@@ -171,6 +169,7 @@ where
         false
     }
 
+    #[instrument_debug(skip_all)]
     async fn on_data(
         &mut self,
         msg: DataMessage<In>,
@@ -185,6 +184,7 @@ where
         }
     }
 
+    #[instrument_debug(skip_all)]
     async fn on_epoch(
         &mut self,
         epoch: &<In as Kvt>::Timestamp,
@@ -194,6 +194,7 @@ where
         self.logic.on_epoch(epoch, &mut self.state, output).await;
     }
 
+    #[instrument_debug(skip_all)]
     async fn on_barrier(
         &mut self,
         barrier: &mut Barrier,
@@ -203,6 +204,7 @@ where
         barrier.persist(&self.state, &ctx.operator_id);
     }
 
+    #[instrument_debug(skip_all)]
     async fn on_interrogate(
         &mut self,
         interrogate: &mut crate::keyed::distributed::Interrogate<<In as Kvt>::Key>,
@@ -212,6 +214,7 @@ where
         interrogate.add_keys(self.state.keys().map(|k| k.to_owned()));
     }
 
+    #[instrument_debug(skip_all)]
     async fn on_collect(
         &mut self,
         collect: &mut crate::keyed::distributed::Collect<<In as Kvt>::Key>,
@@ -223,6 +226,7 @@ where
         }
     }
 
+    #[instrument_debug(skip_all)]
     async fn on_acquire(
         &mut self,
         acquire: &mut crate::keyed::distributed::Acquire<<In as Kvt>::Key>,
@@ -237,9 +241,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
 
     use indexmap::{IndexMap, IndexSet};
+    use malstrom_testkit::test_support::init_logs;
 
     use crate::keyed::distributed::{Acquire, Collect, Interrogate};
     use malstrom_core::snapshot::{PersistenceClient, SnapshotBarrier};
@@ -260,6 +264,7 @@ mod tests {
             ) -> Option<St>
             + 'static,
     {
+        #[instrument_debug(skip_all)]
         async fn on_data(
             &mut self,
             msg: DataMessage<In>,
@@ -274,24 +279,24 @@ mod tests {
     async fn test_interrogate() {
         // logic which always just sets the last value as state
         let logic =
-            async |msg: DataMessage<(i32, String, NoTime)>,
+            async |msg: DataMessage<(i32, String, OnceTime)>,
                    _state: String,
-                   _output: &mut Output<(i32, (), NoTime)>| { Some(msg.value) };
+                   _output: &mut Output<(i32, (), OnceTime)>| { Some(msg.value) };
 
         let logic_builder = StatefulLogicBuilder::new(logic);
-        let mut tester: OperatorTester<(i32, String, NoTime), (i32, (), NoTime), _, ()> =
+        let mut tester: OperatorTester<(i32, String, OnceTime), (i32, (), OnceTime), _, ()> =
             OperatorTester::built_by(logic_builder, 0, 0, 0..1).await;
 
         tester.send_local(Message::Data(DataMessage::new(
             1,
             "foo".to_string(),
-            NoTime,
+            OnceTime::MIN,
         )));
         tester.step();
         tester.send_local(Message::Data(DataMessage::new(
             5,
             "bar".to_string(),
-            NoTime,
+            OnceTime::MIN,
         )));
         tester.step();
 
@@ -313,9 +318,9 @@ mod tests {
     #[tokio::test]
     async fn test_interrogate_discarded() {
         // logic which only returns state if the String len is <= 3
-        let logic = async |msg: DataMessage<(i32, String, NoTime)>,
+        let logic = async |msg: DataMessage<(i32, String, OnceTime)>,
                            _state: String,
-                           _output: &mut Output<(i32, (), NoTime)>| {
+                           _output: &mut Output<(i32, (), OnceTime)>| {
             if msg.value.len() > 3 {
                 None
             } else {
@@ -329,13 +334,13 @@ mod tests {
         tester.send_local(Message::Data(DataMessage::new(
             1,
             "foo".to_string(),
-            NoTime,
+            OnceTime::MIN,
         )));
         tester.step();
         tester.send_local(Message::Data(DataMessage::new(
             1,
             "hello".to_string(),
-            NoTime,
+            OnceTime::MIN,
         )));
         tester.step();
         let (interrogator, mut rx) = Interrogate::new();
@@ -357,9 +362,9 @@ mod tests {
     async fn test_collect() {
         // logic which always just sets the last value as state
         let logic =
-            async |msg: DataMessage<(i32, String, NoTime)>,
+            async |msg: DataMessage<(i32, String, OnceTime)>,
                    _state: String,
-                   _output: &mut Output<(i32, (), NoTime)>| Some(msg.value);
+                   _output: &mut Output<(i32, (), OnceTime)>| Some(msg.value);
 
         let mut tester: OperatorTester<_, _, _, ()> =
             OperatorTester::built_by(StatefulLogicBuilder::new(logic), 0, 42, 0..1).await;
@@ -367,13 +372,13 @@ mod tests {
         tester.send_local(Message::Data(DataMessage::new(
             1,
             "foo".to_string(),
-            NoTime,
+            OnceTime::MIN,
         )));
         tester.step();
         tester.send_local(Message::Data(DataMessage::new(
             5,
             "bar".to_string(),
-            NoTime,
+            OnceTime::MIN,
         )));
         tester.step();
         let (collector, mut rx) = Collect::new(1);
@@ -394,9 +399,9 @@ mod tests {
     #[tokio::test]
     async fn test_collect_discarded() {
         // logic which only returns state if the String len is <= 3
-        let logic = async |msg: DataMessage<(i32, String, NoTime)>,
+        let logic = async |msg: DataMessage<(i32, String, OnceTime)>,
                            _state: String,
-                           _output: &mut Output<(i32, (), NoTime)>| {
+                           _output: &mut Output<(i32, (), OnceTime)>| {
             if msg.value.len() > 3 {
                 None
             } else {
@@ -410,13 +415,13 @@ mod tests {
         tester.send_local(Message::Data(DataMessage::new(
             1,
             "foo".to_string(),
-            NoTime,
+            OnceTime::MIN,
         )));
         tester.step();
         tester.send_local(Message::Data(DataMessage::new(
             1,
             "hello".to_string(),
-            NoTime,
+            OnceTime::MIN,
         )));
         tester.step();
         let (collector, mut rx) = Collect::new(1);
@@ -432,11 +437,12 @@ mod tests {
     // check we acquire state when instructed
     #[tokio::test]
     async fn test_acquire_state() {
+        init_logs();
         // logic which always returns the state as a message and
         // sets the message value as state
-        let logic = async |mut msg: DataMessage<(i32, String, NoTime)>,
+        let logic = async |mut msg: DataMessage<(i32, String, OnceTime)>,
                            mut state: String,
-                           output: &mut Output<(i32, String, NoTime)>| {
+                           output: &mut Output<(i32, String, OnceTime)>| {
             std::mem::swap(&mut state, &mut msg.value);
             output.send(Message::Data(msg)).await;
             Some(state)
@@ -449,14 +455,18 @@ mod tests {
 
         tester.send_local(Message::Acquire(Acquire::new(1337, state)));
         tester.step();
-        tester.send_local(Message::Data(DataMessage::new(1337, "".to_owned(), NoTime)));
+        tester.send_local(Message::Data(DataMessage::new(
+            1337,
+            "".to_owned(),
+            OnceTime::MIN,
+        )));
         tester.step();
         assert!(matches!(tester.recv_local().unwrap(), Message::Acquire(_)));
         match tester.recv_local().unwrap() {
             Message::Data(DataMessage {
                 key: 1337,
                 value: x,
-                timestamp: NoTime,
+                timestamp: OnceTime::MIN,
             }) => assert_eq!(x, "HelloWorld"),
             _ => panic!(),
         }
@@ -466,9 +476,9 @@ mod tests {
     #[tokio::test]
     async fn test_drop_key_state() {
         // logic which keeps a total per key and emits it
-        let logic = async |msg: DataMessage<(bool, i32, NoTime)>,
+        let logic = async |msg: DataMessage<(bool, i32, OnceTime)>,
                            state: i32,
-                           output: &mut Output<(bool, i32, NoTime)>| {
+                           output: &mut Output<(bool, i32, OnceTime)>| {
             let new_value = state + msg.value;
             output
                 .send(Message::Data(DataMessage::new(
@@ -483,10 +493,10 @@ mod tests {
         let mut tester: OperatorTester<_, _, _, ()> =
             OperatorTester::built_by(StatefulLogicBuilder::new(logic), 0, 42, 0..1).await;
 
-        tester.send_local(Message::Data(DataMessage::new(false, 1, NoTime)));
+        tester.send_local(Message::Data(DataMessage::new(false, 1, OnceTime::MIN)));
         tester.step();
         tester.recv_local().unwrap();
-        tester.send_local(Message::Data(DataMessage::new(false, 2, NoTime)));
+        tester.send_local(Message::Data(DataMessage::new(false, 2, OnceTime::MIN)));
         tester.step();
         match tester.recv_local().unwrap() {
             Message::Data(d) => assert_eq!(d.value, 3),
@@ -498,7 +508,7 @@ mod tests {
         tester.step();
         tester.recv_local().unwrap();
 
-        tester.send_local(Message::Data(DataMessage::new(false, 1, NoTime)));
+        tester.send_local(Message::Data(DataMessage::new(false, 1, OnceTime::MIN)));
         tester.step();
         // sum should be back to 1 since we dropped the state
         match tester.recv_local().unwrap() {
@@ -511,9 +521,9 @@ mod tests {
     #[tokio::test]
     async fn test_snapshot_state() {
         // logic which keeps a total per key and emits it
-        let logic = async |msg: DataMessage<(bool, i32, NoTime)>,
+        let logic = async |msg: DataMessage<(bool, i32, OnceTime)>,
                            state: i32,
-                           output: &mut Output<(bool, i32, NoTime)>| {
+                           output: &mut Output<(bool, i32, OnceTime)>| {
             let new_value = state + msg.value;
             output
                 .send(Message::Data(DataMessage::new(
@@ -528,7 +538,7 @@ mod tests {
         let mut tester: OperatorTester<_, _, _, ()> =
             OperatorTester::built_by(StatefulLogicBuilder::new(logic), 0, 42, 0..1).await;
 
-        tester.send_local(Message::Data(DataMessage::new(false, 1, NoTime)));
+        tester.send_local(Message::Data(DataMessage::new(false, 1, OnceTime::MIN)));
         tester.step();
 
         let backend = CapturingPersistenceBackend::default();

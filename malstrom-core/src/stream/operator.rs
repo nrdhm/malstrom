@@ -1,20 +1,15 @@
 //! A builder to build JetStream operators
 
-use std::{
-    hash::{Hash, Hasher},
-    marker::PhantomData,
-    rc::Rc,
-};
+use std::hash::{Hash, Hasher};
 
-use tokio::runtime::LocalRuntime;
+use malstrom_macros::instrument_debug;
+use tracing::{Instrument, debug, debug_span};
 
 use crate::{
-    channels::operator_io::{Input, Output, full_broadcast},
+    channels::operator_io::{Input, Output, full_broadcast, link},
     stream::{DirectLogic, Logic, LogicBuilder, OperatorContext, WorkerBuildContext},
-    types::{Data, Kvt, MaybeKey, MaybeTime, Message},
+    types::Kvt,
 };
-
-use super::BuildContext;
 
 /// A builder type to build generic operators
 pub struct Operator<M: Kvt, B, N: Kvt> {
@@ -26,33 +21,73 @@ pub struct Operator<M: Kvt, B, N: Kvt> {
     name: String, // human readable name for debugging
 }
 
+impl<M: Kvt, B, N: Kvt> std::fmt::Debug for Operator<M, B, N> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Operator")
+            .field("name", &self.name)
+            .field("operator_id", &self.operator_id)
+            .finish()
+    }
+}
+
 impl<M, B, N> Operator<M, B, N>
 where
     M: Kvt,
     N: Kvt,
     B: LogicBuilder<M, N>,
 {
-    pub(crate) async fn start(mut self, build_ctx: impl Future<Output = WorkerBuildContext>) {
-        let name = self.get_name().to_string();
-
-        let mut build_ctx = build_ctx
-            .await
-            .to_build_context(self.operator_id, self.name);
+    #[instrument_debug(skip_all, fields(name = self.name), level = "DEBUG")]
+    pub(crate) async fn start(mut self, worker_ctx: WorkerBuildContext) {
+        let mut build_ctx = worker_ctx.to_build_context(self.operator_id, self.name);
         let mut logic = self.logic_builder.build(&mut build_ctx).await;
         let mut operator_context = OperatorContext::new(build_ctx.worker_id, self.operator_id);
 
         let mut output_closed = self.output.get_closed_signal();
         let mut no_receivers = self.output.no_receivers();
 
-        loop {
-            tokio::select! {
-                _ = logic.apply(&mut self.input, &mut self.output, &mut operator_context) => (),
-                    // can not possibly process more messages
-                _ = output_closed.wait_for() => return,
-                // all downstream operators terminated — nobody will read this output anymore
-                _ = &mut no_receivers => return
+        async {
+            loop {
+                tokio::select! {
+                    _ = logic
+                            .apply(&mut self.input, &mut self.output, &mut operator_context)
+                            .instrument(debug_span!("logic apply")) => {
+                        ()
+                    },
+                        // can not possibly process more messages
+                    _ = output_closed.wait_for() => {
+                        debug!("output_closed.wait_for");
+                        return
+                    },
+                    // all downstream operators terminated — nobody will read this output anymore
+                    _ = &mut no_receivers => {
+                        debug!("no_receivers");
+                        return
+                    },
+                    else => {
+                        // select made no progress: all branches are pending. Keep looping;
+                        // no event here — it fires on every idle tick and carries no value.
+                    }
+
+                }
             }
         }
+        .instrument(debug_span!("select loop"))
+        .await;
+    }
+
+    /// Swap the operator's Input with the given.
+    pub fn swap_input(&mut self, new_input: &mut Input<M>) {
+        std::mem::swap(new_input, &mut self.input);
+    }
+
+    /// Connect the op output to the given input.
+    pub fn link_with_operator<OB, OM: Kvt>(&mut self, next: &mut Operator<N, OB, OM>) {
+        link(&mut self.output, &mut next.input);
+    }
+
+    /// Connect the op output to the given input.
+    pub fn link_to_input(&mut self, new_input: &mut Input<N>) {
+        link(&mut self.output, new_input);
     }
 
     pub(crate) fn get_name(&self) -> &str {
@@ -61,19 +96,6 @@ where
 
     pub(crate) fn get_id(&self) -> u64 {
         hash_op_name(&self.name)
-    }
-}
-
-impl<M, L, N> Operator<M, DirectLogic<L>, N>
-where
-    M: Kvt,
-    N: Kvt,
-    L: Logic<M, N>,
-{
-    /// Create a new stream operator directly by supplying a name and a function which will
-    /// repeatedly be called (scheduled) by the worker
-    pub fn direct(name: String, logic: L) -> Self {
-        Self::built_by(name, DirectLogic::new(logic))
     }
 }
 
@@ -140,14 +162,14 @@ where
         }
     }
 
-    pub(crate) fn new_with_output(name: String, logic_builder: B, output: Output<N>) -> Self {
-        let input = Input::new_unlinked();
+    /// constructor
+    pub fn new(name: String, input: Input<M>, logic_builder: B, output: Output<N>) -> Self {
         Self {
             input,
-            logic_builder: logic_builder,
+            logic_builder,
             output,
             operator_id: hash_op_name(&name),
-            name: name.to_owned(),
+            name: name,
         }
     }
 
@@ -157,6 +179,19 @@ where
 
     pub(crate) fn get_input_mut(&mut self) -> &mut Input<M> {
         &mut self.input
+    }
+}
+
+impl<M, L, N> Operator<M, DirectLogic<L>, N>
+where
+    M: Kvt,
+    N: Kvt,
+    L: Logic<M, N>,
+{
+    /// Create a new stream operator directly by supplying a name and a function which will
+    /// repeatedly be called (scheduled) by the worker
+    pub fn direct(name: String, logic: L) -> Self {
+        Self::built_by(name, DirectLogic::new(logic))
     }
 }
 

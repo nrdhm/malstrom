@@ -1,20 +1,26 @@
 //! Builder for datastreams
 
-use std::{iter, marker::PhantomData, rc::Rc, sync::Mutex};
+use std::{rc::Rc, sync::Mutex};
 
+use crate::channels::operator_io::{Input, Output, link};
+use crate::stream::forward_logic::Forward;
+use crate::stream::{OperatorContext, SafeLogic};
+use crate::types::{DataMessage, Message};
 use crate::{
-    channels::operator_io::{Input, Output, link},
     stream::{LogicBuilder, Operator},
-    types::{Data, Kvt, MaybeKey, MaybeTime, Sealed},
+    types::{Kvt, Sealed},
     worker::InnerRuntimeBuilder,
 };
 
-/// The StreamBuilder allows building datastreams by calling operator methods like `.map` or
-/// `.filter` on it. The StreamBuilder needs to be finished by dropping it, which will automatically
+/// The StreamBuilder allows building datastreams
+/// by calling operator methods like `.map` or `.filter` on it.
+/// The StreamBuilder needs to be finished by dropping it, which will automatically
 /// add it to the worker's execution schedule.
 pub struct StreamBuilder<M: Kvt> {
+    /// An Input that is already linked to the previous operator's Output.
+    /// The receive-side of the last edge in the chain.
     pub tail: Input<M>,
-    // the runtime this stream is registered to
+    /// The runtime this stream is registered to.
     pub runtime: Rc<Mutex<InnerRuntimeBuilder>>,
 }
 
@@ -26,15 +32,42 @@ where
     pub fn get_runtime(&self) -> Rc<Mutex<InnerRuntimeBuilder>> {
         Rc::clone(&self.runtime)
     }
+
+    /// Recreate with the stream tail updated.
+    pub fn with_new_tail(&self, new_tail: Input<M>) -> Self {
+        StreamBuilder {
+            tail: new_tail,
+            runtime: Rc::clone(&self.runtime),
+        }
+    }
+
+    /// swap the given input with the tail.
+    /// dataflow redirected into the new_input.
+    pub fn swap_tail(&mut self, new_input: &mut Input<M>) {
+        std::mem::swap(new_input, &mut self.tail);
+    }
+
+    /// append the given operator to the stream's runtime
+    pub fn add_operator<In, B, Out>(&mut self, operator: Operator<In, B, Out>)
+    where
+        In: Kvt,
+        B: LogicBuilder<In, Out>,
+        Out: Kvt,
+    {
+        self.runtime.lock().unwrap().add_operator(operator);
+    }
 }
 
+/// The Builder of Datastreams.
 pub trait Malstrom<M: Kvt>: Sealed {
+    /// Connect the new operator's Input with the previous operator's Output.
     fn then<Out: Kvt, B: LogicBuilder<M, Out>>(
         self,
         operator: Operator<M, B, Out>,
     ) -> StreamBuilder<Out>;
 }
 
+/// Special-case builder to start a datastream.
 pub struct InitialStreamBuilder {
     tail: Input<()>,
     // the runtime this stream is registered to
@@ -71,9 +104,9 @@ where
 {
     /// add an operator to the end of this stream
     /// and return a new stream where the new operator is last_op
-    fn then<Out: Kvt, T: LogicBuilder<M, Out>>(
+    fn then<Out: Kvt, B: LogicBuilder<M, Out>>(
         mut self,
-        mut operator: Operator<M, T, Out>,
+        mut operator: Operator<M, B, Out>,
     ) -> StreamBuilder<Out> {
         std::mem::swap(&mut self.tail, operator.get_input_mut());
         let mut new_tail = Input::new_unlinked();

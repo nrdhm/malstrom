@@ -1,7 +1,6 @@
 use crate::runtime::communication as com;
 use async_trait::async_trait;
 use flume::{Receiver, Sender};
-use tokio::sync::oneshot;
 
 pub(super) struct OperatorSender(Sender<Vec<u8>>);
 

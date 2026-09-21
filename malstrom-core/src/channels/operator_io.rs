@@ -6,17 +6,15 @@ use crate::{
     channels::{
         alignment::{AlignedValue, AlignmentGroup},
         recv_trait::Receiver,
-        signal::{Signal, SignalHandle},
     },
-    snapshot::SnapshotBarrier,
-    types::{
-        Barrier, Kvt, MaybeTime, Message, OperatorId, OperatorPartitioner, SuspendMarker, Timestamp,
-    },
+    types::{Barrier, Kvt, MaybeTime, Message, OperatorId, OperatorPartitioner},
 };
-use futures::{FutureExt, StreamExt, TryFutureExt, stream::FuturesUnordered};
+use futures::FutureExt;
 use itertools::Itertools;
-use std::{rc::Rc, usize};
-use tokio::sync::{oneshot, watch};
+use log::{info, warn};
+use malstrom_macros::instrument_debug;
+use std::{fmt::Debug, rc::Rc};
+use tokio::sync::watch;
 
 /// Operator Output
 pub struct Output<M: Kvt> {
@@ -36,9 +34,8 @@ impl<M: Kvt> Output<M> {
     /// Create a new Sender with **no** associated Receiver
     /// Link a receiver with [link].
     pub fn new_unlinked(partitioner: impl OperatorPartitioner<M>) -> Self {
-        /// Allow NoTime type to indicate a final output
-        /// even if send is never called on this output
-        let finalized_signal = Signal::new(M::Timestamp::CHECK_FINISHED(&None));
+        // Allow NoTime type to indicate a final output
+        // even if send is never called on this output
         let this = Self {
             senders: Vec::new(),
             partitioner: Box::new(partitioner),
@@ -47,11 +44,16 @@ impl<M: Kvt> Output<M> {
         };
         this
     }
+    /// add another one sender
+    pub fn add_another_one(&mut self, tx: spsc::Sender<Message<M>>) {
+        self.senders.push(Rc::new(tx));
+    }
 
     /// Send a value into this channel.
     /// Data messages are distributed as per the partioning function.
     ///
     /// System messages are always broadcasted.
+    #[instrument_debug(skip(self, msg))]
     pub async fn send(&mut self, msg: Message<M>)
     where
         M: Clone,
@@ -59,6 +61,7 @@ impl<M: Kvt> Output<M> {
         // a send may race with the output closing (e.g. an operator applying once more
         // during shutdown); dropping the message is fine at that point
         if *self.closed_signal.borrow() {
+            warn!("send on a closed output");
             return;
         }
         if let Message::Epoch(e) = &msg {
@@ -99,6 +102,7 @@ impl<M: Kvt> Output<M> {
             }
         };
         if M::Timestamp::CHECK_FINISHED(&self.frontier) {
+            info!("final timestamp: closing output");
             self.closed_signal.send_replace(true);
         };
     }
@@ -124,6 +128,11 @@ impl<M: Kvt> Output<M> {
         self.closed_signal.send_replace(true);
     }
 
+    /// check if this output is closed, i.e. will not send any further messages
+    pub fn is_closed(&self) -> bool {
+        *self.closed_signal.borrow()
+    }
+
     /// Resolves once all receivers of this output's channels are gone, i.e. the
     /// downstream operator(s) terminated. Only meaningful for outputs which
     /// actually have senders (an unlinked output, like a sink's, never resolves).
@@ -141,48 +150,15 @@ impl<M: Kvt> Output<M> {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct ClosedSignal(watch::Receiver<bool>);
 
 impl ClosedSignal {
+    #[instrument_debug(level = "DEBUG")]
     pub(crate) fn wait_for(&mut self) -> impl Future<Output = ()> + '_ {
         // can ignore result because Err just means Sender was dropped
         async move {
             let _ = self.0.wait_for(|x| *x).await;
-        }
-    }
-}
-
-#[derive(Default)]
-pub(crate) struct RootOutput {
-    senders: Vec<spsc::Sender<Message<()>>>,
-}
-
-impl RootOutput {
-    // send a system message, this method is not async to allow sending
-    // from a different or no runtime
-    pub(crate) fn send_system(&mut self, msg: Message<()>) {
-        for s in self.senders.iter() {
-            s.force_send(msg.clone())
-        }
-    }
-}
-
-/// State of the upstream sender providing us messages
-#[derive(Default)]
-struct UpstreamState<M: Kvt> {
-    /// Most recent epoch the sender sent
-    epoch: Option<M::Timestamp>,
-    /// Barrier currently waiting for alignment
-    barred: bool,
-    /// Susepend currently waiting for alignment
-    suspended: bool,
-}
-impl<M: Kvt> UpstreamState<M> {
-    fn new() -> Self {
-        Self {
-            epoch: None,
-            barred: false,
-            suspended: false,
         }
     }
 }
@@ -213,6 +189,13 @@ impl<M: Kvt> Input<M> {
             last_epoch: None,
             receivers: barrier_align,
         }
+    }
+    /// add another one receiver
+    pub fn add_another_one(&mut self, rx: spsc::Receiver<Message<M>>) {
+        // receiver keys are 0-based so they line up with `frontiers`
+        let next_key = self.receivers.keys().last().map_or(0, |k| k + 1);
+        self.receivers.insert(next_key, rx);
+        self.frontiers.push(None);
     }
 }
 
@@ -271,7 +254,7 @@ where
                 Message::Epoch(e) => {
                     self.frontiers[key as usize] = Some(e);
                     let merged = merge_timestamps(self.frontiers.iter());
-                    // Only sent out if we would advance the frontier
+                    // Only sent out if it would advance the frontier
                     // TODO: test
                     let out_epoch = match (self.last_epoch.as_ref(), merged) {
                         (None, Some(e)) => Some(e),
@@ -298,11 +281,8 @@ pub fn full_broadcast<T>(_: &T, outputs: &mut [bool]) {
 /// Link a Sender and receiver together
 pub fn link<M: Kvt>(sender: &mut Output<M>, receiver: &mut Input<M>) {
     let (tx, rx) = spsc::unbounded();
-    sender.senders.push(Rc::new(tx));
-    // receiver keys are 0-based so they line up with `frontiers`
-    let next_key = receiver.receivers.keys().last().map_or(0, |k| k + 1);
-    receiver.receivers.insert(next_key, rx);
-    receiver.frontiers.push(None);
+    sender.add_another_one(tx);
+    receiver.add_another_one(rx);
 }
 
 /// Small reducer hack, as we can't use iter::reduce because of ownership

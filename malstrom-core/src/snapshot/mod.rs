@@ -5,9 +5,8 @@
 use crate::types::{OperatorId, WorkerId};
 use futures::{FutureExt, SinkExt};
 use serde::{Serialize, de::DeserializeOwned};
-use std::{cell::RefCell, fmt::Debug, rc::Rc, sync::Mutex, task::Waker};
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
 use tokio::sync::mpsc;
-use tokio::sync::oneshot;
 
 /// Version of a snapshot
 pub type SnapshotVersion = u64;

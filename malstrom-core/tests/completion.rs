@@ -2,6 +2,8 @@
 //! runtime — for both runtimes — and every record emitted before MAX must be seen. This
 //! pins the root/no-receivers/completion protocol from the outside.
 
+mod common;
+
 use malstrom_core::{
     channels::operator_io::{Input, Output},
     runtime::{MultiThreadRuntime, SingleThreadRuntime},
@@ -10,6 +12,7 @@ use malstrom_core::{
     types::{DataMessage, Message},
     worker::StreamProvider,
 };
+use malstrom_testkit::test_support::init_logs;
 
 type Msg = (usize, usize, usize);
 
@@ -90,6 +93,7 @@ fn assert_seen(rx: flume::Receiver<usize>, expected: Vec<usize>) {
 
 #[test]
 fn single_thread_runtime_terminates_on_max_epoch() {
+    init_logs();
     let (tx, rx) = flume::unbounded();
     SingleThreadRuntime::builder()
         .persistence(NoPersistence)
@@ -101,6 +105,7 @@ fn single_thread_runtime_terminates_on_max_epoch() {
 
 #[test]
 fn multi_thread_runtime_terminates_on_max_epoch() {
+    init_logs();
     let (tx, rx) = flume::unbounded();
     MultiThreadRuntime::builder()
         .parrallelism(2)

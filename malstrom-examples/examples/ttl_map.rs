@@ -27,6 +27,7 @@ struct MyState {
 }
 
 /// Running total with TTL
+// #region build_running_total_dataflow
 fn build_running_total_dataflow(provider: &mut dyn StreamProvider) {
     let (ontime, _late) = provider
         .new_stream()
@@ -51,3 +52,36 @@ fn build_running_total_dataflow(provider: &mut dyn StreamProvider) {
         )
         .sink("sink", StatelessSink::new(StdOutSink));
 }
+// #endregion build_running_total_dataflow
+
+#[allow(dead_code)]
+// #region build_sliding_window_dataflow
+/// Sliding window of recent values, concatenated, using an [`ExpireMap`] as state
+fn build_sliding_window_dataflow(provider: &mut dyn StreamProvider) {
+    let (ontime, _late) = provider
+        .new_stream()
+        .source(
+            "source",
+            Source::from_enumerated_iterator(
+                ["foo", "bar", "hello", "world", "baz"].map(|word| word.to_string()),
+            ),
+        )
+        .assign_timestamps("assigner", |msg| msg.timestamp)
+        .generate_epochs("generate", |msg, _| Some(msg.timestamp));
+
+    ontime
+        .key_local("key-local", |_| 0)
+        .ttl_map(
+            "concat",
+            async |_key, value, ts, mut state: ExpireMap<usize, String, usize>| {
+                // each value lives for two timestamps, so the window slides
+                state.insert(*ts, value, ts + 2);
+                let window: Vec<String> =
+                    (0..=*ts).filter_map(|i| state.get(&i).cloned()).collect();
+                (window.join("|"), Some(state))
+            },
+        )
+        .filter("remove-empty", async |window| !window.is_empty())
+        .sink("sink", StatelessSink::new(StdOutSink));
+}
+// #endregion build_sliding_window_dataflow

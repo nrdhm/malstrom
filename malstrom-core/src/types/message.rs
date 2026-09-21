@@ -170,6 +170,26 @@ pub enum Message<M: Kvt> {
     Acquire(Acquire<<M as Kvt>::Key>),
 }
 
+impl<M> Debug for Message<M>
+where
+    M: Kvt,
+    M::Key: Debug,
+    M::Value: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Message::Data(d) => f.debug_tuple("Data").field(d).finish(),
+            Message::Epoch(t) => f.debug_tuple("Epoch").field(t).finish(),
+            Message::AbsBarrier(b) => f.debug_tuple("AbsBarrier").field(b).finish(),
+            Message::Rescale(r) => f.debug_tuple("Rescale").field(r).finish(),
+            Message::ReconfigComplete(r) => f.debug_tuple("ReconfigComplete").field(r).finish(),
+            Message::Interrogate(i) => f.debug_tuple("Interrogate").field(i).finish(),
+            Message::Collect(c) => f.debug_tuple("Collect").field(c).finish(),
+            Message::Acquire(a) => f.debug_tuple("Acquire").field(a).finish(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Barrier {
     // Take a snapshot, then suspend
@@ -251,7 +271,7 @@ impl RescaleMessage {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ReconfigComplete {
     /// Configuration version we have advanced to
     version: u64,

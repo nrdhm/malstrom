@@ -1,8 +1,7 @@
 //! Build contexts used by operators
 use std::rc::Rc;
 
-use indexmap::{IndexMap, IndexSet};
-use itertools::Itertools;
+use indexmap::IndexSet;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use tokio::runtime::LocalRuntime;
@@ -105,6 +104,16 @@ impl WorkerBuildContext {
             config_version,
             operator_rt,
         }
+    }
+}
+
+impl std::fmt::Debug for WorkerBuildContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("WorkerBuildContext")
+            .field("worker_id", &self.worker_id)
+            .field("worker_ids", &self.worker_ids)
+            .field("config_version", &self.config_version)
+            .finish()
     }
 }
 

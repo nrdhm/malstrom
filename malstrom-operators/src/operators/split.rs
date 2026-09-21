@@ -1,8 +1,6 @@
-use malstrom_core::channels::operator_io::{Input, Output, link};
-use malstrom_core::stream::{Operator, SafeLogic, StreamBuilder};
-use malstrom_core::types::{DataMessage, Kvt, MaybeData, MaybeKey, MaybeTime, Message, Sealed};
-use std::marker::PhantomData;
-use std::rc::Rc;
+use malstrom_core::channels::operator_io::{Input, Output};
+use malstrom_core::stream::{OperatorBuilder, SafeLogic, StreamBuilder};
+use malstrom_core::types::{DataMessage, Kvt, MaybeData, MaybeKey, MaybeTime, Sealed};
 
 /// Split one datastream into multiple streams
 pub trait Split<Msg: Kvt>: Sealed {
@@ -25,7 +23,7 @@ pub trait Split<Msg: Kvt>: Sealed {
     /// Messages will be distributed according to the given partitioning function,
     /// the function receives a mutable array of booleans, all `false` by default,
     /// and should set all values in the array to `true` where output streams should
-    /// receive a message. For example if you do a `const_split::<2>` and mutate the array to
+    /// receive a message. For example if you do a `split::<2>` and mutate the array to
     /// `[true, false]` the left output will receive the message.
     ///
     /// If you always want all outputs to receive every message
@@ -65,55 +63,28 @@ where
     }
 
     fn split(
-        self,
+        mut self,
         name: impl Into<String>,
         partitioner: impl Fn(&DataMessage<Msg>, &mut [bool]) + 'static,
         outputs: usize,
     ) -> Vec<StreamBuilder<Msg>> {
-        let rt = self.get_runtime();
-        let mut input = self.tail;
-
-        let mut downstream_receivers: Vec<Input<Msg>> =
-            (0..outputs).map(|_| Input::new_unlinked()).collect();
-
-        let mut partition_op =
-            Operator::direct(name.into(), Forward(PhantomData::<Msg>).into_logic());
-        // we perform a swap so our new operator will get the messages
-        // which come out of the input stream
-        std::mem::swap(&mut partition_op.input, &mut input);
-        // insert the partitioned output
-        let mut output = Output::new_unlinked(partitioner);
-        std::mem::swap(&mut partition_op.output, &mut output);
-
-        // link all downstream receivers to our partition op
-        for dr in downstream_receivers.iter_mut() {
-            link(&mut partition_op.output, dr);
+        let name: String = name.into();
+        // first edge from the source
+        let mut edge = OperatorBuilder::new(name)
+            // just a dummy operator to connect tail (input) with the united input
+            .with_direct_logic(malstrom_core::stream::Forward::new().into_logic())
+            .with_output(Output::new_unlinked(partitioner))
+            .build();
+        edge.swap_input(&mut self.tail);
+        let mut streams = vec![];
+        for _ in 0..outputs {
+            let mut new_tail = Input::new_unlinked();
+            edge.link_to_input(&mut new_tail);
+            let a_stream = self.with_new_tail(new_tail);
+            streams.push(a_stream);
         }
-        #[allow(clippy::unwrap_used)]
-        rt.lock().unwrap().add_operator(partition_op);
-
-        downstream_receivers
-            .into_iter()
-            .map(|x| StreamBuilder {
-                tail: x,
-                runtime: Rc::clone(&rt),
-            })
-            .collect()
-    }
-}
-
-struct Forward<Msg>(PhantomData<Msg>);
-impl<Msg> SafeLogic<Msg, Msg> for Forward<Msg>
-where
-    Msg: Kvt,
-{
-    async fn on_data(
-        &mut self,
-        data_message: DataMessage<Msg>,
-        output: &mut Output<Msg>,
-        ctx: &mut malstrom_core::stream::OperatorContext,
-    ) {
-        output.send(Message::Data(data_message)).await;
+        self.add_operator(edge);
+        streams
     }
 }
 
@@ -127,38 +98,9 @@ mod tests {
     use crate::sources::Source;
     use malstrom_testkit::get_test_rt;
 
-    /// Test const split
-    #[test]
-    fn const_split() {
-        let even_sink = VecSink::new();
-        let odd_sink = VecSink::new();
-
-        let rt = get_test_rt(|provider| {
-            let stream = provider
-                .new_stream()
-                .source("source", Source::from_iterator(0..10u64));
-            let [even, odd] = stream.const_split("const-split", |msg, outputs| {
-                let is_even = msg.value & 1 == 0;
-                println!("split got: {msg:?}");
-                *outputs = [is_even, !is_even];
-            });
-            even.sink("sink-even", StatelessSink::new(even_sink.clone()));
-            odd.sink("sink-odd", StatelessSink::new(odd_sink.clone()));
-        });
-        rt.execute().unwrap();
-
-        let even_expected = vec![0, 2, 4, 6, 8];
-        let even_result: Vec<u64> = even_sink.into_iter().map(|x| x.value).collect();
-        assert_eq!(even_expected, even_result);
-
-        let odd_expected = vec![1, 3, 5, 7, 9];
-        let odd_result: Vec<u64> = odd_sink.into_iter().map(|x| x.value).collect();
-        assert_eq!(odd_expected, odd_result);
-    }
-
     /// Test non-const split
     #[test]
-    fn split() {
+    fn split_divides() {
         let even_sink = VecSink::new();
         let odd_sink = VecSink::new();
 
@@ -180,6 +122,34 @@ mod tests {
             );
             let odd = streams.pop().unwrap();
             let even = streams.pop().unwrap();
+            even.sink("sink-even", StatelessSink::new(even_sink.clone()));
+            odd.sink("sink-odd", StatelessSink::new(odd_sink.clone()));
+        });
+        rt.execute().unwrap();
+
+        let even_expected = vec![0, 2, 4, 6, 8];
+        let even_result: Vec<u64> = even_sink.into_iter().map(|x| x.value).collect();
+        assert_eq!(even_expected, even_result);
+
+        let odd_expected = vec![1, 3, 5, 7, 9];
+        let odd_result: Vec<u64> = odd_sink.into_iter().map(|x| x.value).collect();
+        assert_eq!(odd_expected, odd_result);
+    }
+
+    /// Test const split
+    #[test]
+    fn const_split_divides() {
+        let even_sink = VecSink::new();
+        let odd_sink = VecSink::new();
+
+        let rt = get_test_rt(|provider| {
+            let stream = provider
+                .new_stream()
+                .source("source", Source::from_iterator(0..10u64));
+            let [even, odd] = stream.const_split("const-split", |msg, outputs| {
+                let is_even = msg.value & 1 == 0;
+                *outputs = [is_even, !is_even];
+            });
             even.sink("sink-even", StatelessSink::new(even_sink.clone()));
             odd.sink("sink-odd", StatelessSink::new(odd_sink.clone()));
         });

@@ -6,6 +6,10 @@
 //! received message, the typed handlers run in message order, and system messages
 //! (`Epoch`, `AbsBarrier`) are forwarded downstream automatically after the handler.
 
+mod common;
+
+use malstrom_testkit::test_support::init_logs;
+
 use malstrom_core::{
     channels::operator_io::{Input, Output},
     runtime::SingleThreadRuntime,
@@ -120,6 +124,7 @@ impl Logic<Msg, Msg> for Sink {
 
 #[test]
 fn safe_logic_dispatch_order_and_system_message_forwarding() {
+    init_logs();
     let (tx_events, rx_events) = flume::unbounded();
     let (tx_seen, rx_seen) = flume::unbounded();
 

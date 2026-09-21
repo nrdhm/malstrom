@@ -18,6 +18,7 @@ use malstrom_core::worker::StreamProvider;
 
 pub mod communication;
 pub mod operator_tester;
+/// Logging and OTLP/Tempo tracing setup helpers for tests.
 pub mod test_support;
 
 pub use operator_tester::{FakeCommunication, OperatorTester, SentMessage};

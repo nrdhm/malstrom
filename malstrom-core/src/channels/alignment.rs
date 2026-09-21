@@ -82,10 +82,12 @@ where
         self.receivers.keys()
     }
 
+    /// Iterate over the wrapped receivers.
     pub fn values(&self) -> impl Iterator<Item = &R> {
         self.receivers.values().map(|x| &x.receiver)
     }
 
+    /// Mutable access to the receiver for `key`, if present.
     pub fn get_mut(&mut self, key: &K) -> Option<&mut R> {
         self.receivers.get_mut(key).map(|x| &mut x.receiver)
     }
@@ -145,6 +147,8 @@ where
     }
 }
 
+/// A value emitted by an [`AlignmentGroup`]: either an unaligned message from a
+/// single channel, or the aligned group once every channel has met the condition.
 pub enum AlignedValue<K, T> {
     /// Individual value of T, does not need alignment
     /// and index of channel this value came from

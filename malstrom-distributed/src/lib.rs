@@ -4,6 +4,8 @@
 //! (`malstrom_core::types::distributed`); this crate implements the machinery that
 //! moves them between workers.
 
+/// Keyed routing: partitions records to workers by key, with the distributor
+/// that drives remote sends.
 pub mod distributor;
 pub use distributor::DistributorBuilder;
 

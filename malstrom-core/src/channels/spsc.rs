@@ -90,6 +90,7 @@ impl<'a, T> Future for ReceiverGone<'a, T> {
     }
 }
 
+/// Future returned by [`Sender::send`].
 pub struct Send<'a, T> {
     sender: &'a Sender<T>,
     value: RefCell<Option<T>>,
@@ -161,6 +162,7 @@ impl<T> Drop for Receiver<T> {
     }
 }
 
+/// Future returned by the `Receiver` trait's `recv`.
 pub struct Receive<'a, T>(&'a Receiver<T>);
 
 impl<'a, T> Future for Receive<'a, T> {
@@ -191,6 +193,7 @@ impl<'a, T> Future for Receive<'a, T> {
     }
 }
 
+/// Create an unbounded SPSC channel, returning its [`Sender`] and [`Receiver`].
 pub fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
     let shared = Rc::new(RefCell::new(SharedInner::default()));
     let sender = Sender {

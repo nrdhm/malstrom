@@ -15,11 +15,15 @@ use crate::{
 
 use super::BuildContext;
 
+/// Builds the [`Logic`] for an operator at build time.
 pub trait LogicBuilder<M: Kvt, N: Kvt>: 'static {
+    /// The concrete [`Logic`] this builder produces.
     type Logic: Logic<M, N>;
+    /// Build the logic, given the operator's [`BuildContext`].
     async fn build(self, ctx: &mut BuildContext) -> Self::Logic;
 }
 
+/// A [`LogicBuilder`] that returns a pre-built [`Logic`].
 pub struct DirectLogic<L> {
     logic: L,
 }
@@ -76,6 +80,8 @@ where
 /// }
 /// ```
 pub trait Logic<M: Kvt, N: Kvt>: 'static {
+    /// Process messages from `input`, emitting on `output`, until the input is
+    /// exhausted. This is the operator's main loop body.
     async fn apply(
         &mut self,
         input: &mut Input<M>,
@@ -216,6 +222,7 @@ pub trait SafeLogic<M: Kvt, N: Kvt<Key = M::Key>>: Sized + 'static {
     ) {
     }
 
+    /// Called when a reconfiguration (rescale) has completed.
     async fn on_reconfig_complete(
         &mut self,
         _reconfig_complete: &ReconfigComplete,
@@ -232,6 +239,8 @@ pub trait SafeLogic<M: Kvt, N: Kvt<Key = M::Key>>: Sized + 'static {
     }
 }
 
+/// Adapts a [`SafeLogic`] into a raw [`Logic`], dispatching the operator loop by
+/// message kind and enforcing the messaging invariants.
 pub struct SafeLogicWrapper<L> {
     implementation: L,
 }

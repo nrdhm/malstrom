@@ -113,9 +113,18 @@ Re-enable and clear the lints needing no design judgment: `let_and_return`,
 
 ### Step 3 — Document the public extension API
 
-Re-enable `missing_docs` and write the ~30 doc comments for the items the crate splits made
-`pub` (stream/operator logic traits, `channels::operator_io`, `runtime::communication`,
+Re-enable `missing_docs` and write the doc comments for the items the crate splits made `pub`
+(stream/operator logic traits, `channels::operator_io`, `runtime::communication`,
 protocol-message constructors, …). Keep the docs **meaningful**, not filler.
+
+> Re-enable subtlety: `missing_docs` is `allow` **by default** in rustc, so this step sets
+> `missing-docs = "warn"` (it does **not** just remove an `allow` line, which would leave the
+> lint off). The other rustc lints in Step 1 are `warn` by default, so removing their `allow`
+> does re-enable them.
+
+**Done (2026-09-21):** 39 items documented across the buildable crates (core, macros,
+distributed, operators, testkit); `missing-docs = "warn"` in `[workspace.lints.rust]`.
+`cargo clippy -D warnings` and `RUSTDOCFLAGS="-D warnings" cargo doc` are both green.
 
 ### Step 4 — Judgment lints (decide, don't blanket-allow)
 

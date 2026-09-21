@@ -1,3 +1,6 @@
+//! Procedural macros for Malstrom: the `instrument_debug` attribute and the
+//! `TTLState` derive.
+
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Data, DeriveInput, Fields, Path, Type, parse_macro_input};
@@ -57,6 +60,7 @@ pub fn instrument_debug(args: TokenStream, item: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
+/// Derives `TTLState` for a struct carrying a `#[timestamp_type(T)]` attribute.
 #[proc_macro_derive(TTLState, attributes(timestamp_type))]
 pub fn ttl_state_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

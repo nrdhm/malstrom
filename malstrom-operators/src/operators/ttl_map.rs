@@ -101,10 +101,14 @@ where
     }
 }
 
+/// State with timestamp-based expiry.
 pub trait TTLState: State {
+    /// The timestamp type used for expiry.
     type Timestamp: Timestamp;
+    /// Drop entries older than `epoch`.
     fn expire(&mut self, epoch: &Self::Timestamp);
 
+    /// Whether the state holds no live entries.
     fn is_empty(&self) -> bool;
 }
 

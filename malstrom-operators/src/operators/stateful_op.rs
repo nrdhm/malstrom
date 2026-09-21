@@ -12,6 +12,7 @@ use malstrom_core::stream::{
 use malstrom_core::types::{Barrier, Data, DataMessage, Key, Kvt, Sealed};
 use malstrom_macros::instrument_debug;
 
+/// Marker for an operator's persisted state.
 pub trait State: Serialize + DeserializeOwned + Default + 'static {}
 impl<X> State for X where X: Default + Serialize + DeserializeOwned + 'static {}
 

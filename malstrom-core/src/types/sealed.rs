@@ -6,6 +6,7 @@ pub(super) mod sealed {
     };
 
     // use super::NeedsEpochs;
+    /// Seals a public trait so it cannot be implemented downstream.
     pub trait Sealed {}
 
     impl<M: Kvt> Sealed for StreamBuilder<M> {}

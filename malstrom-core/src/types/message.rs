@@ -19,8 +19,11 @@ use super::WorkerId;
 /// A helper trait which saves us from specifying the key, value and timestamp generics
 /// everywhere
 pub trait Kvt: Clone + 'static {
+    /// The key type.
     type Key: MaybeKey;
+    /// The value type.
     type Value: MaybeData;
+    /// The timestamp type.
     type Timestamp: MaybeTime;
 }
 
@@ -41,6 +44,8 @@ impl Kvt for () {
     type Timestamp = NoTime;
 }
 
+/// Build a [`Message`]-shaped tuple type from a [`Kvt`] type: `msg!((K, V, T))`
+/// expands to `(K, V, T)` in the crate's message aliases.
 #[macro_export]
 macro_rules! msg {
     ($kvt:ty) => {
@@ -190,9 +195,10 @@ where
     }
 }
 
+/// A barrier that coordinates snapshotting / rescaling across operators.
 #[derive(Debug, Clone)]
 pub enum Barrier {
-    // Take a snapshot, then suspend
+    /// Take a snapshot, then suspend
     Suspend(SnapshotBarrier),
     /// Take a snapshot, then resume
     Snapshot(SnapshotBarrier),
@@ -253,6 +259,8 @@ impl RescaleMessage {
     }
 }
 
+/// A completed reconfiguration: the worker set and configuration version the
+/// cluster has advanced to.
 #[derive(Clone, Debug)]
 pub struct ReconfigComplete {
     /// Configuration version we have advanced to
@@ -262,9 +270,11 @@ pub struct ReconfigComplete {
 }
 
 impl ReconfigComplete {
+    /// The worker set after the reconfiguration.
     pub fn get_new_worker_set(&self) -> &IndexSet<WorkerId> {
         &self.workers
     }
+    /// The configuration version after the reconfiguration.
     pub fn get_new_version(&self) -> u64 {
         self.version
     }

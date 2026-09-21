@@ -11,8 +11,10 @@ use serde::{Serialize, de::DeserializeOwned};
 /// assert_eq!(u64::decode(&encoded), value);
 /// ```
 pub trait Distributable: Serialize + DeserializeOwned + 'static {
+    /// Encode `self` into the wire format.
     fn encode(self) -> Vec<u8>;
 
+    /// Decode a value from the wire format produced by [`Distributable::encode`].
     fn decode(encoded: &[u8]) -> Self;
 }
 impl<T> Distributable for T

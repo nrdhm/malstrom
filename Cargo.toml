@@ -19,11 +19,11 @@ members = [
 ]
 
 [workspace.lints.rust]
+missing-docs = "warn"
 # Step 0 (see .agents/notes/proposed/process/2026-08-25-fix-warning-backlog.md): every
 # lint that currently fires is explicitly `allow`ed so the widened `-D warnings` gate is
 # green from the start. Each line is removed as its group is cleaned up; the final state has
 # no lint rules ignored.
-missing-docs = "allow"
 async_fn_in_trait = "allow"
 dead_code = "allow"
 private_interfaces = "allow"

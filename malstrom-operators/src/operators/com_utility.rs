@@ -41,6 +41,7 @@ where
     }
 }
 
+/// Per-operator helper for communicating with the other workers in the cluster.
 pub struct CommUtility<T> {
     clients: HashMap<WorkerId, SenderReceiver<T>>,
     /// Communication backend for inter-operator communication
@@ -75,6 +76,7 @@ where
         }
     }
 
+    /// Receive the next message from any connected worker.
     pub async fn recv(&mut self) -> T {
         if self.clients.is_empty() {
             return std::future::pending().await;
@@ -87,6 +89,7 @@ where
         unordered.next().await.expect("Clients must not be empty")
     }
 
+    /// Send `msg` to worker `wid`, erroring if that worker is not connected.
     pub async fn send(&self, wid: WorkerId, msg: T) -> Result<(), CommUtilityError<T>> {
         match &self.clients.get(&wid) {
             Some(sr) => {

@@ -6,7 +6,9 @@ use malstrom_core::channels::operator_io::{Input, Output};
 use malstrom_core::stream::{BuildContext, Logic, LogicBuilder, Malstrom, Operator, StreamBuilder};
 use malstrom_core::types::{DataMessage, Kvt, Message, WorkerId};
 
+/// Broadcast every message to all workers.
 pub trait WorkerBroadcast<M: Kvt> {
+    /// Broadcast `self` to every worker.
     fn worker_broadcast(
         self,
         name: &str,

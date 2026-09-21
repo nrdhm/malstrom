@@ -237,3 +237,13 @@ Do not adopt:
   must each land independently and reversibly. The local-channel swap is postponed until
   after the interface exists and is tracked in
   [replace-operator-io-spsc-with-tokio-mpsc](2026-09-13-replace-operator-io-spsc-with-tokio-mpsc.md).
+
+## Related
+
+- [replace-operator-io-spsc-with-tokio-mpsc](2026-09-13-replace-operator-io-spsc-with-tokio-mpsc.md)
+  — prerequisite transport-level semantics; this note builds the interface on top.
+- [fail-loud-on-dangling-operator-edges](2026-09-19-fail-loud-on-dangling-operator-edges.md)
+  — dependent: adds a sender-gone liveness primitive to the unified edge.
+- [malstrom-core-internal-crate](2026-09-21-malstrom-core-internal-crate.md) — **lands after
+  this note**: that extraction moves `spsc`/`recv_trait`/`alignment` into an internal crate,
+  so it must move the unified interface, not the pre-unification one.

@@ -12,6 +12,7 @@
 - [Architecture](overviews/05-architecture.md)
 - [Channels](overviews/06-channels.md)
 - [Remote transports survey](overviews/07-remote-transports-survey.md)
+- [Public API surface](overviews/08-public-api-surface.md)
 
 # Reviews
 

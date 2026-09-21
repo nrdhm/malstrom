@@ -21,6 +21,7 @@ dependency list in `03-dependencies.md` against `malstrom-core/Cargo.toml`):
 | 05 | [architecture.md](05-architecture.md) | Distilled high-level architecture: core entities, crate layering, job anatomy, operator loop, message path (local/remote), snapshot coordination |
 | 06 | [channels.md](06-channels.md) | The channels in the kernel: same-worker data-plane (`spsc`, `Output`/`Input`, `AlignmentGroup`) and control/cross-thread (`watch`, `oneshot`, `broadcast`, `mpsc`, `flume`) |
 | 07 | [remote-transports-survey.md](07-remote-transports-survey.md) | How Timely and Arroyo implement their cross-worker TCP data planes (both custom), and what Malstrom should borrow shape-wise for a future remote transport |
+| 08 | [public-api-surface.md](08-public-api-surface.md) | What `malstrom-core` exposes and to whom: module inventory, the sibling-vs-user audiences, the facade's over-exposure, and a recommended hide list (implementation types, edge internals, `InnerRuntimeBuilder`) |
 
 ## Conventions
 

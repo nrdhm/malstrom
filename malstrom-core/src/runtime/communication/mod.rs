@@ -1,12 +1,6 @@
 //! Traits for implementing inter-worker and worker-coordinator communication in different runtimes
-use std::{marker::PhantomData, rc::Rc};
 
-use async_trait::async_trait;
-use serde::{Serialize, de::DeserializeOwned};
-use thiserror::Error;
-use tracing::debug;
-
-use crate::types::{Kvt, OperatorId, WorkerId, distributable::Distributable};
+use crate::types::distributable::Distributable;
 
 mod operator_operator;
 mod reqres;
@@ -22,7 +16,7 @@ pub use worker_coordinator::WorkerCoordinatorComm;
 pub use operator_operator::OperatorCommReceiver;
 /// The sender side of an operator-to-operator channel, used by the distributed crate.
 pub use operator_operator::OperatorCommSender;
-pub(crate) use worker_coordinator::{CoordinatorClient, WorkerClient, WorkerResponder};
+pub(crate) use worker_coordinator::{CoordinatorClient, WorkerClient};
 
 /// A convinience method to broadcast a message to all available clients
 pub async fn broadcast<'a, T: Distributable + Clone + 'a>(

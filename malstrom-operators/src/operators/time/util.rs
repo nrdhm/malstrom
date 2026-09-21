@@ -1,7 +1,7 @@
 use crate::operators::{map::Map, split::Split};
 use malstrom_core::channels::operator_io::Output;
-use malstrom_core::stream::{DirectLogic, Operator, StreamBuilder};
-use malstrom_core::types::{DataMessage, Kvt, MaybeData, MaybeKey, Message, Timestamp};
+use malstrom_core::stream::StreamBuilder;
+use malstrom_core::types::{DataMessage, Kvt, MaybeData, Message};
 
 use super::assign_timestamps::OnTimeLate;
 

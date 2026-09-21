@@ -13,15 +13,8 @@ use crate::keyed::{
 };
 use crate::operators::StreamSink;
 use malstrom_core::channels::operator_io::{Input, Output};
-use malstrom_core::snapshot::SnapshotBarrier;
-use malstrom_core::stream::{
-    BuildContext, Logic, Malstrom, Operator, OperatorContext, SafeLogic, SafeLogicWrapper,
-    StreamBuilder,
-};
-use malstrom_core::types::{
-    Barrier, Data, DataMessage, Key, Kvt, MaybeKey, MaybeTime, Message, NoData, NoKey, NoTime,
-    RescaleMessage, SuspendMarker, distributable::Distributable,
-};
+use malstrom_core::stream::{Logic, Malstrom, Operator, OperatorContext, SafeLogic, StreamBuilder};
+use malstrom_core::types::{Barrier, DataMessage, Key, Kvt, Message, distributable::Distributable};
 
 /// Implementation of a stateful sink
 pub trait StatefulSinkImpl<M: Kvt>: 'static {

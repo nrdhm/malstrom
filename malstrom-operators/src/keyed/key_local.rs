@@ -1,9 +1,7 @@
-use std::marker::PhantomData;
-
 use malstrom_core::channels::operator_io::{Input, Output};
 
 use malstrom_core::stream::{Logic, Malstrom, Operator, StreamBuilder};
-use malstrom_core::types::{Data, DataMessage, Key, Kvt, MaybeKey, MaybeTime, Message};
+use malstrom_core::types::{DataMessage, Key, Kvt, Message};
 
 /// Create a keyed stream **without** distributing messages.
 pub trait KeyLocal<Msg: Kvt, K: Key> {

@@ -1,5 +1,5 @@
 use crate::sinks::StatelessSinkImpl;
-use malstrom_core::types::{Data, DataMessage, Kvt, MaybeKey, MaybeTime};
+use malstrom_core::types::{DataMessage, Kvt};
 
 use std::{ops::RangeBounds, sync::Arc, sync::Mutex};
 

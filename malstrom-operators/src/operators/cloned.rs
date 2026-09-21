@@ -1,5 +1,5 @@
 use malstrom_core::stream::StreamBuilder;
-use malstrom_core::types::{Kvt, MaybeData, MaybeKey, MaybeTime, Sealed};
+use malstrom_core::types::{Kvt, Sealed};
 
 use super::split::Split;
 

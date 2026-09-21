@@ -9,7 +9,7 @@ use malstrom_core::stream::{
     BuildContext, LogicBuilder, Malstrom, Operator, OperatorContext, SafeLogic, SafeLogicWrapper,
     StreamBuilder,
 };
-use malstrom_core::types::{Barrier, Data, DataMessage, Key, Kvt, Message, Sealed};
+use malstrom_core::types::{Barrier, Data, DataMessage, Key, Kvt, Sealed};
 use malstrom_macros::instrument_debug;
 
 pub trait State: Serialize + DeserializeOwned + Default + 'static {}

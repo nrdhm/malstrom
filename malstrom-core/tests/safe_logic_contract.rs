@@ -14,9 +14,7 @@ use malstrom_core::{
     channels::operator_io::{Input, Output},
     runtime::SingleThreadRuntime,
     snapshot::{NoPersistence, SnapshotBarrier},
-    stream::{
-        BuildContext, Logic, LogicBuilder, Malstrom as _, Operator, OperatorContext, SafeLogic,
-    },
+    stream::{BuildContext, Logic, Malstrom as _, Operator, OperatorContext, SafeLogic},
     types::{Barrier, DataMessage, Kvt, Message},
     worker::StreamProvider,
 };

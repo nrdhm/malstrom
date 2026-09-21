@@ -2,21 +2,17 @@ use std::rc::Rc;
 
 use indexmap::{IndexMap, IndexSet};
 
-use crate::routers::RouterOutput;
+use crate::Acquire;
 use crate::targeted_message::{TargetedData, TargetedMessage};
-use crate::versioned_message::{VersionedData, VersionedMessage};
+use crate::versioned_message::VersionedData;
 use crate::wire_message::{WireAcquire, WireMessage};
-use crate::{Acquire, ConfigVersion};
 use malstrom_core::channels::operator_io::Output;
-use malstrom_core::channels::recv_trait::Receiver as _;
-use malstrom_core::channels::{alignment::AlignmentGroup, operator_io::Input};
 use malstrom_core::runtime::OperatorOperatorComm;
-use malstrom_core::runtime::communication::OperatorCommReceiver;
 use malstrom_core::runtime::communication::{OperatorCommSender, broadcast};
-use malstrom_core::stream::{BuildContext, Logic, OperatorContext};
+use malstrom_core::stream::{BuildContext, OperatorContext};
 use malstrom_core::types::distributable::Distributable;
-use malstrom_core::types::{Barrier, Kvt, Message, WorkerId};
-use malstrom_core::types::{DataMessage, Key, OperatorId, ReconfigComplete, RescaleMessage};
+use malstrom_core::types::{Kvt, Message, WorkerId};
+use malstrom_core::types::{ReconfigComplete, RescaleMessage};
 
 type RemoteSenders<M> = IndexMap<WorkerId, OperatorCommSender<WireMessage<M>>>;
 

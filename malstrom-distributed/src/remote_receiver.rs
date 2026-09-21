@@ -1,23 +1,20 @@
 use std::rc::Rc;
 
-use futures::FutureExt;
 use indexmap::{IndexMap, IndexSet};
-use seahash::hash;
 
-use crate::ConfigVersion;
 use crate::versioned_message::VersionedMessage;
 use crate::wire_message::WireMessage;
 use malstrom_core::channels::alignment::AlignedValue;
-use malstrom_core::channels::operator_io::{Output, merge_timestamps};
+use malstrom_core::channels::operator_io::merge_timestamps;
 use malstrom_core::channels::recv_trait::Receiver;
 use malstrom_core::channels::{alignment::AlignmentGroup, operator_io::Input};
 use malstrom_core::runtime::OperatorOperatorComm;
 use malstrom_core::runtime::communication::OperatorCommReceiver;
 use malstrom_core::runtime::communication::{OperatorCommSender, broadcast};
-use malstrom_core::stream::{BuildContext, Logic, OperatorContext};
+use malstrom_core::stream::{BuildContext, OperatorContext};
 use malstrom_core::types::distributable::Distributable;
 use malstrom_core::types::{Barrier, Kvt, Message, WorkerId};
-use malstrom_core::types::{Key, ReconfigComplete, RescaleMessage};
+use malstrom_core::types::{ReconfigComplete, RescaleMessage};
 
 /// Aligns barriers from all remote receivers
 type RemoteReceivers<M> = AlignmentGroup<WorkerId, ReceiverWrapper<M>, fn(&WireMessage<M>) -> bool>;

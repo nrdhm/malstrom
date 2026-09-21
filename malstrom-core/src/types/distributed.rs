@@ -6,12 +6,10 @@
 use std::{cell::RefCell, hash::Hash, marker::PhantomData, rc::Rc};
 
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
-use tokio::sync::oneshot;
 
 use crate::{
     snapshot::{deserialize_state, serialize_state},
-    types::{Kvt, OperatorId, distributable::Distributable},
+    types::{OperatorId, distributable::Distributable},
 };
 
 /// Acquire encapsulates state which has moved to the current worker from another worker due to

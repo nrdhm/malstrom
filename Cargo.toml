@@ -25,7 +25,6 @@ members = [
 # no lint rules ignored.
 missing-docs = "allow"
 async_fn_in_trait = "allow"
-unused_imports = "allow"
 unused_variables = "allow"
 unused_mut = "allow"
 unused_macros = "allow"

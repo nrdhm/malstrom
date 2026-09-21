@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{ConfigVersion, routers::RouterOutput, wire_message::WireMessage};
+use crate::{ConfigVersion, routers::RouterOutput};
 use malstrom_core::types::{DataMessage, Kvt, Message, WorkerId};
 
 /// A wrapper around a Malstrom message which includes the Sender WorkerId and Version

@@ -1,5 +1,5 @@
-use malstrom_core::stream::{Malstrom, StreamBuilder};
-use malstrom_core::types::{Data, Kvt, MaybeKey, Sealed, Timestamp};
+use malstrom_core::stream::StreamBuilder;
+use malstrom_core::types::{Kvt, Sealed};
 
 /// Output messages from a Malstrom stream somewhere
 pub trait Sink<M, S>: Sealed {

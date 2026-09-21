@@ -3,9 +3,7 @@ use serde::{Serialize, de::DeserializeOwned};
 use crate::operators::State;
 use malstrom_core::channels::operator_io::Output;
 use malstrom_core::stream::StreamBuilder;
-use malstrom_core::types::{
-    Data, DataMessage, Key, Kvt, MaybeData, MaybeKey, MaybeTime, Message, Sealed, Timestamp,
-};
+use malstrom_core::types::{Data, DataMessage, Key, Kvt, Message, Sealed};
 
 use super::stateful_op::{StatefulLogic, StatefulOp};
 

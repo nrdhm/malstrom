@@ -29,7 +29,7 @@ use malstrom_core::{
     channels::operator_io::{Input, Output},
     runtime::MultiThreadRuntime,
     snapshot::NoPersistence,
-    stream::{BuildContext, Logic, LogicBuilder, Malstrom as _, Operator, OperatorContext},
+    stream::{BuildContext, Logic, Malstrom as _, Operator, OperatorContext},
     types::{DataMessage, Message},
     worker::StreamProvider,
 };

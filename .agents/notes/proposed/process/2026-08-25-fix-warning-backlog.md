@@ -88,6 +88,13 @@ needed import broke `PhantomData` during this work). Order: `unused_imports` (25
 `unused_must_use` (3), then the tail (`unreachable_code`, `dropping_references`,
 `type_alias_bounds`).
 
+**Progress:** `unused_imports` done (2026-09-21) — `cargo fix --all-targets` applied most
+(36 files), the remaining 9 grouped/test-module imports were hand-fixed, and the
+`unused_imports = "allow"` line was removed from `[workspace.lints.rust]`. Note the per-target
+subtlety: an import can be unused in the lib target but needed by the test target (e.g.
+`SafeLogic` in `assign_timestamps.rs`), in which case it moves to the test module's own import
+rather than being deleted.
+
 ### Step 2 — Mechanical clippy one-offs
 
 Re-enable and clear the lints needing no design judgment: `let_and_return`,

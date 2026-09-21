@@ -1,9 +1,8 @@
 use super::stateless_op::StatelessOp;
 use crate::operators::StatelessLogic;
 use malstrom_core::channels::operator_io::Output;
-use malstrom_core::msg;
 use malstrom_core::stream::StreamBuilder;
-use malstrom_core::types::{Data, DataMessage, Kvt, MaybeKey, Message, Sealed, Timestamp};
+use malstrom_core::types::{DataMessage, Kvt, Message, Sealed};
 
 /// Filter messages in a stream
 pub trait Filter<In: Kvt, FilterFunc>: Sealed {

@@ -119,9 +119,7 @@ impl com::WorkerCoordinatorComm for InterThreadCommunication<(Vec<u8>, oneshot::
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::runtime::communication::{
-        OperatorOperatorComm, ReqResResponder, WorkerCoordinatorComm,
-    };
+    use crate::runtime::communication::{OperatorOperatorComm, WorkerCoordinatorComm};
 
     /// Regression: operator→operator channels created from different comm handles must
     /// land on the same underlying channel (the `ConnectionKey` direction used to be

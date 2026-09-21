@@ -1,4 +1,3 @@
-use futures::FutureExt;
 use thiserror::Error;
 use tokio::sync::watch;
 

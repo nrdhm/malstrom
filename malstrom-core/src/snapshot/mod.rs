@@ -3,7 +3,7 @@
 //! upgrades
 
 use crate::types::{OperatorId, WorkerId};
-use futures::{FutureExt, SinkExt};
+use futures::FutureExt;
 use serde::{Serialize, de::DeserializeOwned};
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 use tokio::sync::mpsc;

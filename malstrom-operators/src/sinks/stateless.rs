@@ -3,9 +3,7 @@ use std::marker::PhantomData;
 use crate::operators::StreamSink;
 use malstrom_core::channels::operator_io::{Input, Output};
 use malstrom_core::stream::{Logic, Malstrom as _, Operator, OperatorContext, StreamBuilder};
-use malstrom_core::types::{
-    Data, DataMessage, Kvt, MaybeKey, MaybeTime, Message, NoData, NoKey, NoTime, Timestamp,
-};
+use malstrom_core::types::{DataMessage, Kvt, MaybeTime, Message};
 
 /// A sink emitting records not hold any state (or only ephemeral state)
 pub struct StatelessSink<In: Kvt, SinkImpl: StatelessSinkImpl<In>> {

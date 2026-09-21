@@ -2,7 +2,7 @@ use super::stateless_op::StatelessOp;
 use crate::operators::StatelessLogic;
 use malstrom_core::channels::operator_io::Output;
 use malstrom_core::stream::StreamBuilder;
-use malstrom_core::types::{Data, DataMessage, Kvt, MaybeKey, Message, Sealed, Timestamp};
+use malstrom_core::types::{Data, DataMessage, Kvt, Message, Sealed};
 
 /// Apply a function to every message in a stream
 pub trait Map<In: Kvt, T: Data, Mapper>: Sealed {

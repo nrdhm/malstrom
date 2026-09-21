@@ -4,7 +4,7 @@
 
 use futures::FutureExt;
 use indexmap::IndexSet;
-use serde::{Deserialize, Serialize, de::DeserializeOwned, ser::SerializeStruct};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 use tokio::sync::mpsc;
 
@@ -14,7 +14,7 @@ use crate::{
     types::{MaybeData, MaybeKey, MaybeTime, NoData, NoKey, NoTime, OperatorId},
 };
 
-use super::{Timestamp, WorkerId};
+use super::WorkerId;
 
 /// A helper trait which saves us from specifying the key, value and timestamp generics
 /// everywhere

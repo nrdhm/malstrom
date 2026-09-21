@@ -19,7 +19,6 @@ mod collect;
 use collect::CollectRouter;
 
 mod upgrading;
-use tokio::runtime::LocalRuntime;
 use upgrading::UpgradingRouter;
 /// Message types which go into a router to either be routed or configure the router
 pub(super) enum RouterInput<M: Kvt> {

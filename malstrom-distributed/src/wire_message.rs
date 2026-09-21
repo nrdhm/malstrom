@@ -1,12 +1,9 @@
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    Acquire,
-    versioned_message::{VersionedData, VersionedMessage},
-};
+use crate::{Acquire, versioned_message::VersionedData};
 use malstrom_core::types::distributable::Distributable;
-use malstrom_core::types::{DataMessage, Kvt, Message, OperatorId};
+use malstrom_core::types::{Kvt, OperatorId};
 
 /// The message sent acroos Worker boundaries to communicate between workers
 #[derive(Serialize, Deserialize, Clone)]

@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
-use malstrom_core::channels::operator_io::{Input, Output};
+use malstrom_core::channels::operator_io::Output;
 use malstrom_core::stream::{Malstrom as _, Operator, OperatorContext, SafeLogic, StreamBuilder};
-use malstrom_core::types::{DataMessage, Kvt, MaybeData, MaybeKey, Message, Sealed, Timestamp};
+use malstrom_core::types::{DataMessage, Kvt, Message, Sealed};
 
 /// Inspect the time frontier on a stream
 pub trait InspectFrontier<In: Kvt, Func>: Sealed {

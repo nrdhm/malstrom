@@ -1,30 +1,18 @@
-use std::{collections::VecDeque, hash::Hash};
-
-use indexmap::{IndexMap, IndexSet};
 use malstrom_macros::instrument_debug;
-use tokio::sync::oneshot;
 
 use malstrom_core::channels::{
     operator_io::{Input, Output},
     recv_trait::Receiver,
-    spsc,
 };
 use malstrom_core::stream::{BuildContext, Logic, LogicBuilder, OperatorContext};
-use malstrom_core::types::{
-    DataMessage, Key, Kvt, Message, OperatorId, ReconfigComplete, RescaleMessage, WorkerId,
-    distributable::Distributable,
-};
+use malstrom_core::types::{Key, Kvt, Message, distributable::Distributable};
 use {
-    crate::Collect,
-    crate::ConfigVersion,
-    crate::Interrogate,
     crate::WorkerPartitioner,
     crate::remote_receiver::DistributorReceiver,
     crate::remote_sender::DistributorSender,
-    crate::routers::{MessageRouter, RouterInput, RouterOutput},
-    crate::targeted_message::{TargetedData, TargetedMessage},
-    crate::versioned_message::{VersionedData, VersionedMessage},
-    crate::wire_message::WireAcquire,
+    crate::routers::{MessageRouter, RouterInput},
+    crate::targeted_message::TargetedMessage,
+    crate::versioned_message::VersionedMessage,
 };
 
 /// The distributor operator logic: routes keyed messages across workers and

@@ -1,10 +1,8 @@
-use std::{hash::Hash, marker::PhantomData};
-
 use serde::{Serialize, de::DeserializeOwned};
 
 use crate::keyed::{WorkerPartitioner, distributed::distributor::DistributorBuilder};
-use malstrom_core::stream::{BuildContext, Logic, LogicBuilder, Malstrom, Operator, StreamBuilder};
-use malstrom_core::types::{DataMessage, Key, Kvt, MaybeKey, distributable::Distributable};
+use malstrom_core::stream::{Malstrom, Operator, StreamBuilder};
+use malstrom_core::types::{DataMessage, Key, Kvt, distributable::Distributable};
 
 use super::KeyLocal;
 

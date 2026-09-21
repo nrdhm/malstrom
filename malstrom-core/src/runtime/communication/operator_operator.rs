@@ -43,7 +43,7 @@ pub trait OperatorOperatorComm {
 
 /// A sender for sending messages to an operator on another worker.
 /// This struct encapsulates the sender side of the communication channel.
-pub(crate) struct OperatorCommSender<T> {
+pub struct OperatorCommSender<T> {
     sender: Box<dyn super::StreamSender>,
     msg_type: PhantomData<T>,
 }
@@ -58,7 +58,8 @@ where
     /// * `to_worker` - The ID of the worker hosting the target operator.
     /// * `channel_id` - Unique ID of the communication channel
     /// * `backend` - The backend implementing the [`OperatorOperatorComm`] trait.
-    pub(crate) async fn new<Backend: OperatorOperatorComm + ?Sized>(
+    /// Create a sender to a specific operator on another worker.
+    pub async fn new<Backend: OperatorOperatorComm + ?Sized>(
         to_worker: WorkerId,
         channel_id: u64,
         backend: &Backend,
@@ -74,7 +75,8 @@ where
     ///
     /// # Arguments
     /// * `msg` - The message to send.
-    pub(crate) async fn send(&self, msg: T) {
+    /// Send a message to the target operator.
+    pub async fn send(&self, msg: T) {
         let encoded = T::encode(msg);
         self.sender.send(encoded).await.expect("Backend send error")
     }
@@ -82,7 +84,7 @@ where
 
 /// A receiver for receiving messages from an operator on another worker.
 /// This struct encapsulates the receiver side of the communication channel.
-pub(crate) struct OperatorCommReceiver<T> {
+pub struct OperatorCommReceiver<T> {
     receiver: Box<dyn super::StreamReceiver>,
     msg_type: PhantomData<T>,
 }
@@ -97,7 +99,8 @@ where
     /// * `from_worker` - The ID of the worker you want to receive from
     /// * `channel_id` - Unique ID of the communication channel
     /// * `backend` - The backend implementing the [`OperatorOperatorComm`] trait.
-    pub(crate) async fn new<Backend: OperatorOperatorComm + ?Sized>(
+    /// Create a sender to a specific operator on another worker.
+    pub async fn new<Backend: OperatorOperatorComm + ?Sized>(
         from_worker: WorkerId,
         channel_id: u64,
         backend: &Backend,

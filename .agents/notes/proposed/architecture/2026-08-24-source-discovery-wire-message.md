@@ -17,7 +17,7 @@ The blocker is `malstrom-k8s`: its gRPC runtime serializes `WireMessage` and is 
 **published** crates.io `malstrom 0.1.0`, not the local path — so any `WireMessage` change
 lands on a frozen crate that never builds against `new-scheduler`. The wire change therefore
 cannot ship until
-[point-k8s-and-kafka-at-local-malstrom](../../process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md)
+[point-k8s-and-kafka-at-local-malstrom](../../proposed/process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md)
 is done.
 
 ## Proposal
@@ -37,7 +37,7 @@ k8s re-pointing:
 
 ## Dependencies
 
-- Depends on [point-k8s-and-kafka-at-local-malstrom](../../process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md)
+- Depends on [point-k8s-and-kafka-at-local-malstrom](../../proposed/process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md)
   (the k8s crate must build against the local `malstrom` before its `WireMessage` codec can
   change).
 - Depends on [first-class-source-discovery-message](2026-08-24-first-class-source-discovery-message.md)

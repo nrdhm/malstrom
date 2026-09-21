@@ -2,25 +2,22 @@
 //! resuming computation after failures. Snapshots can also be utilized to enable statful job
 //! upgrades
 
-#[cfg(feature = "slatedb")]
-pub mod slatedb;
 use crate::types::{OperatorId, WorkerId};
 use futures::{FutureExt, SinkExt};
 use serde::{Serialize, de::DeserializeOwned};
-#[cfg(feature = "slatedb")]
-pub use slatedb::{SlateDbBackend, SlateDbClient, object_store};
-use std::{cell::RefCell, fmt::Debug, rc::Rc, sync::Mutex, task::Waker};
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
 use tokio::sync::mpsc;
-use tokio::sync::oneshot;
 
 /// Version of a snapshot
 pub type SnapshotVersion = u64;
 
-pub(crate) fn serialize_state<S: Serialize>(state: &S) -> Vec<u8> {
+/// Serialize state with the framework's snapshot encoding (MessagePack).
+pub fn serialize_state<S: Serialize>(state: &S) -> Vec<u8> {
     rmp_serde::to_vec(state).expect("Error serializing state")
 }
 
-pub(crate) fn deserialize_state<S: DeserializeOwned>(state: Vec<u8>) -> S {
+/// Deserialize state with the framework's snapshot encoding (MessagePack).
+pub fn deserialize_state<S: DeserializeOwned>(state: Vec<u8>) -> S {
     rmp_serde::from_slice(&state).expect("Error deserializing state")
 }
 
@@ -70,7 +67,9 @@ impl Debug for SnapshotBarrier {
 }
 
 impl SnapshotBarrier {
-    pub(super) fn new(backend: Box<dyn PersistenceClient>, callback: mpsc::Sender<()>) -> Self {
+    /// Create a snapshot barrier over the given persistence client. The callback
+    /// is signalled when the last clone of the barrier is dropped.
+    pub fn new(backend: Box<dyn PersistenceClient>, callback: mpsc::Sender<()>) -> Self {
         Self {
             backend: Rc::new(RefCell::new(backend)),
             callback: Rc::new(RefCell::new(callback)),
@@ -140,5 +139,24 @@ mod test {
         struct _Foo {
             _bar: Box<dyn PersistenceClient>,
         }
+    }
+}
+
+#[cfg(test)]
+mod serialization_tests {
+    use super::{deserialize_state, serialize_state};
+
+    /// The coordinator's cluster-state serialization must round-trip.
+    #[test]
+    fn serialize_state_round_trips() {
+        let state = vec![(1u64, "one".to_string()), (2, "two".to_string())];
+        let bytes = serialize_state(&state);
+        assert_eq!(deserialize_state::<Vec<(u64, String)>>(bytes), state);
+    }
+
+    #[test]
+    fn serialize_state_round_trips_primitives() {
+        let bytes = serialize_state(&7u64);
+        assert_eq!(deserialize_state::<u64>(bytes), 7);
     }
 }

@@ -22,6 +22,13 @@ only because these crates never build against the branch.
      `CommunicationBackendError` are gone (use `Box<dyn std::error::Error>`).
    - `types::distributable::Distributable` replaces `BiCommunicationClient`.
 3. Fix `malstrom-kafka` against whatever changed in its small surface (`record.rs`, `sink.rs`).
+4. **Keep `malstrom-k8s` and `malstrom-k8s-operator` buildable in CI** — **both** crates'
+   `build.rs` run `tonic_build::compile_protos` (`exchange.proto`, `k8s_operator_api.proto`),
+   which needs a `protoc` binary that CI runners do not provide; `ci.yaml` now installs
+   `protobuf-compiler` (a short-lived exclusion of the two crates was tried and reverted —
+   they are first-class parts of the repo, so the gate keeps them in). The protoc requirement
+   is **independent** of the re-pointing — the gRPC runtime and operator keep their protobufs
+   after migrating to the new comm traits.
 
 ## Alternatives considered
 

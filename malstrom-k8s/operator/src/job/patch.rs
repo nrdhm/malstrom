@@ -10,7 +10,7 @@ use crds::{JobState, MalstromJob, MalstromJobStatus};
 use thiserror::Error;
 
 pub async fn patch(client: Client, job_spec: Arc<MalstromJob>) -> Result<(), PatchJobError> {
-    let pp = PatchParams::apply("malstrom-operator");
+    let pp = PatchParams::apply("malstrom-k8s-operator");
     let namespace = job_spec
         .metadata
         .namespace
@@ -70,7 +70,7 @@ pub async fn patch(client: Client, job_spec: Arc<MalstromJob>) -> Result<(), Pat
     malstrom_api
         .patch_status(
             &name,
-            &PatchParams::apply("malstrom-operator"),
+            &PatchParams::apply("malstrom-k8s-operator"),
             &kube::api::Patch::Merge(MalstromJobStatus {
                 state,
                 replicas: job_spec.spec.replicas,
@@ -112,7 +112,7 @@ async fn perform_rescale(
         .parse()
         .map_err(|e| RescaleError::ServiceUrl(format!("{e:?}")))?;
 
-    let pp = PatchParams::apply("malstrom-operator");
+    let pp = PatchParams::apply("malstrom-k8s-operator");
     let statefulset_api: Api<StatefulSet> = Api::namespaced(client.clone(), &namespace);
     let worker_sts_name = job_spec.worker_statefulset_spec().name_any();
 

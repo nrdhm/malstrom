@@ -1,26 +1,23 @@
-use std::{collections::HashMap, rc::Rc, sync::Mutex};
+use std::{collections::HashMap, rc::Rc};
 
-use indexmap::IndexSet;
+use malstrom_macros::instrument_debug;
 use thiserror::Error;
 use tokio::{runtime::LocalRuntime, sync::mpsc};
 use tracing::info;
 
 use crate::{
-    channels::signal::SignalHandle,
     coordinator::messages::*,
     runtime::{
-        OperatorOperatorComm, RuntimeFlavor,
+        OperatorOperatorComm,
         communication::{WorkerClient, WorkerCoordinatorComm},
     },
-    snapshot::{NoPersistence, PersistenceBackend, PersistenceClient, SnapshotVersion},
-    stream::{DirectLogic, Operator, WorkerBuildContext},
+    snapshot::{NoPersistence, PersistenceBackend, PersistenceClient},
+    stream::WorkerBuildContext,
     types::WorkerId,
-    worker::{
-        InnerRuntimeBuilder, coordination_task::CoordinationTask, root_logic::RootLogic,
-        sys_message::SysMessage,
-    },
+    worker::{coordination_task::CoordinationTask, sys_message::SysMessage},
 };
 
+/// represents one worker
 pub struct Worker<P, C> {
     persistence_backend: P,
     communication_backend: Rc<C>,
@@ -53,6 +50,7 @@ where
         })
     }
 
+    #[instrument_debug(skip_all)]
     pub(super) fn execute(
         self,
         sys_msg_sender: mpsc::Sender<SysMessage<P::Client>>,
@@ -105,7 +103,7 @@ where
         // dataflow is done — let the coordination task report completion to the
         // coordinator, then wait for it to finish so the comm runtime can drop cleanly
         let _ = completion_tx.send(true);
-        self.comm_rt.block_on(coord_task);
+        self.comm_rt.block_on(coord_task).unwrap();
 
         Ok(())
     }

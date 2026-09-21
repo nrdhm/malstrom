@@ -1,8 +1,7 @@
 //! Build contexts used by operators
 use std::rc::Rc;
 
-use indexmap::{IndexMap, IndexSet};
-use itertools::Itertools;
+use indexmap::IndexSet;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use tokio::runtime::LocalRuntime;
@@ -31,7 +30,9 @@ pub struct BuildContext {
 }
 
 impl BuildContext {
-    pub(crate) fn new(
+    /// Create a build context for the given worker/operator. External callers (e.g. the
+    /// operator testkit) use this to drive an operator's builder without a running worker.
+    pub fn new(
         worker_id: WorkerId,
         operator_id: OperatorId,
         operator_rt: Rc<LocalRuntime>,
@@ -69,7 +70,8 @@ impl BuildContext {
         &self.worker_ids
     }
 
-    pub(crate) fn get_communication(&self) -> Rc<dyn OperatorOperatorComm> {
+    /// Get this operator's communication backend.
+    pub fn get_communication(&self) -> Rc<dyn OperatorOperatorComm> {
         Rc::clone(&self.communication)
     }
 }
@@ -102,6 +104,16 @@ impl WorkerBuildContext {
             config_version,
             operator_rt,
         }
+    }
+}
+
+impl std::fmt::Debug for WorkerBuildContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("WorkerBuildContext")
+            .field("worker_id", &self.worker_id)
+            .field("worker_ids", &self.worker_ids)
+            .field("config_version", &self.config_version)
+            .finish()
     }
 }
 

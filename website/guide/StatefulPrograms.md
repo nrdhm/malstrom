@@ -8,7 +8,7 @@ The state may be very simple, like the total count of messages received, or very
 
 Let's see how we can make our program stateful.
 
-<<< @../../malstrom-core/examples/stateful_programs.rs
+<<< @../../malstrom-examples/examples/stateful_programs.rs
 
 This program will print the running sum of all numbers from 0 to 100 added up.
 Let's dissect the `stateful_map` operator.
@@ -44,7 +44,7 @@ usually not what you would do in a real application.
 
 Let's look at an example with multiple keys:
 
-<<< @../../malstrom-core/examples/stateful_program_multiple_keys.rs
+<<< @../../malstrom-examples/examples/stateful_program_multiple_keys.rs
 
 Now instead of getting a running sum of all numbers, we gut running sums of all even and odd numbers.
 This is because our state is keyed by the parity of the numbers.
@@ -67,15 +67,17 @@ Currently Malstrom comes with two different backends to choose from:
 - **NoPersistenceBackend**: As the name implies, this is a no-op backend which **does not** persist
   state. On program restarts all state is lost. This is useful for tests, stateless programs or
   programs which do not need to recover state on restarts.
-- **SlateDbBackend**: This backend is available with the feature `slatedb`.
+- **SlateDbBackend**: This backend ships in the separate
+  [`malstrom-snapshot-slatedb`](https://crates.io/crates/malstrom-snapshot-slatedb) crate.
   It uses [SlateDB](https://slatedb.io/) with [Object Store](https://docs.rs/object_store/latest/object_store/)
   as a backend which can save snapshots to either local disk or a cloud store like S3, GCS or Azure Blob.
 
 Let's see how we can make our program state persistent:
 
-First make sure you have SlateDB installed: `cargo add malstrom -F slatedb`.
+First add the backend crate: `cargo add malstrom-snapshot-slatedb` (and
+`malstrom-operators` for the operators used below).
 
-<<< @../../malstrom-core/examples/slatedb_backend.rs
+<<< @../../malstrom-snapshot-slatedb/examples/slatedb_backend.rs
 
 Just like this, we have made our programs state persistent. Let's review the changes we introduced:
 
@@ -86,7 +88,7 @@ Just like this, we have made our programs state persistent. Let's review the cha
 
 Unfortunately right now we have too little data, the program will finish before even taking the first snapshot. Let's take more data and introduce some failures:
 
-<<< @../../malstrom-core/examples/slatedb_backend_failing.rs
+<<< @../../malstrom-snapshot-slatedb/examples/slatedb_backend_failing.rs
 
 Our program will now "fail" and restart every 10 seconds. You may observe some duplicate outputs,
 but the running total calculated remains correct, i.e. every integer is added **exactly once**.

@@ -7,11 +7,12 @@ Status: proposed
 `SourceCoordinator` is the last raw-`Logic` operator in the source path
 (`malstrom-core/src/sources/stateful.rs`): it hand-dispatches an eight-arm `Message` match
 inside a `tokio::select!` on the input and comm channels. This is exactly the pattern the
-review flagged (smell #7 — "two operator-authoring models in the same file … `SafeLogic`
-exists precisely so operators don't get the internal messaging invariants wrong; the
-part-lister opted out" — see [the review](../../../../docs/reviews/sources-module-review.md),
-§7) and the redesign's "one operator model" promised to remove
-([redesign](../../../../docs/reviews/sources-module-redesign.md), §3). The collapse refactor
+review flagged as smell #7 — two operator-authoring models in the same file: `PartLister`
+implemented raw `Logic` and hand-dispatched eight `Message::*` arms, while
+`StatefulSourcePartitionOp` implemented `SafeLogic` ("`SafeLogic` exists precisely so operators
+don't get the internal messaging invariants wrong; the part-lister opted out") — and the
+redesign's "one operator model" (both the discovery operator and the reader operator implement
+`SafeLogic`, no hand-rolled raw `Logic` match) promised to remove it. The collapse refactor
 shipped the reader as `SafeLogicWrapper<SourcePartitionOp>` but kept the coordinator raw as "a
 narrow, deliberate exception" — see
 [collapse-source-traits](../../implemented/architecture/2026-08-22-collapse-source-traits.md),

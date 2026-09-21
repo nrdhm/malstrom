@@ -51,7 +51,7 @@ pub(super) fn split_mixed_stream<T: MaybeData, In: Kvt<Value = OnTimeLate<T>>>(
         },
     );
     let ontime = ontime.map(
-        &format!("malstrom_core::ontime-{randint}"),
+        format!("malstrom_core::ontime-{randint}"),
         async |x| match x {
             OnTimeLate::OnTime(y) => y,
             OnTimeLate::Late(_) => unreachable!("ontime"),
@@ -59,7 +59,7 @@ pub(super) fn split_mixed_stream<T: MaybeData, In: Kvt<Value = OnTimeLate<T>>>(
     );
 
     let late = late.map(
-        &format!("malstrom_core::late-{randint}"),
+        format!("malstrom_core::late-{randint}"),
         async |x| match x {
             OnTimeLate::OnTime(_) => unreachable!("late"),
             OnTimeLate::Late(y) => y,

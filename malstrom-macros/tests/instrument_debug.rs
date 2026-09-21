@@ -28,8 +28,8 @@ fn span_levels_of(f: impl FnOnce()) -> Vec<Level> {
     let recorder = SpanLevels::default();
     let subscriber = registry().with(recorder.clone());
     tracing::subscriber::with_default(subscriber, f);
-    let levels = recorder.0.lock().unwrap().clone();
-    levels
+
+    recorder.0.lock().unwrap().clone()
 }
 
 /// An argument that is deliberately not `Debug`, to prove `skip_all` is

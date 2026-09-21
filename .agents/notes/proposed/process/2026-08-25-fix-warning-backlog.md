@@ -104,8 +104,12 @@ Re-enable and clear the lints needing no design judgment: `let_and_return`,
 `redundant_field_names`, `needless_borrow`/`needless_borrows_for_generic_args`,
 `collapsible_if`, `map_clone`, `useless_conversion`/`unnecessary_to_owned`, `derivable_impls`,
 `redundant_closure`, `redundant_pattern_matching`, `option_map_unit_fn`, `clone_on_copy`,
-`doc_lazy_continuation`, `empty_line_after_doc_comments`, `unused_unit`,
-`upper_case_acronyms`.
+`doc_lazy_continuation`, `empty_line_after_doc_comments`, `unused_unit`, `upper_case_acronyms`.
+
+**Done (2026-09-21):** all cleared; every `allow` removed. `cargo clippy --fix` applied most
+(24 files); the rest hand-fixed (`doc_lazy_continuation` blank-line insertion, an
+`empty_line_after_doc_comments` doc→`//`, `if let Some(_)`→`.is_some()`, and the
+`KVT`→`Kvt` test-local alias rename).
 
 ### Step 3 — Document the public extension API
 

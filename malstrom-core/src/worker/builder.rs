@@ -124,7 +124,7 @@ impl InnerRuntimeBuilder {
             let build_ctx = ctx_receiver.recv().map(Result::unwrap).await;
             operator.start(build_ctx).await;
         });
-        if let Some(_) = self.operator_tasks.insert(operator_id, task) {
+        if self.operator_tasks.insert(operator_id, task).is_some() {
             panic!("Non unique operator name: {operator_name}")
         }
         operator_id

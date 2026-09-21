@@ -47,7 +47,7 @@ impl<T> Sender<T> {
     /// to a channel without any receiver drops the message
     pub fn send(&self, msg: T) -> Send<'_, T> {
         Send {
-            sender: &self,
+            sender: self,
             value: RefCell::new(Some(msg)),
         }
     }
@@ -116,11 +116,15 @@ impl<'a, T> Future for Send<'a, T> {
                 shared.queue.push_back(v);
             }
             // wake up receiver
-            shared.recv_waker.take().map(Waker::wake);
+            if let Some(a) = shared.recv_waker.take() {
+                Waker::wake(a)
+            }
             Poll::Ready(())
         } else {
             // wake any receiver to free up the queue
-            shared.recv_waker.take().map(Waker::wake);
+            if let Some(a) = shared.recv_waker.take() {
+                Waker::wake(a)
+            }
             // set a waker so we can try again when the receiver frees up the queue
             shared.send_waker = Some(cx.waker().clone());
             Poll::Pending
@@ -167,7 +171,9 @@ impl<'a, T> Future for Receive<'a, T> {
         match shared.queue.pop_front() {
             Some(x) => {
                 // tell any waiting sender there is space in queue
-                shared.send_waker.take().map(Waker::wake);
+                if let Some(a) = shared.send_waker.take() {
+                    Waker::wake(a)
+                }
                 Poll::Ready(x)
             }
             None => {

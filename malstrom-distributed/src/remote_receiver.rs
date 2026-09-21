@@ -258,7 +258,7 @@ where
         ctx: &OperatorContext,
     ) -> RescaleMessage {
         let all_workers = rescale.get_all_workers();
-        let existing_workers: IndexSet<WorkerId> = self.remote_recvs.keys().map(|x| *x).collect();
+        let existing_workers: IndexSet<WorkerId> = self.remote_recvs.keys().copied().collect();
         let new_workers = all_workers.difference(&existing_workers);
         for wid in new_workers.into_iter() {
             let receiver = OperatorCommReceiver::new(*wid, ctx.operator_id, self.comm.as_ref())

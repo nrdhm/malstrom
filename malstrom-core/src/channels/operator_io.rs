@@ -36,13 +36,13 @@ impl<M: Kvt> Output<M> {
     pub fn new_unlinked(partitioner: impl OperatorPartitioner<M>) -> Self {
         // Allow NoTime type to indicate a final output
         // even if send is never called on this output
-        let this = Self {
+
+        Self {
             senders: Vec::new(),
             partitioner: Box::new(partitioner),
             frontier: None,
             closed_signal: watch::Sender::new(false),
-        };
-        this
+        }
     }
     /// add another one sender
     /// Add a raw sender to this output (internal edge wiring; used by [`link`]).
@@ -65,10 +65,10 @@ impl<M: Kvt> Output<M> {
             warn!("send on a closed output");
             return;
         }
-        if let Message::Epoch(e) = &msg {
-            if self.frontier.as_ref().is_some_and(|x| e > x) || self.frontier.is_none() {
-                self.frontier = Some(e.clone());
-            }
+        if let Message::Epoch(e) = &msg
+            && (self.frontier.as_ref().is_some_and(|x| e > x) || self.frontier.is_none())
+        {
+            self.frontier = Some(e.clone());
         }
         let recipient_len = self.senders.len();
         let mut output_flags = vec![false; recipient_len];
@@ -218,7 +218,7 @@ where
     pub fn try_recv(&mut self) -> Option<Message<M>> {
         let mut fut = std::pin::pin!(self.receivers.recv());
         let waker = std::task::Waker::noop();
-        let mut cx = std::task::Context::from_waker(&waker);
+        let mut cx = std::task::Context::from_waker(waker);
         match fut.as_mut().poll(&mut cx) {
             std::task::Poll::Ready(AlignedValue::Unaligned((_, msg))) => Some(msg),
             std::task::Poll::Ready(AlignedValue::Aligned(mut items)) => {

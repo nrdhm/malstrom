@@ -26,7 +26,7 @@ pub use operator_tester::{FakeCommunication, OperatorTester, SentMessage};
 /// a JetStream stream, which does not produce any messages
 pub fn get_test_rt<F>(stream: F) -> SingleThreadRuntime<NoPersistence, F>
 where
-    F: FnMut(&mut dyn StreamProvider) -> (),
+    F: FnMut(&mut dyn StreamProvider),
 {
     SingleThreadRuntime::builder()
         .persistence(NoPersistence)

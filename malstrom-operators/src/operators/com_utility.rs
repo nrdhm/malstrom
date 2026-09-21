@@ -122,7 +122,7 @@ where
     /// * `ctx` - The operator context needed to create new receiver and sender connections
     async fn handle_rescale(&mut self, rescale: &RescaleMessage, _ctx: &OperatorContext) {
         let all_workers = rescale.get_all_workers();
-        let existing_workers: IndexSet<WorkerId> = self.clients.keys().map(|x| *x).collect();
+        let existing_workers: IndexSet<WorkerId> = self.clients.keys().copied().collect();
         let new_workers = all_workers.difference(&existing_workers);
         for wid in new_workers.into_iter() {
             let sender_receiver = SenderReceiver::new(&self.comm, *wid, self.channel_id).await;

@@ -86,20 +86,20 @@ where
         let mut workers_spawned = self.parrallelism;
 
         loop {
-            if let Ok(desired) = self.rescale_req.1.try_recv() {
-                if desired > workers_spawned {
-                    for i in workers_spawned..desired {
-                        let thread = Self::spawn_worker(
-                            self.build.clone(),
-                            self.persistence.clone(),
-                            Arc::clone(&operator_channels),
-                            Arc::clone(&coord_channels),
-                            i,
-                        );
-                        threads.push(thread);
-                    }
-                    workers_spawned = desired;
+            if let Ok(desired) = self.rescale_req.1.try_recv()
+                && desired > workers_spawned
+            {
+                for i in workers_spawned..desired {
+                    let thread = Self::spawn_worker(
+                        self.build.clone(),
+                        self.persistence.clone(),
+                        Arc::clone(&operator_channels),
+                        Arc::clone(&coord_channels),
+                        i,
+                    );
+                    threads.push(thread);
                 }
+                workers_spawned = desired;
             }
             threads.retain(|x| !x.is_finished());
             if threads.is_empty() {

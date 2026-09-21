@@ -152,7 +152,7 @@ where
         let target = if msg.config_version > self.this_version {
             self.this_worker
         } else {
-            let new_target = (self.partition_func)(key, &self.new_worker_set());
+            let new_target = (self.partition_func)(key, self.new_worker_set());
             if new_target == self.this_worker {
                 let old_target = (self.partition_func)(key, &self.old_worker_set);
                 if old_target == msg.sender_id {
@@ -165,12 +165,11 @@ where
             }
         };
 
-        let targeted = TargetedData {
+        TargetedData {
             target_id: target,
             config_version: self.this_version,
             data_msg: msg.data_msg,
-        };
-        targeted
+        }
     }
 
     fn new_worker_set(&self) -> &IndexSet<WorkerId> {

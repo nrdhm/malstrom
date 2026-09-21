@@ -89,7 +89,7 @@ mod tests {
     #[test]
     fn builder_works_resuing_tests_common_primitives() {
         init_logs();
-        type KVT = (u8, u8, OnceTime);
+        type Kvt = (u8, u8, OnceTime);
     }
 
     /// check operator's wiring with the Builder
@@ -105,18 +105,18 @@ mod tests {
     #[test]
     fn builder_works() {
         init_logs();
-        type KVT = (u8, u8, OnceTime);
-        let mut sender = Output::<KVT>::new_unlinked(full_broadcast);
-        let mut input = Input::<KVT>::new_unlinked();
+        type Kvt = (u8, u8, OnceTime);
+        let mut sender = Output::<Kvt>::new_unlinked(full_broadcast);
+        let mut input = Input::<Kvt>::new_unlinked();
         link(&mut sender, &mut input);
 
-        let noop_logic = Forward::<KVT>::new().into_logic();
+        let noop_logic = Forward::<Kvt>::new().into_logic();
         let mut forward = OperatorBuilder::new("forward-op".to_owned())
             .with_direct_logic(noop_logic)
             .with_input(input)
             .build();
 
-        let mut receiver = Input::<KVT>::new_unlinked();
+        let mut receiver = Input::<Kvt>::new_unlinked();
 
         forward.link_to_input(&mut receiver);
         let persistence = NoPersistence {};

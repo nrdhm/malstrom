@@ -105,7 +105,7 @@ impl Commits {
         match file {
             Ok(x) => {
                 let content = rt.block_on(x.bytes())?;
-                let commits: Vec<SnapshotVersion> = rmp_serde::from_slice(&content.to_vec())?;
+                let commits: Vec<SnapshotVersion> = rmp_serde::from_slice(&content)?;
                 Ok(Self {
                     commits: Arc::new(Mutex::new(commits)),
                     commits_path,

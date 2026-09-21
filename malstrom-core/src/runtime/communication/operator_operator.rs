@@ -49,6 +49,7 @@ where
     /// * `to_worker` - The ID of the worker hosting the target operator.
     /// * `channel_id` - Unique ID of the communication channel
     /// * `backend` - The backend implementing the [`OperatorOperatorComm`] trait.
+    ///
     /// Create a sender to a specific operator on another worker.
     pub async fn new<Backend: OperatorOperatorComm + ?Sized>(
         to_worker: WorkerId,
@@ -66,6 +67,7 @@ where
     ///
     /// # Arguments
     /// * `msg` - The message to send.
+    ///
     /// Send a message to the target operator.
     pub async fn send(&self, msg: T) {
         let encoded = T::encode(msg);
@@ -90,6 +92,7 @@ where
     /// * `from_worker` - The ID of the worker you want to receive from
     /// * `channel_id` - Unique ID of the communication channel
     /// * `backend` - The backend implementing the [`OperatorOperatorComm`] trait.
+    ///
     /// Create a sender to a specific operator on another worker.
     pub async fn new<Backend: OperatorOperatorComm + ?Sized>(
         from_worker: WorkerId,

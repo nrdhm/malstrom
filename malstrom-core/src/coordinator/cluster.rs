@@ -29,9 +29,9 @@ pub(crate) struct ClusterHandle {
 }
 
 impl ClusterHandle {
-    /// Create a serializable version of the state by cloning.
-    /// The serializable version, once created, is completely decoupled from the [CoordinatorState]
-    /// i.e. updates are not reflected
+    // Create a serializable version of the state by cloning.
+    // The serializable version, once created, is completely decoupled from the [CoordinatorState]
+    // i.e. updates are not reflected
     // pub(crate) fn get_serializable(&self) -> SerializableClusterHandle {
     //     let worker_states = self
     //         .workers
@@ -50,7 +50,7 @@ impl ClusterHandle {
     /// Completes when all of them have finished building
     pub async fn start_build(&self, targets: &[WorkerId]) -> () {
         let build_info = BuildInformation {
-            worker_set: self.workers.keys().map(|x| *x).collect(),
+            worker_set: self.workers.keys().copied().collect(),
             resume_snapshot: self.snapshot_version,
             config_version: self.config_version.unwrap_or_default(),
         };
@@ -177,7 +177,7 @@ impl SerializableClusterHandle {
     where
         C: Sync + WorkerCoordinatorComm,
     {
-        let worker_states = IndexMap::from(self.worker_states);
+        let worker_states = self.worker_states;
         let workers = IndexMap::with_capacity(worker_states.len());
         let mut cluster = ClusterHandle {
             workers,
@@ -208,9 +208,10 @@ impl From<&ClusterHandle> for SerializableClusterHandle {
 }
 
 /// What the worker is currently doing
-#[derive(PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Clone, Serialize, Deserialize, Default)]
 pub(super) enum WorkerPhase {
     /// Not yet reported
+    #[default]
     Unknown,
     /// Build completed, but execution not yet started
     BuildComplete,
@@ -224,11 +225,6 @@ pub(super) enum WorkerPhase {
     Suspended,
     /// Execution completed
     Completed,
-}
-impl Default for WorkerPhase {
-    fn default() -> Self {
-        Self::Unknown
-    }
 }
 
 pub(super) fn load_or_create_cluster_handle<P>(

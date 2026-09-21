@@ -36,7 +36,7 @@ impl com::ReqResReceiver for ReqResReceiver {
     async fn recv(
         &self,
     ) -> Result<(Vec<u8>, Box<dyn com::ReqResResponder>), Box<dyn std::error::Error>> {
-        let (msg, responder) = self.0.recv_async().await.map_err(|e| Box::new(e))?;
+        let (msg, responder) = self.0.recv_async().await.map_err(Box::new)?;
         let responder = Box::new(ReqResResponder::new(responder));
         Ok((msg, responder))
     }

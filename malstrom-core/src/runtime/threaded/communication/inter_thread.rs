@@ -47,8 +47,8 @@ impl<T> InterThreadCommunication<T> {
             Some(tx) => tx.clone(),
             None => {
                 let (tx, rx) = flume::bounded(1024);
-                channels.0.insert(key.clone(), tx.clone());
-                channels.1.insert(key.clone(), rx);
+                channels.0.insert(key, tx.clone());
+                channels.1.insert(key, rx);
                 tx
             }
         }
@@ -60,8 +60,8 @@ impl<T> InterThreadCommunication<T> {
             Some(rx) => rx.clone(),
             None => {
                 let (tx, rx) = flume::bounded(1024);
-                channels.0.insert(key.clone(), tx);
-                channels.1.insert(key.clone(), rx.clone());
+                channels.0.insert(key, tx);
+                channels.1.insert(key, rx.clone());
                 rx
             }
         }

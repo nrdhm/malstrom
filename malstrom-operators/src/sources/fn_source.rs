@@ -66,12 +66,10 @@ where
     type State = ();
 
     async fn poll(&mut self) -> Option<(V, OnceTime)> {
-        let x = self
-            .iter
+        self.iter
             .as_mut()
             .and_then(|it| it.next())
-            .map(|v| (v, OnceTime::MIN));
-        x
+            .map(|v| (v, OnceTime::MIN))
     }
 
     async fn snapshot(&self) {}
@@ -347,7 +345,7 @@ mod tests {
                         let msg = input.recv().await;
                         match msg {
                             Message::Epoch(x) => {
-                                sink.give(x.clone());
+                                sink.give(x);
                                 output.send(Message::Epoch(x)).await;
                             }
                             msg => {

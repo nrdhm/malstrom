@@ -79,7 +79,7 @@ where
                 self.workers = self
                     .workers
                     .intersection(x.get_all_workers())
-                    .map(|x| *x)
+                    .copied()
                     .collect();
                 output.send(Message::Rescale(x)).await
             }

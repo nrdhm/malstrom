@@ -51,7 +51,7 @@ where
                     _ = logic
                             .apply(&mut self.input, &mut self.output, &mut operator_context)
                             .instrument(debug_span!("logic apply")) => {
-                        ()
+
                     },
                         // can not possibly process more messages
                     _ = output_closed.wait_for() => {
@@ -158,7 +158,7 @@ where
             logic_builder,
             output,
             operator_id: hash_op_name(&name),
-            name: name,
+            name,
         }
     }
 
@@ -169,7 +169,7 @@ where
             logic_builder,
             output,
             operator_id: hash_op_name(&name),
-            name: name,
+            name,
         }
     }
 

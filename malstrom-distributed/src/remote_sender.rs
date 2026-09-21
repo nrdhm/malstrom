@@ -119,7 +119,7 @@ where
                 .remote_senders
                 .get(&target)
                 .expect("Expected message target to be valid");
-            client.send(WireMessage::Acquire(msg.into())).await
+            client.send(WireMessage::Acquire(msg)).await
         }
     }
 
@@ -139,7 +139,7 @@ where
         ctx: &mut OperatorContext,
     ) {
         let all_workers = rescale.get_all_workers();
-        let existing_workers: IndexSet<WorkerId> = self.remote_senders.keys().map(|x| *x).collect();
+        let existing_workers: IndexSet<WorkerId> = self.remote_senders.keys().copied().collect();
         let new_workers = all_workers.difference(&existing_workers);
 
         for wid in new_workers.into_iter() {

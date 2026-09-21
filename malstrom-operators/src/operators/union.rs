@@ -28,7 +28,7 @@ where
         // all streams sink here
         let mut united_input = Input::new_unlinked();
         // first edge to the sink
-        let mut edge = OperatorBuilder::new(format!("{}-0", name).into())
+        let mut edge = OperatorBuilder::new(format!("{}-0", name))
             // just a dummy operator to connect tail (input) with the united input
             .with_direct_logic(Forward::new().into_logic())
             .build();
@@ -42,7 +42,7 @@ where
         // each other stream goes thru the same process
         for (i, mut stream) in inputs.into_iter().enumerate() {
             let forwarder = Forward::<Msg>::new().into_logic();
-            let mut edge = OperatorBuilder::new(format!("{}-{}", name, i + 1).into())
+            let mut edge = OperatorBuilder::new(format!("{}-{}", name, i + 1))
                 .with_direct_logic(forwarder)
                 .build();
             // redirect to the edge

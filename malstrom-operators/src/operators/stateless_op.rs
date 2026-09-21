@@ -116,6 +116,6 @@ where
         output: &mut Output<(In::Key, T, In::Timestamp)>,
         _ctx: &mut malstrom_core::stream::OperatorContext,
     ) {
-        (self.logic).on_epoch(&epoch, output).await;
+        (self.logic).on_epoch(epoch, output).await;
     }
 }

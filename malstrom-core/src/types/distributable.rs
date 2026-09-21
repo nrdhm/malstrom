@@ -81,12 +81,12 @@ mod proptests {
         /// Encode/decode is an identity for every generated value.
         #[test]
         fn round_trips_u64(v: u64) {
-            prop_assert_eq!(u64::decode(&v.clone().encode()), v);
+            prop_assert_eq!(u64::decode(&v.encode()), v);
         }
 
         #[test]
         fn round_trips_i64(v: i64) {
-            prop_assert_eq!(i64::decode(&v.clone().encode()), v);
+            prop_assert_eq!(i64::decode(&v.encode()), v);
         }
 
         #[test]

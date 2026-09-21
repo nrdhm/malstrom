@@ -33,7 +33,7 @@ where
             .with_direct_logic(Forward::new().into_logic())
             .build();
         // redirect the dataflow into the edge.
-        self.swap_tail(&mut edge.input);
+        edge.swap_input(&mut self.tail);
         // connect the edge output to the united_input.
         edge.link_to_input(&mut united_input);
         // register the edge as a runtime task
@@ -46,7 +46,7 @@ where
                 .with_direct_logic(forwarder)
                 .build();
             // redirect to the edge
-            stream.swap_tail(&mut edge.input);
+            edge.swap_input(&mut stream.tail);
             // connect the edge to the united_input
             edge.link_to_input(&mut united_input);
             // don't forget to register in the runtime

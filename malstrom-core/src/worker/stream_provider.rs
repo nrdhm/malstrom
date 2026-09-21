@@ -18,7 +18,7 @@ where
         // link our new stream to the root stream we will build later
         // so it can receive system messages
         let mut input = Input::new_unlinked();
-        operator_io::link(&mut self.root_operator.output, &mut input);
+        operator_io::link(self.root_operator.get_output_mut(), &mut input);
         InitialStreamBuilder::new(input, self.inner.clone())
     }
 }

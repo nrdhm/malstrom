@@ -13,10 +13,10 @@ use crate::{
 
 /// A builder type to build generic operators
 pub struct Operator<M: Kvt, B, N: Kvt> {
-    pub input: Input<M>,
+    pub(crate) input: Input<M>,
     // TODO: get rid of the dynamic dispatch here
     logic_builder: B,
-    pub output: Output<N>,
+    pub(crate) output: Output<N>,
     operator_id: u64,
     name: String, // human readable name for debugging
 }

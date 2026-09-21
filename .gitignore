@@ -20,6 +20,9 @@ website/.vitepress/cache/
 website/.vitepress/dist/
 .vscode
 
+# Project-local pi coding-agent config (trust-gated, often personal)
+.pi/
+
 .env*
 .*.log
 

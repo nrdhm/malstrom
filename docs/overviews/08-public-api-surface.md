@@ -176,8 +176,10 @@ Rust gives only two visibilities that help here: `pub` and `pub(crate)`. To expr
 
 Steps are independent; 1–3 are mechanical and low-risk.
 
-1. **`worker::InnerRuntimeBuilder` → `pub(crate)`.** No external consumer exists
-   (`stream/stream_builder.rs` uses it internally). Straight win, no follow-up.
+1. ~~**`worker::InnerRuntimeBuilder` → `pub(crate)`.**~~ **Done 2026-09-21.** Made `pub(crate)`
+   (with `StreamBuilder::runtime` field and the unused `get_runtime` removed); its `pub`
+   re-export dropped. No external consumer existed, and it no longer appears in the built
+   `malstrom` docs.
 2. **`#[doc(hidden)]` on the implementation types** — `stream::Forward`,
    `stream::OperatorBuilder`, `stream::Operator` (or make `Operator`'s `input`/`output`
    fields private and route the combinators through `OperatorBuilder`). Keeps the crate graph

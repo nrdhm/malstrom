@@ -21,18 +21,13 @@ pub struct StreamBuilder<M: Kvt> {
     /// The receive-side of the last edge in the chain.
     pub tail: Input<M>,
     /// The runtime this stream is registered to.
-    pub runtime: Rc<Mutex<InnerRuntimeBuilder>>,
+    pub(crate) runtime: Rc<Mutex<InnerRuntimeBuilder>>,
 }
 
 impl<M> StreamBuilder<M>
 where
     M: Kvt,
 {
-    /// Get a reference to the runtime this stream belongs to
-    pub fn get_runtime(&self) -> Rc<Mutex<InnerRuntimeBuilder>> {
-        Rc::clone(&self.runtime)
-    }
-
     /// Recreate with the stream tail updated.
     pub fn with_new_tail(&self, new_tail: Input<M>) -> Self {
         StreamBuilder {

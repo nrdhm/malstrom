@@ -72,7 +72,7 @@ where
     }
 }
 
-pub struct InnerRuntimeBuilder {
+pub(crate) struct InnerRuntimeBuilder {
     // build_ctx will be sent here once available
     // TODO: replace with [tokio::sync::OnceCell]
     build_ctx: tokio::sync::broadcast::Sender<WorkerBuildContext>,
@@ -110,7 +110,10 @@ impl InnerRuntimeBuilder {
 
     /// Register an operator with the runtime; returns its id.
     #[instrument_debug(skip_all)]
-    pub fn add_operator<In, B, Out>(&mut self, mut operator: Operator<In, B, Out>) -> OperatorId
+    pub(crate) fn add_operator<In, B, Out>(
+        &mut self,
+        mut operator: Operator<In, B, Out>,
+    ) -> OperatorId
     where
         In: Kvt,
         B: LogicBuilder<In, Out>,

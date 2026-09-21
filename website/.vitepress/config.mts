@@ -1,8 +1,17 @@
 import { defineConfig } from 'vitepress'
+import { fileURLToPath } from 'node:url'
 import footnote from 'markdown-it-footnote'
+import { withMermaid } from 'vitepress-plugin-mermaid'
+
+// `vitepress-plugin-mermaid` lists `mermaid` as a peer dependency and imports it from
+// its own (isolated) install location, which does not see this project's `node_modules`.
+// Alias `mermaid` to the local install so the bundled `Mermaid.vue` resolves it.
+const mermaidEntry = fileURLToPath(
+  new URL('../node_modules/mermaid/dist/mermaid.esm.min.mjs', import.meta.url),
+)
 
 // https://vitepress.dev/reference/site-config
-export default defineConfig({
+export default withMermaid(defineConfig({
   title: "Malstrom",
   description: "Malstrom - Stateful, Distributed Stream Processing",
   themeConfig: {
@@ -35,6 +44,13 @@ export default defineConfig({
         ]
       },
       {
+        text: 'Internals',
+        items: [
+          { text: 'The Kvt Trait', link: '/internals/KvtTrait' },
+          { text: 'The StartBuild Protocol', link: '/internals/StartBuild' },
+        ]
+      },
+      {
         items: [
           { text: 'Malstrom compared to other frameworks', link: '/MalstromCompared' },
         ]
@@ -50,7 +66,16 @@ export default defineConfig({
       md.use(footnote)
     }
   },
+  // `vitepress-plugin-mermaid` renders ```mermaid blocks and follows VitePress's
+  // dark mode (it switches the Mermaid theme when the site is dark). Keep the
+  // diagrams to a syntax subset shared with the MkDocs `docs/` site (mermaid2).
+  mermaid: {},
+  vite: {
+    resolve: {
+      alias: { mermaid: mermaidEntry },
+    },
+  },
   sitemap: {
     hostname: 'https://malstrom.io'
   }
-})
+}))

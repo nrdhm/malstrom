@@ -7,6 +7,12 @@ use crate::{
 };
 
 /// A convenient way to define an operator.
+///
+/// Implementation detail: the plumbing combinators (union/split) use to build edges
+/// without touching `Operator` fields. Not part of the user-facing extension API; kept
+/// `pub` for `malstrom-operators`, hidden from docs. See the public-API surface audit
+/// (`docs/overviews/08-public-api-surface.md`).
+#[doc(hidden)]
 pub struct OperatorBuilder<M: Kvt, B, N: Kvt> {
     name: String,
     input: Input<M>,

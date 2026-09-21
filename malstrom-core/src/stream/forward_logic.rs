@@ -6,6 +6,12 @@ use crate::{
     types::{DataMessage, Kvt, Message},
 };
 
+/// No-op forwarding logic used to wire stream edges (union/split combinators).
+///
+/// Implementation detail: not part of the user-facing extension API. Kept `pub` for
+/// `malstrom-operators`, hidden from docs. See the public-API surface audit
+/// (`docs/overviews/08-public-api-surface.md`).
+#[doc(hidden)]
 pub struct Forward<Msg>(PhantomData<Msg>);
 impl<Msg> Forward<Msg>
 where

@@ -10,8 +10,10 @@ mod stream_builder;
 
 pub use build_context::BuildContext;
 pub(crate) use build_context::WorkerBuildContext;
+#[doc(hidden)]
 pub use forward_logic::Forward;
 pub use operator::Operator;
+#[doc(hidden)]
 pub use operator_builder::OperatorBuilder;
 pub use operator_context::OperatorContext;
 pub use operator_logic::{DirectLogic, Logic, LogicBuilder, SafeLogic, SafeLogicWrapper};

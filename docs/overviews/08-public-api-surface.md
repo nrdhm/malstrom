@@ -180,10 +180,12 @@ Steps are independent; 1–3 are mechanical and low-risk.
    (with `StreamBuilder::runtime` field and the unused `get_runtime` removed); its `pub`
    re-export dropped. No external consumer existed, and it no longer appears in the built
    `malstrom` docs.
-2. **`#[doc(hidden)]` on the implementation types** — `stream::Forward`,
-   `stream::OperatorBuilder`, `stream::Operator` (or make `Operator`'s `input`/`output`
-   fields private and route the combinators through `OperatorBuilder`). Keeps the crate graph
-   working while removing them from the documented surface.
+2. ~~**`#[doc(hidden)]` on the implementation types**~~ **Partially done 2026-09-21.**
+   `stream::Forward` and `stream::OperatorBuilder` are `#[doc(hidden)]` (with their `stream`
+   re-exports); both are used only by `malstrom-operators` (`union.rs`, `split.rs`) and vanish
+   from the built docs. `Operator` remains public and its `input`/`output` fields are still
+   `pub` — that part is pending (make the fields private and route combinators through
+   `OperatorBuilder`).
 3. **`Output`/`Input::add_another_one`** — make them `pub(crate)` (their only caller is
    `link` in the same module). Removes the `spsc` type leak from the public method set.
 4. **Introduce an explicit internal tier.** Wrap `spsc`, `alignment`, `recv_trait`,

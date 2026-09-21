@@ -45,7 +45,7 @@ where
 }
 
 /// The Collect messages takes state from operators so it can be sent to another worker
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Collect<K> {
     key: K,
     backchannel: tokio::sync::mpsc::UnboundedSender<(OperatorId, Vec<u8>)>,
@@ -91,7 +91,7 @@ where
 }
 
 /// The Interrogate message is passed along a stream to identify which keys have associated state
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Interrogate<K> {
     sender: tokio::sync::mpsc::UnboundedSender<K>,
     _key_type: PhantomData<K>,

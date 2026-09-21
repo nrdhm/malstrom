@@ -1,0 +1,26 @@
+# Documentation toolchain for Malstrom.
+#
+# This is a virtual uv project: it has no installable package, it only pins the
+# Python tools used to build and serve the docs site.
+#
+# Commands:
+#   uv sync                              # create/update .venv from uv.lock
+#   uv run properdocs serve              # live preview at http://127.0.0.1:8000
+#   uv run properdocs build --site-dir site
+#
+# See docs/ overviews for the actual documentation content.
+
+[project]
+name = "malstrom-docs"
+version = "0.1.0"
+description = "Docs toolchain for Malstrom: ProperDocs + MaterialX + Mermaid2"
+requires-python = ">=3.10"
+dependencies = [
+    "mkdocs==1.6.1",
+    "mkdocs-materialx==10.1.8",
+    "mkdocs-mermaid2-plugin==1.2.3",
+    "properdocs==1.6.7",
+]
+
+[tool.uv]
+package = false

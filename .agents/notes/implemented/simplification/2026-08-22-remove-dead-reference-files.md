@@ -22,10 +22,9 @@ A fifth undeclared module — `testing/iterator_source.rs`, which referenced the
 test logic lives on in `sources/fn_source.rs`.
 
 Before deleting, `git grep` confirmed no `mod` declaration or `include!` referenced any of
-them. The overviews that described them as current tree state
-(`docs/overviews/03-dependencies.md`, `docs/overviews/04-modules.md`) were updated in the
-same pass; `docs/reviews/sources-module-redesign.md` still mentions them by design (the
-reviews folder is a frozen source of truth and is not edited).
+them. The overview docs that described them as current tree state were updated in the same
+pass; the historical review/redesign docs still mention them by design (that folder is a
+frozen source of truth and is not edited).
 
 ## Alternatives considered
 
@@ -36,7 +35,7 @@ and their API no longer compiles against the current types. Git history preserve
 ## Consequences
 
 - The acceptance criteria hold: `git grep -l 'keyed_old\|stateful_old\|state_old\|operator_io copy'`
-  matches only prose in docs/notes (historical overviews and this note), never code.
+  matches only prose in documentation and notes (historical overviews and this note), never code.
 - The full test suite still passes after deletion (50 unit + 10 doc tests).
 - Directory listings, greps, and the dependency/module maps no longer include files that
   were never compiled.

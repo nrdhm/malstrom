@@ -1,6 +1,7 @@
 # Branch Overview — `new-scheduler`
 
-> **Last refreshed:** 2026-08-23 (new-scheduler @ a4c8fce)
+> **Last refreshed:** 2026-09-03
+> **Branch/commit:** new-scheduler @ a4c8fce
 
 ## At a glance
 

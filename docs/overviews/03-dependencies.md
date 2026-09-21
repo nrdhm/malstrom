@@ -1,6 +1,7 @@
 # Malstrom Core Dependency Map
 
-> **Last refreshed:** 2026-08-24 (split-malstrom-core)
+> **Last refreshed:** 2026-09-03
+
 > **Scope:** non-dev dependencies of `malstrom-core/Cargo.toml` — **the kernel**.
 > **Method:** usage grep over `malstrom-core/src`; dead reference files excluded (see "Findings")
 > **Keep fresh:** see "Keeping this file fresh" at the bottom

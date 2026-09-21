@@ -8,9 +8,11 @@ Part discovery still rides the data plane. After the source-trait collapse, `Sou
 (worker 0, raw `Logic`) emits each discovered partition as
 `DataMessage::new(part.clone(), NoData, SrcImpl::Timestamp::MIN)` through a
 `.distribute(rendezvous_select)` step (`malstrom-core/src/sources/stateful.rs`); the redesign's
-first-class control variant was explicitly deferred — see
+first-class control variant — a `Message::SourcePartitions(Vec<PartitionKey>)` emitted by a
+framework-owned discovery step (or fed to reader ops as initial state), instead of the
+fake-data tuple — was explicitly deferred: see
 [collapse-source-traits](../../implemented/architecture/2026-08-22-collapse-source-traits.md),
-Decision 3, and the [redesign](../../../../docs/reviews/sources-module-redesign.md), §3.
+Decision 3.
 
 The deferral framed the cost as "marginal clarity"; the real issue is **control-plane /
 data-plane separation**:
@@ -104,7 +106,7 @@ this note — it is a separate dependent note, [source-discovery-wire-message](2
 ## Follow-up work
 
 - **Cross-worker discovery** — [source-discovery-wire-message](2026-08-24-source-discovery-wire-message.md),
-  dependent on [point-k8s-and-kafka-at-local-malstrom](../../process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md).
+  dependent on [point-k8s-and-kafka-at-local-malstrom](../../proposed/process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md).
 - **Rescale rediscovery** — make `discover()` run on rescale and re-announce via the control
   message, composing with the existing part set; fixes the `discover()` doc lie and completes
   the zero-downtime story. Depends on this note.

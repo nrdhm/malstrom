@@ -8,9 +8,7 @@ The `sources` module's core smell: `stateless.rs` was a 130-line file whose enti
 **pretend a stateless source is a stateful one with empty state**. The adapter
 (`SourceWrapper` + `PartitionWrapper`) confessed there was really only *one* source engine,
 with "stateless" bolted on top of it. The layering was `StatelessSource` → `SourceWrapper` →
-`StatefulSource` → `into_stream`. See the
-[module review](../../../../docs/reviews/sources-module-review.md) for the full audit; the
-concrete issues:
+`StatefulSource` → `into_stream`. Concrete issues:
 
 1. **Two parallel trait hierarchies, two conventions** — `StatelessSourceImpl<V, T>` used
    generic parameters where `StatefulSourceImpl` used associated types; the adapter
@@ -38,7 +36,7 @@ concrete issues:
 
 ## Decision
 
-The [redesign](../../../../docs/reviews/sources-module-redesign.md) was implemented, with three
+A redesign was implemented, with three
 documented deviations (completion protocol, discovery message, untimed timestamp type) and one
 rejected sub-proposal (`#[derive(StatelessSource)]`).
 

@@ -104,7 +104,7 @@ model).
 - **`malstrom-kafka`/`malstrom-k8s` still pin crates.io `malstrom 0.1.0`** — with the local
   `malstrom` now at 0.2.0, cargo necessarily resolves their dependency from crates.io; they
   still compile in the workspace. Migrating them to the local `malstrom-core`/facade is
-  coupled to [point-k8s-and-kafka-at-local-malstrom](../../process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md).
+  coupled to [point-k8s-and-kafka-at-local-malstrom](../../proposed/process/2026-08-22-point-k8s-and-kafka-at-local-malstrom.md).
 - **`malstrom::snapshot::slatedb` is gone** — `snapshot` is a kernel module, so the facade
   cannot inject `SlateDbBackend` back into it. The connector is re-exported at the new path
   `malstrom::slatedb` (feature `slatedb`). Documented intentional path change.

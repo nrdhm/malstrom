@@ -28,8 +28,20 @@ they are mechanically checkable and survive moves between folders.
 
 The active lifecycle tree is the working inventory: browse its lifecycle/class folders or
 search the repository. Do not add a centralized `INDEX.md` — the tree itself is the index.
+Tree, format, and link integrity are enforced by
+[`scripts/verify-agent-notes.py`](../../scripts/verify-agent-notes.py), which CI runs on every
+pull request and push.
 Low-future-value implemented records move to the separate frozen
 [`archived/`](archived/AGENTS.md) tree described below.
+
+## Relationship to the docs site
+
+Agent Notes are repository-internal decision records. They are **not** published in the docs
+site (`docs/`): the docs build does not consume `.agents/notes`, and there is no symlink
+between them. Keep the two surfaces separate — docs describe current behavior for users,
+Agent Notes record decisions and rationale for maintainers and agents. A user-facing change
+may need both (a docs update *and* a note), but the note is not the docs page and the docs
+page is not the note.
 
 ## Classification
 

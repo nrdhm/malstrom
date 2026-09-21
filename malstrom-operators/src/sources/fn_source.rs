@@ -7,8 +7,8 @@ use std::{cell::RefCell, future::Future, marker::PhantomData, rc::Rc};
 
 use futures::{Stream, StreamExt};
 
-use crate::sources::{Source, SourceImpl, SourcePartition};
-use malstrom_core::types::{Data, Key, NoKey, OnceTime, Timestamp, distributable::Distributable};
+use crate::sources::{SourceImpl, SourcePartition};
+use malstrom_core::types::{Data, NoKey, OnceTime, Timestamp, distributable::Distributable};
 
 /// An untimed source reading from an iterator.
 ///
@@ -66,10 +66,12 @@ where
     type State = ();
 
     async fn poll(&mut self) -> Option<(V, OnceTime)> {
-        self.iter
+        let x = self
+            .iter
             .as_mut()
             .and_then(|it| it.next())
-            .map(|v| (v, OnceTime::MIN))
+            .map(|v| (v, OnceTime::MIN));
+        x
     }
 
     async fn snapshot(&self) {}
@@ -288,7 +290,7 @@ mod tests {
     use crate::sinks::{StatelessSink, VecSink};
     use crate::sources::Source;
     use malstrom_core::channels::operator_io::{Input, Output};
-    use malstrom_core::stream::{Malstrom as _, Operator, OperatorContext, StreamBuilder};
+    use malstrom_core::stream::{Malstrom as _, Operator, OperatorContext};
     use malstrom_core::types::{Message, NoKey};
     use malstrom_testkit::get_test_rt;
 
@@ -345,12 +347,10 @@ mod tests {
                         let msg = input.recv().await;
                         match msg {
                             Message::Epoch(x) => {
-                                println!("epoch: {x:?}");
                                 sink.give(x.clone());
                                 output.send(Message::Epoch(x)).await;
                             }
                             msg => {
-                                // eprintln!("{msg:?}");
                                 output.send(msg).await;
                             }
                         }

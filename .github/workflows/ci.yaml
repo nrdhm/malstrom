@@ -20,6 +20,9 @@ jobs:
           toolchain: 1.97.1
           components: rustfmt, clippy
 
+      - name: Verify agent notes
+        run: python3 scripts/verify-agent-notes.py
+
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
@@ -34,12 +37,12 @@ jobs:
       - name: Install protoc
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
 
-      # The tree is not yet warning-clean (~420 rustc/clippy warnings remain from the
-      # crate splits), so the clippy gate is scoped to the correctness group; the
-      # workspace lints already deny it. Widening to `-D warnings` is tracked as a
-      # follow-up (see .cargo/config.toml and the fix-warning-backlog note).
-      - name: Clippy (correctness)
-        run: cargo clippy --workspace --all-targets -- -D clippy::correctness
+      # Full warning gate. `missing-docs` is temporarily allowed at the workspace level
+      # (root Cargo.toml) because the ~30 gaps left by the crate splits are a separate,
+      # larger docs pass; every other lint is enforced here. The `allow` is removed when
+      # that pass lands — see .agents/notes/proposed/process/2026-08-25-fix-warning-backlog.md.
+      - name: Clippy (warnings)
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: Check
         run: cargo check --workspace --all-targets

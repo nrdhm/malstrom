@@ -1,6 +1,6 @@
 # Malstrom — Project Overview
 
-> **Last refreshed:** 2026-08-23 (new-scheduler @ a4c8fce)
+> **Last refreshed:** 2026-09-03
 
 ## What it is
 

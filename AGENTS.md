@@ -12,6 +12,19 @@ Instructions for AI agents working in this repository.
   when the working tree contains the human's own staged/untracked changes (notes, config,
   secrets, …) — stage only the files your task actually changed.
 
+## Agent notes
+
+The repository keeps decision records under [`.agents/notes/`](.agents/notes/README.md):
+RFC-style proposals, implemented decisions, rejected alternatives, and archived history,
+organized by lifecycle and class. Follow the [Agent Note rules](.agents/notes/README.md) and
+its `AGENTS.md` per-directory instructions.
+
+Every non-trivial change MUST add or update an Agent Note in the same change, per the
+[note-worthiness rule](.agents/notes/README.md#when-to-write-one). Before choosing an
+approach, search the active tree for older notes covering the same decision or mechanism —
+especially rejected alternatives and existing rationale — and cross-link or supersede as the
+rules require.
+
 ## Structure
 
 Prefer locality of behaviour over separation of concern.

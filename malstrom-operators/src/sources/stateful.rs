@@ -7,7 +7,9 @@ use std::{cell::RefCell, rc::Rc};
 
 use futures::{StreamExt, stream::FuturesUnordered};
 use indexmap::{IndexMap, IndexSet};
+use malstrom_macros::instrument_debug;
 use serde::{Deserialize, Serialize};
+use tracing::{Instrument, debug, debug_span};
 
 use crate::keyed::{
     Distribute as _,
@@ -21,8 +23,7 @@ use malstrom_core::stream::{
     OperatorContext, SafeLogic, SafeLogicWrapper, StreamBuilder,
 };
 use malstrom_core::types::{
-    Barrier, Data, DataMessage, Key, Kvt, Message, NoData, Timestamp, WorkerId,
-    distributable::Distributable,
+    Barrier, Data, DataMessage, Key, Message, NoData, Timestamp, distributable::Distributable,
 };
 
 /// A partitioned, possibly stateful source.
@@ -31,7 +32,7 @@ use malstrom_core::types::{
 /// constructors) and implement `snapshot`/`collect` as no-ops.
 pub trait SourceImpl: 'static {
     /// Identifies a partition (one shard / split / file / topic-partition / …).
-    type PartitionKey: Distributable + Key;
+    type PartitionKey: Distributable + Key + std::fmt::Debug;
     /// Values this source emits.
     type Value: Distributable + Data;
     /// Timestamps this source emits.
@@ -265,9 +266,9 @@ where
                     Message::AbsBarrier(x) => output.send(Message::AbsBarrier(x)).await,
                     Message::Rescale(x) => output.send(Message::Rescale(x)).await,
                     Message::ReconfigComplete(x) => output.send(Message::ReconfigComplete(x)).await,
-                    Message::Interrogate(x) => (),
-                    Message::Collect(x) => (),
-                    Message::Acquire(x) => (),
+                    Message::Interrogate(_) => (),
+                    Message::Collect(_) => (),
+                    Message::Acquire(_) => (),
                 }
             }
             part_finished = self.comm.recv() => {
@@ -284,8 +285,8 @@ where
 }
 
 /// Marker a reader op sends to the discovery coordinator once a partition is exhausted.
-#[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Clone)]
-struct PartitionFinished<PartitionKey>(PartitionKey);
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Clone, Debug)]
+struct PartitionFinished<PartitionKey: std::fmt::Debug>(PartitionKey);
 
 struct SourcePartitionOp<SrcImpl: SourceImpl> {
     partitions: IndexMap<SrcImpl::PartitionKey, SrcImpl::Partition>,
@@ -376,6 +377,7 @@ impl<SrcImpl>
 where
     SrcImpl: SourceImpl,
 {
+    #[instrument_debug(skip(self, output))]
     async fn on_schedule(
         &mut self,
         output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
@@ -386,36 +388,57 @@ where
             .iter_mut()
             .map(|(k, v)| async move { (k, v.poll().await) })
             .collect();
-        let next_data = polls.next().await;
+        let next_data = polls
+            .next()
+            .instrument(debug_span!("partitions poll"))
+            .await;
         drop(polls); // drop so we can modify self.partitions
         match next_data {
             // fetched data
             Some((part, Some((data, timestamp)))) => {
+                debug!("fetched data");
                 let msg = DataMessage::new(part.clone(), data, timestamp);
-                output.send(Message::Data(msg)).await;
+                output
+                    .send(Message::Data(msg))
+                    .instrument(debug_span!("send data", ?part))
+                    .await;
                 true
             }
             // partition finished
             Some((part, None)) => {
                 // need to clone because part is borrowed from self.partitions which
                 // we can not mutate while it is borrowed
+                debug!("partition finished: {part:?}");
                 let part = part.clone();
                 self.partitions.swap_remove(&part);
-                self.com_utility
+                // Report the finished partition to worker 0, the discovery coordinator.
+                // `send` only fails with `WorkerIdNotConnected`, which cannot happen for
+                // worker 0: every worker connects to the full worker set at build time and
+                // worker 0 is always in it. Treat a failure as the invariant violation it is
+                // (fail loud) rather than silently dropping the notification, which would
+                // leave worker 0 waiting on a partition that is already gone.
+                if let Err(err) = self
+                    .com_utility
                     .send(0, PartitionFinished(part.clone()))
-                    .await;
+                    .await
+                {
+                    panic!("partition {part:?} finished but worker 0 is not connected: {err}");
+                }
                 true
             }
             // no partitions
-            None => false,
+            None => {
+                debug!("no partitions left");
+                false
+            }
         }
     }
 
     async fn on_data(
         &mut self,
         data_message: DataMessage<(SrcImpl::PartitionKey, NoData, SrcImpl::Timestamp)>,
-        output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
-        ctx: &mut OperatorContext,
+        _output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
+        _ctx: &mut OperatorContext,
     ) {
         let partition_key = data_message.key;
         self.add_partition(partition_key, None).await;
@@ -424,7 +447,7 @@ where
     async fn on_acquire(
         &mut self,
         acquire: &mut Acquire<SrcImpl::PartitionKey>,
-        output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
+        _output: &mut Output<(SrcImpl::PartitionKey, SrcImpl::Value, SrcImpl::Timestamp)>,
         ctx: &mut OperatorContext,
     ) {
         if let Some((part, part_state)) = acquire.take_state(&ctx.operator_id) {

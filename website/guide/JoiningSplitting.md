@@ -4,7 +4,7 @@ We saw already that a stream has one input and one output, however this does not
 
 Let's extend the example from the beginning to take multiple inputs:
 
-<<< @../../malstrom-examples/examples/joining_streams.rs
+<<< @../../malstrom-examples/examples/union_streams.rs
 
 If you run this example, you'll see we get each number twice. The `union` operator takes messages from two streams and fuses them into one. Note that this is different from a `zip` operation: `union` does not necessarily alternate between the left and right stream.
 

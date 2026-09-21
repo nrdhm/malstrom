@@ -5,9 +5,8 @@
 use crate::types::{OperatorId, WorkerId};
 use futures::{FutureExt, SinkExt};
 use serde::{Serialize, de::DeserializeOwned};
-use std::{cell::RefCell, fmt::Debug, rc::Rc, sync::Mutex, task::Waker};
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
 use tokio::sync::mpsc;
-use tokio::sync::oneshot;
 
 /// Version of a snapshot
 pub type SnapshotVersion = u64;
@@ -140,5 +139,24 @@ mod test {
         struct _Foo {
             _bar: Box<dyn PersistenceClient>,
         }
+    }
+}
+
+#[cfg(test)]
+mod serialization_tests {
+    use super::{deserialize_state, serialize_state};
+
+    /// The coordinator's cluster-state serialization must round-trip.
+    #[test]
+    fn serialize_state_round_trips() {
+        let state = vec![(1u64, "one".to_string()), (2, "two".to_string())];
+        let bytes = serialize_state(&state);
+        assert_eq!(deserialize_state::<Vec<(u64, String)>>(bytes), state);
+    }
+
+    #[test]
+    fn serialize_state_round_trips_primitives() {
+        let bytes = serialize_state(&7u64);
+        assert_eq!(deserialize_state::<u64>(bytes), 7);
     }
 }

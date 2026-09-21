@@ -1,5 +1,7 @@
+//! Utilities for testing operators.
 use std::{
     collections::{HashMap, VecDeque},
+    fmt::Debug,
     marker::PhantomData,
     ops::Range,
     rc::Rc,
@@ -16,6 +18,7 @@ use malstrom_core::runtime::{
 use malstrom_core::snapshot::NoPersistence;
 use malstrom_core::stream::{BuildContext, Logic, LogicBuilder, OperatorContext};
 use malstrom_core::types::{Kvt, Message, OperatorId, WorkerId, distributable::Distributable};
+use malstrom_macros::instrument_debug;
 
 /// A test harness for a single operator's logic, decoupled from a running worker.
 pub struct OperatorTester<In: Kvt, Out: Kvt, L, R> {
@@ -35,11 +38,14 @@ impl<In, Out, L, R> OperatorTester<In, Out, L, R>
 where
     In: Kvt,
     Out: Kvt,
+    In::Key: Debug,
+    In::Value: Debug,
     L: Logic<In, Out>,
     R: Distributable + Send + Sync + 'static,
 {
     /// Build this Test from an operator builder function
     /// Build a tester from an operator builder function.
+    #[instrument_debug(skip_all)]
     pub async fn built_by(
         logic_builder: impl LogicBuilder<In, Out, Logic = L>,
         worker_id: WorkerId,
@@ -88,25 +94,32 @@ where
     }
 
     /// Send a message to the operators local input
+    #[instrument_debug(skip(self))]
     pub fn send_local(&mut self, msg: Message<In>) {
+        assert!(!self.input_handle.is_closed());
         futures::executor::block_on(self.input_handle.send(msg));
     }
 
     /// Receive a message from this operators local output, if one is immediately
     /// available. Returns `None` when the output is empty.
+    #[instrument_debug(skip_all)]
     pub fn recv_local(&mut self) -> Option<Message<Out>> {
         self.output_handle.try_recv()
     }
 
     /// Get a fake commounication backend to emulate remote communication
     /// on this operator
+    #[instrument_debug(skip_all)]
     pub fn remote(&self) -> &FakeCommunication<R> {
         &self.comm_shim
     }
 
     /// Perform one execution step on the operator
+    #[instrument_debug(skip_all)]
     pub fn step(&mut self) {
         let mut op_ctx = OperatorContext::new(self.worker_id, self.operator_id);
+        assert!(!self.input_handle.is_closed());
+        assert!(!self.output.is_closed());
         futures::executor::block_on(self.logic.apply(
             &mut self.input,
             &mut self.output,

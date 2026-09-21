@@ -3,6 +3,14 @@
 use serde::{Deserialize, Serialize};
 
 /// Trait implemented by all types usable as timestamps in JetStream
+///
+/// # Example
+/// ```
+/// use malstrom_core::types::Timestamp;
+///
+/// // numeric timestamps merge to the minimum (the lowest common timestamp)
+/// assert_eq!(5u64.merge(&3), 3);
+/// ```
 pub trait Timestamp: PartialOrd + Ord + Clone + std::fmt::Debug + 'static {
     /// Maximum or final value of this type. This is the last possible timestamp.
     const MAX: Self;
@@ -103,3 +111,84 @@ timestamp_impl!(i16);
 timestamp_impl!(i32);
 timestamp_impl!(i64);
 timestamp_impl!(i128);
+
+#[cfg(test)]
+mod tests {
+    use super::{MaybeTime, NoTime, OnceTime, Timestamp};
+
+    /// `merge` must yield the lowest common timestamp (min for the numeric impls)
+    /// and be monotone: merging with a larger value never advances the result.
+    #[test]
+    fn usize_merge_is_min_and_monotone() {
+        assert_eq!(5usize.merge(&3), 3);
+        assert_eq!(3usize.merge(&5), 3);
+        assert_eq!(7usize.merge(&7), 7);
+        // merging any value with MAX keeps the smaller one
+        assert_eq!(usize::MAX.merge(&1), 1);
+    }
+
+    /// `OnceTime` merges by logical AND: the stream is only finished once every
+    /// input says so.
+    #[test]
+    fn once_time_merge_is_and() {
+        assert_eq!(OnceTime::MAX.merge(&OnceTime::MIN), OnceTime::MIN);
+        assert_eq!(OnceTime::MIN.merge(&OnceTime::MAX), OnceTime::MIN);
+        assert_eq!(OnceTime::MAX.merge(&OnceTime::MAX), OnceTime::MAX);
+        assert_eq!(OnceTime::MIN.merge(&OnceTime::MIN), OnceTime::MIN);
+    }
+
+    /// `CHECK_FINISHED` is only true for the max timestamp (numeric impls), so an
+    /// operator emitting ordinary values never closes its stream early.
+    #[test]
+    fn check_finished_only_for_max() {
+        let none: Option<usize> = None;
+        assert!(!MaybeTime::CHECK_FINISHED(&none));
+        assert!(!MaybeTime::CHECK_FINISHED(&Some(usize::MAX - 1)));
+        assert!(MaybeTime::CHECK_FINISHED(&Some(usize::MAX)));
+    }
+
+    /// `NoTime` never compares and is always "finished" — the documented semantics
+    /// for operators that cannot keep a stream running.
+    #[test]
+    fn no_time_semantics() {
+        assert!(NoTime::partial_cmp(&NoTime, &NoTime).is_none());
+        assert!(MaybeTime::CHECK_FINISHED(&None::<NoTime>));
+    }
+}
+
+#[cfg(test)]
+mod proptests {
+    use super::Timestamp;
+    use proptest::prelude::*;
+
+    /// `merge` must be a commutative, associative, idempotent meet (min for the
+    /// numeric impls), and monotone: merging with a larger value never advances.
+    proptest! {
+        #[test]
+        fn usize_merge_is_min(a: usize, b: usize) {
+            prop_assert_eq!(a.merge(&b), a.min(b));
+        }
+
+        #[test]
+        fn merge_commutative(a: u64, b: u64) {
+            prop_assert_eq!(a.merge(&b), b.merge(&a));
+        }
+
+        #[test]
+        fn merge_associative(a: u64, b: u64, c: u64) {
+            prop_assert_eq!(a.merge(&b).merge(&c), a.merge(&b.merge(&c)));
+        }
+
+        #[test]
+        fn merge_idempotent(a: u64) {
+            prop_assert_eq!(a.merge(&a), a);
+        }
+
+        #[test]
+        fn merge_monotone(a: u64, b: u64) {
+            // merging can only advance the frontier downward (towards completion)
+            prop_assert!(a.merge(&b) <= a);
+            prop_assert!(a.merge(&b) <= b);
+        }
+    }
+}

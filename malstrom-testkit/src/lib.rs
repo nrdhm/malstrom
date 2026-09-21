@@ -1,23 +1,24 @@
 //! Test utilities for Malstrom: an operator tester, in-memory comm backends and
 //! capture persistence, used by downstream crates' unit tests.
 
+use std::fmt::Debug;
 use std::sync::Arc;
-use std::{collections::HashMap, rc::Rc, sync::Mutex};
+use std::{collections::HashMap, sync::Mutex};
 
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use malstrom_core::runtime::SingleThreadRuntime;
 use malstrom_core::snapshot::{
     NoPersistence, PersistenceBackend, PersistenceClient, SnapshotBarrier, SnapshotVersion,
 };
 use malstrom_core::stream::Logic;
 use malstrom_core::types::{
-    Barrier, Key, Kvt, MaybeData, MaybeKey, Message, OperatorId, RescaleMessage, WorkerId,
-    distributable::Distributable,
+    Barrier, Key, Kvt, Message, OperatorId, RescaleMessage, WorkerId, distributable::Distributable,
 };
 use malstrom_core::worker::StreamProvider;
 
 pub mod communication;
 pub mod operator_tester;
+pub mod test_support;
 
 pub use operator_tester::{FakeCommunication, OperatorTester, SentMessage};
 
@@ -78,7 +79,8 @@ pub fn test_forward_system_messages<
 >(
     tester: &mut OperatorTester<In, Out, L, R>,
 ) where
-    In::Key: Key + Default,
+    In::Key: Key + Default + Debug,
+    In::Value: Debug,
 {
     let (cb_tx, _cb_rx) = tokio::sync::mpsc::channel(1);
     let msg = Message::AbsBarrier(Barrier::Snapshot(SnapshotBarrier::new(

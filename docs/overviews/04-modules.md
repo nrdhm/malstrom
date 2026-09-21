@@ -1,7 +1,7 @@
 # Malstrom — Module & Crate Map
 
-> **Last refreshed:** 2026-08-24 (split-malstrom-core: `malstrom-core` split into kernel +
-> `malstrom-distributed` + `malstrom-operators` + `malstrom-testkit` + `malstrom-snapshot-slatedb`)
+> **Last refreshed:** 2026-09-03
+
 > **Scope:** how the workspace crates and the kernel's `malstrom-core/src/*` modules connect
 > **Method:** comment-stripped scan of every `crate::` reference (incl. multi-line `use crate::{…}` blocks)
 > over the reachable source tree.

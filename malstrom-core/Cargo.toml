@@ -20,11 +20,27 @@ keywords = [
 [lints]
 workspace = true
 
+# [features]
+# Exposes `malstrom_core::test_support` (logging helpers) to integration tests
+# and downstream crates. Not part of the public API for normal builds.
+# test-support = ["dep:tracing-subscriber"]
+
 [dependencies]
 itertools = "0.11.0"
 serde = { version = "1.0.218", features = ["derive"] }
 thiserror = "1.0.49"
-tracing = { version = "0.1.40", features = ["log"] }
+
+log = { version = "0.4", features = [
+    "max_level_trace",
+    # "max_level_off",
+    "release_max_level_info",
+] }
+tracing = { version = "0.1.40", features = [
+    "log",
+    "max_level_trace",
+    # "max_level_off",
+    "release_max_level_info"
+] }
 indexmap = { version = "2.1.0", features = ["serde"] }
 
 tokio = { version = "1.47.1", features = ["rt-multi-thread", "macros", "rt", "sync", "time"] }
@@ -36,3 +52,10 @@ futures = "0.3.31"
 flume = "0.11.1"
 malstrom-macros = { path = "../malstrom-macros"}
 pin-project = "1.1.10"
+
+[dev-dependencies]
+proptest = "1.5.0"
+# Self-dependency: enables the `test-support` feature for this package's own
+# unit and integration tests.
+# malstrom-core = { path = ".", features = ["test-support"] }
+malstrom-testkit = { path = "../malstrom-testkit/"}

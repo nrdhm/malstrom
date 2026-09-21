@@ -80,11 +80,15 @@ where
             threads.push(thread);
         }
 
+        // Track the number of *worker* threads spawned. `threads.len()` includes the
+        // coordinator thread, so it cannot be used as the current scale — otherwise a
+        // rescale from P to P+1 workers would never spawn the new worker.
+        let mut workers_spawned = self.parrallelism;
+
         loop {
             if let Ok(desired) = self.rescale_req.1.try_recv() {
-                let actual = threads.len() as u64;
-                if desired > actual {
-                    for i in actual..desired {
+                if desired > workers_spawned {
+                    for i in workers_spawned..desired {
                         let thread = Self::spawn_worker(
                             self.build.clone(),
                             self.persistence.clone(),
@@ -94,6 +98,7 @@ where
                         );
                         threads.push(thread);
                     }
+                    workers_spawned = desired;
                 }
             }
             threads.retain(|x| !x.is_finished());

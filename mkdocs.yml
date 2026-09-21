@@ -1,0 +1,32 @@
+site_name: Malstrom Docs
+theme:
+  name: materialx
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.expand
+plugins:
+  - search
+  - mermaid2:
+      arguments:
+        # MaterialX exposes the active scheme on <body data-md-color-scheme>.
+        # The ^ prefix tells mermaid2 to inject this as a JS expression, so
+        # diagrams use the dark theme when the site is in dark (slate) mode.
+        theme: '^(document.body.getAttribute("data-md-color-scheme") === "slate") ? "dark" : "default"'
+
+extra_javascript:
+  - assets/palette-toggle-reload.js

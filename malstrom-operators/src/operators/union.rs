@@ -1,11 +1,10 @@
-use malstrom_core::channels::operator_io::{Input, Output, link};
-use malstrom_core::stream::InitialStreamBuilder;
-use malstrom_core::stream::{Operator, SafeLogic, StreamBuilder};
-use malstrom_core::types::{DataMessage, Kvt, MaybeData, MaybeKey, MaybeTime, Message, Sealed};
-use std::marker::PhantomData;
-use std::rc::Rc;
+use malstrom_core::channels::operator_io::Input;
+use malstrom_core::stream::{Forward, OperatorBuilder, SafeLogic, StreamBuilder};
+use malstrom_core::types::{Kvt, MaybeData, MaybeKey, MaybeTime, Sealed};
 
+/// Trait with union() method.
 pub trait Union<Msg: Kvt>: Sealed {
+    /// Merge self with the given streams into one.
     fn union(
         self,
         name: impl Into<String>,
@@ -21,46 +20,81 @@ where
     Msg::Timestamp: MaybeTime,
 {
     fn union(
-        self,
+        mut self,
         name: impl Into<String>,
         inputs: impl IntoIterator<Item = StreamBuilder<Msg>>,
     ) -> StreamBuilder<Msg> {
-        let rt = self.get_runtime();
-        let mut unioned_input = Input::new_unlinked();
         let name: String = name.into();
+        // all streams sink here
+        let mut united_input = Input::new_unlinked();
+        // first edge to the sink
+        let mut edge = OperatorBuilder::new(format!("{}-0", name).into())
+            // just a dummy operator to connect tail (input) with the united input
+            .with_direct_logic(Forward::new().into_logic())
+            .build();
+        // redirect the dataflow into the edge.
+        self.swap_tail(&mut edge.input);
+        // connect the edge output to the united_input.
+        edge.link_to_input(&mut united_input);
+        // register the edge as a runtime task
+        self.add_operator(edge);
 
-        for (i, mut stream) in std::iter::once(self).chain(inputs.into_iter()).enumerate() {
-            // add a dummy operator to forward messages, we must do this because we can
-            // not get an output out of a StreamBuilder
-            let mut forward_op = Operator::direct(
-                format!("{}-{i}", name),
-                Forward(PhantomData::<Msg>).into_logic(),
-            );
-            // the forward operator gets the streams tail input, i.e. the input which receives from the
-            // last operator in the given stream
-            std::mem::swap(&mut stream.tail, &mut forward_op.input);
-            // link our forward output to the unioned input
-            link(&mut forward_op.output, &mut unioned_input);
-            rt.lock().unwrap().add_operator(forward_op);
+        // each other stream goes thru the same process
+        for (i, mut stream) in inputs.into_iter().enumerate() {
+            let forwarder = Forward::<Msg>::new().into_logic();
+            let mut edge = OperatorBuilder::new(format!("{}-{}", name, i + 1).into())
+                .with_direct_logic(forwarder)
+                .build();
+            // redirect to the edge
+            stream.swap_tail(&mut edge.input);
+            // connect the edge to the united_input
+            edge.link_to_input(&mut united_input);
+            // don't forget to register in the runtime
+            self.add_operator(edge);
         }
-        StreamBuilder {
-            tail: unioned_input,
-            runtime: rt,
-        }
+
+        // the united stream builder
+        self.with_new_tail(united_input)
     }
 }
 
-struct Forward<Msg>(PhantomData<Msg>);
-impl<Msg> SafeLogic<Msg, Msg> for Forward<Msg>
-where
-    Msg: Kvt,
-{
-    async fn on_data(
-        &mut self,
-        data_message: DataMessage<Msg>,
-        output: &mut Output<Msg>,
-        ctx: &mut malstrom_core::stream::OperatorContext,
-    ) {
-        output.send(Message::Data(data_message)).await;
+#[cfg(test)]
+mod tests {
+    use crate::operators::Source as _;
+    use crate::operators::*;
+    use crate::sinks::StatelessSink;
+    use crate::sinks::VecSink;
+    use crate::sources::Source;
+    use indexmap::IndexSet;
+    use malstrom_testkit::get_test_rt;
+    use malstrom_testkit::test_support::init_logs;
+    use malstrom_testkit::test_support::temp_force_flush;
+    use malstrom_testkit::test_support::tempo_init_tracing;
+    #[test]
+    fn union_unites() {
+        init_logs();
+        tempo_init_tracing();
+        let collector = VecSink::new();
+        let rt = get_test_rt(|provider| {
+            let a = provider
+                .new_stream()
+                .source("source-a", Source::from_iterator(0..10));
+            let b = provider
+                .new_stream()
+                .source("source-b", Source::from_iterator(10..20));
+            b.union("fan-in", vec![a])
+                .sink("sink", StatelessSink::new(collector.clone()));
+        });
+        rt.execute().unwrap();
+
+        temp_force_flush();
+
+        let collected: IndexSet<usize> = collector.into_iter().map(|x| x.value).collect();
+        // The order of values is not specified; they appear as available.
+        // Not a TODO: the ~5s wall time before the test ends is the coordinator's completion
+        // poll interval, not union latency — the trace shows ~1ms busy and ~5s idle waiting on
+        // the poll (see docs/reviews/2026-09-21-pre-commit-assessment.md).
+        let expected: IndexSet<usize> = (10..20).chain(0..10).collect();
+        assert_eq!(expected, collected)
     }
 }

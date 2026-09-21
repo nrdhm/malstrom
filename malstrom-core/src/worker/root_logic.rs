@@ -1,3 +1,4 @@
+use malstrom_macros::instrument_debug;
 use tokio::sync::mpsc;
 
 use crate::{
@@ -16,6 +17,7 @@ impl<P> RootLogic<P> {
 }
 
 impl<P: PersistenceClient> Logic<(), ()> for RootLogic<P> {
+    #[instrument_debug(skip_all)]
     async fn apply(
         &mut self,
         input: &mut Input<()>,

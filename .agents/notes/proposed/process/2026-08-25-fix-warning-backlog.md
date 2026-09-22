@@ -128,21 +128,78 @@ distributed, operators, testkit); `missing-docs = "warn"` in `[workspace.lints.r
 
 ### Step 4 — Judgment lints (decide, don't blanket-allow)
 
-Re-enable each and resolve with a deliberate decision; any remaining `#[allow]` must carry a
-written reason:
+Re-enabled and re-measured 2026-09-22 (all remaining groups set to `warn`, all buildable
+crates, `--all-targets`; see also the [complexity survey](../../../../docs/reviews/2026-09-22-complexity-simplification-survey.md), finding 1): the counts have drifted sharply
+since the Step 0 measurement — most notably `unwrap_used` is no longer 9 but **181 sites**,
+because the tree has grown tests and examples since. Current picture:
 
-- `dead_code` (23) — remove the item, or reasoned `#[allow(dead_code)]` for a deliberate
-  extension point.
-- `async_fn_in_trait` (13) and `refining_impl_trait_reachable` (1) on `SafeLogic` — decide
-  whether the trait returns `impl Future`/boxed futures, or reasoned `#[allow]`.
-- `private_interfaces`, `too_many_arguments`, `type_complexity`, `wrong_self_convention`,
-  `new_without_default`, `module_inception` — small; fix or reasoned `allow`.
-- `clippy::unwrap_used` (9) — replace with `?`/`expect` where an error path exists, else
-  reasoned `#[allow]`.
-- `clippy::multiple_crate_versions` — resolve the duplicate dependency or reasoned `allow`.
-- `clippy::await_holding_refcell_ref` (6) — a real async-correctness smell; fix the hold
-  across await or reasoned `allow`.
-- Unused imports that are `pub use` re-exports — decide keep (reasoned allow) vs drop.
+| Group | Count | Where |
+|---|---|---|
+| `clippy::unwrap_used` | 181 (155 `Result` + 26 `Option`) | ~55 production; rest in `tests/`, `examples/`, testkit, slatedb examples |
+| `async_fn_in_trait` | 23 | `operator_logic.rs` (12, the `Logic`/`SafeLogic` family), combinator stateful sources/ops (10), `recv_trait.rs` (1) |
+| `dead_code` | ~40 items | `watchmap.rs` (10), `channels/signal.rs` (6), `tests/common/mod.rs` (10), memory-comm/router stubs, `types/message.rs` (3), scattered |
+| `type_complexity` | 11 | internal plumbing signatures |
+| `multiple_crate_versions` | 12 | transitive: `syn` 2/3, `thiserror` 1/2, `rand` 0.8/0.9/0.10, `windows-sys`, `getrandom`, … |
+| `await_holding_refcell_ref` | 3 | `fn_source.rs:207`, `sources/stateful.rs:211,366` |
+| one-offs | 6 | `private_interfaces` (`worker/builder.rs:24`), `too_many_arguments` (`build_context.rs:35`, 8/7), `new_without_default` (`Forward`), `module_inception` ×2 (`types/sealed.rs`, `worker/mod.rs`), `wrong_self_convention` ×1, `refining_impl_trait_reachable` ×1 (`core-internal/src/spsc.rs:150`) |
+
+Plan: one commit per sub-step; delete the group's line from `[workspace.lints]` as it closes
+(Step 5 rule).
+
+#### 4a — `dead_code`: delete first, judge second
+
+- Delete `coordinator/watchmap.rs` outright (238 LOC, zero consumers; the survey's first
+  win).
+- Delete verifiably dead kernel items: `types/message.rs`'s `PartOrData` et al., the `ReqRes`
+  alias, `KeyByWidUnwrapper`, `Condition`/`ConditionIter`; audit `channels/signal.rs` (it is
+  `pub(crate)`, so nothing outside the kernel can use it — if the threaded runtime does not
+  either, it is dead).
+- Unfinished-but-deliberate distributed stubs (`StreamSendClient`/`StreamRecvClient`, the
+  memory-comm flavor, `remote_sender`): reasoned `#[allow(dead_code)]` naming the owning note
+  ([unify-operator-io-edge-abstractions](../architecture/2026-09-13-unify-operator-io-edge-abstractions.md)),
+  or delete if truly orphaned.
+- Test-support items (`tests/common/mod.rs`, testkit fixtures): file-top
+  `#[allow(dead_code)]` with the reason "shared helpers; not every test binary uses every
+  helper" (each `tests/*.rs` is its own crate).
+
+#### 4b — `clippy::unwrap_used`: split the policy by target kind
+
+- **Tests, examples and testkit keep `unwrap`** — panicking loudly is the correct contract
+  there. Scope: file-top `#[allow(clippy::unwrap_used)]` (with that reason) in `tests/`,
+  `examples/`, and `malstrom-testkit`.
+- **Production code: convert every `unwrap` to `expect("invariant")`** — or `?` where an
+  error path exists (~55 sites: `inter_thread.rs` 13, `cluster.rs` 12, `stateful_op.rs` 9,
+  `assign_timestamps.rs` 6, and smaller).
+- End state: `unwrap_used = "deny"` in `[workspace.lints]`, with scoped allows only where
+  panic-on-failure is the contract.
+
+#### 4c — `async_fn_in_trait` / `refining_impl_trait_reachable`: reasoned allow, scoped to the traits
+
+The native-async `Logic`/`SafeLogic` design is deliberate; desugaring to
+`impl Future + Send` would force `Send` bounds through the whole operator API for no benefit.
+Allow **on the trait definitions** (5 sites) with the reason written there — not
+workspace-wide. `recv_trait.rs` and its `spsc` impl get the same treatment, citing
+[unify-operator-io-edge-abstractions](../architecture/2026-09-13-unify-operator-io-edge-abstractions.md),
+which will likely delete the trait.
+
+#### 4d — The six one-offs: fix, don't allow
+
+- `private_interfaces`: `WorkerBuilder::root_operator` leaks the `pub(crate)` `RootLogic` —
+  restructure the builder API (or make the type properly `pub`).
+- `too_many_arguments` (`build_context.rs`): introduce a params struct.
+- `new_without_default` (`Forward`): trivial `impl Default`.
+- `module_inception` ×2: rename (`types::sealed`, `worker::worker`).
+- `wrong_self_convention`: rename or take `&self`.
+- `await_holding_refcell_ref` ×3: restructure to drop the borrow before `.await` — genuine
+  correctness hazards; only `#[allow]` with a written proof if restructuring is impossible.
+
+#### 4e — `clippy::multiple_crate_versions`
+
+Try `cargo update` dedup first; duplicates that remain are transitive dependencies we do not
+own → reasoned workspace `allow`.
+
+Final Step 4 state: at most the scoped, reasoned allows from 4b/4c/4e remain; every other
+line is deleted from `[workspace.lints]`.
 
 ### Step 5 — Verify no suppressions remain
 

@@ -1,23 +1,9 @@
 /* Project overrides for the mdBook HTML output.
  *
- * mdBook caps the reading column with `--content-max-width: 750px`
- * (`.content main`), which makes the wide API tables in
- * `overviews/08-public-api-surface.md` scroll horizontally while leaving most of
- * the viewport empty. Widen the column so tables use the screen, and let tables
- * span the full content width.
+ * mdBook renders wide tables (e.g. `overviews/08-public-api-surface.md`) with
+ * horizontally-scrolling cells and shrunk columns. Make tables span the content
+ * column and let cell text wrap instead of forcing page scroll.
  */
-
-:root {
-    /* Default is 750px. Widen the reading column so tables use the screen:
-     * 90% of the viewport, but never narrower than 1000px (small windows keep a
-     * readable column) and never absurdly wide on ultrawide monitors. */
-    --content-max-width: clamp(1000px, 90vw, 1800px);
-}
-
-/* Give the content column the room freed by the wider cap. */
-.content main {
-    max-width: var(--content-max-width);
-}
 
 /* Tables fill the content column; cells wrap instead of forcing page scroll. */
 .content table {

@@ -93,7 +93,7 @@ mod tests {
         // The order of values is not specified; they appear as available.
         // Not a TODO: the ~5s wall time before the test ends is the coordinator's completion
         // poll interval, not union latency — the trace shows ~1ms busy and ~5s idle waiting on
-        // the poll (see docs/reviews/2026-09-21-pre-commit-assessment.md).
+        // the poll.
         let expected: IndexSet<usize> = (10..20).chain(0..10).collect();
         assert_eq!(expected, collected)
     }

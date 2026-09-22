@@ -17,5 +17,4 @@
 # Reviews
 
 - [Reviews index](reviews/README.md)
-- [Union refactor review](reviews/union-refactor-review.md)
-- [Pre-commit assessment](reviews/2026-09-21-pre-commit-assessment.md)
+- [Complexity simplification survey](reviews/2026-09-22-complexity-simplification-survey.md)

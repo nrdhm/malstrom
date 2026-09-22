@@ -216,7 +216,7 @@ fixtures from a production lib. Testkit is the crate that exists for this purpos
 
 - [core-test-plan](../../implemented/testing/2026-08-25-core-test-plan.md) — owns the kernel
   test strategy and the Alternatives entry this note corrects.
-- [malstrom-core-internal-crate](../../implemented/architecture/2026-09-21-malstrom-core-internal-crate.md) —
+- [malstrom-core-internal-crate](../architecture/2026-09-21-malstrom-core-internal-crate.md) —
   **already landed, before this note**: the extraction added a `malstrom-core-internal`
   dependency edge; this note still collapses the kernel's test-support feature/dev-dep.
 - [split-malstrom-core](../../implemented/architecture/2026-08-24-split-malstrom-core.md) —

@@ -177,7 +177,7 @@ Rust gives only two visibilities that help here: `pub` and `pub(crate)`. To expr
 
 Steps are independent. Items 1–4 are **done** (item 4 only for the self-contained cluster —
 see below); items 5–6 are partly done / open. See the extraction note
-[`malstrom-core-internal-crate`](../../.agents/notes/implemented/architecture/2026-09-21-malstrom-core-internal-crate.md).
+[`malstrom-core-internal-crate`](../../.agents/notes/proposed/architecture/2026-09-21-malstrom-core-internal-crate.md).
 
 1. ~~**`worker::InnerRuntimeBuilder` → `pub(crate)`.**~~ **Done 2026-09-21.** Made `pub(crate)`
    (with `StreamBuilder::runtime` field and the unused `get_runtime` removed); its `pub`

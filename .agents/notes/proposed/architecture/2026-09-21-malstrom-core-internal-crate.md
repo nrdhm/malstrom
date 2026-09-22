@@ -99,7 +99,7 @@ Landed in the tree already, but **this note stays `proposed` until the owner dec
 
 ## Risks
 
-- **Scope creep into a rename.** The adjacent [combinators-vs-operators](2026-09-22-combinators-vs-operators.md)
+- **Scope creep into a rename.** The adjacent [combinators-vs-operators](../../implemented/architecture/2026-09-22-combinators-vs-operators.md)
   proposal may split/rename the operator crate; keep that separate from this boundary.
 - **Re-export spillover.** A transitional `pub use` from `malstrom-core` re-opens the same leak;
   keep them `pub(crate)` / `#[doc(hidden)]` and removed where possible.
@@ -114,7 +114,7 @@ Landed in the tree already, but **this note stays `proposed` until the owner dec
 
 - [`docs/overviews/08-public-api-surface.md`](../../../../docs/overviews/08-public-api-surface.md)
   — the audit this acts on (module inventory, audience matrix, hide list).
-- [combinators-vs-operators](2026-09-22-combinators-vs-operators.md) — the adjacent
+- [combinators-vs-operators](../../implemented/architecture/2026-09-22-combinators-vs-operators.md) — the adjacent
   distinction between graph combinators and message operators.
 - [stream-builder-union-refactor](../../implemented/architecture/2026-09-14-stream-builder-union-refactor.md)
   — created `OperatorBuilder` and the shared `Forward`.

@@ -103,9 +103,13 @@ for life in ("proposed", "implemented", "rejected", "archived"):
 PY
 
 cd "$ROOT/notes"
-# Generated Mermaid assets (git-ignored); install once.
-[ -f mermaid.min.js ] || mdbook-mermaid install .
-mdbook-mermaid install . >/dev/null 2>&1 || true
+# The vendored `mermaid.min.js` is git-ignored; install it once on a fresh checkout.
+# `mdbook-mermaid install` also writes its default `mermaid-init.js` into the project
+# dir — drop it, this book reuses the committed one from `../mdbook/` (see book.toml).
+if [ ! -f mermaid.min.js ]; then
+    mdbook-mermaid install . >/dev/null 2>&1 || true
+    rm -f mermaid-init.js
+fi
 
 if [ "$MODE" = "build" ]; then
     mdbook build

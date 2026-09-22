@@ -19,7 +19,7 @@ distinguish them:
    `pub use malstrom_core::{channels, coordinator, runtime, snapshot, stream, types, worker}` —
    i.e. it re-exports **every core module verbatim**. A user importing `malstrom::…` therefore
    sees the *entire* core surface, including machinery that exists only for the sibling crates.
-2. **The sibling layer crates** — `malstrom-distributed`, `malstrom-operators`,
+2. **The sibling layer crates** — `malstrom-distributed`, `malstrom-combinators`,
    `malstrom-testkit`, `malstrom-snapshot-slatedb` — which each `use malstrom_core::…`
    directly and reach into deep module paths.
 
@@ -41,7 +41,7 @@ flowchart LR
     end
     subgraph siblings["Sibling layer crates (direct malstrom_core:: deps)"]
         DIST["malstrom-distributed"]
-        OPS["malstrom-operators"]
+        OPS["malstrom-combinators"]
         TK["malstrom-testkit"]
         SS["malstrom-snapshot-slatedb"]
     end
@@ -187,7 +187,7 @@ see below); items 5–6 are partly done / open. See the extraction note
    `stream::Forward` and `stream::OperatorBuilder` are `#[doc(hidden)]` (with their `stream`
    re-exports). They are **kernel-owned by design** — the builder's purpose is to hide
    `Operator`'s internals from combinator code — so they stay in `malstrom-core` even though
-   only `malstrom-operators` uses them. `Operator::input`/`output` are now `pub(crate)`
+   only `malstrom-combinators` uses them. `Operator::input`/`output` are now `pub(crate)`
    (union/split route through `OperatorBuilder` + `swap_input`/`link_to_input`/`get_*_mut`),
    so the operator's internals are no longer part of the public surface.
 3. ~~**`Output`/`Input::add_another_one`**~~ **Done 2026-09-21.** Both are now

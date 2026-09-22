@@ -5,12 +5,12 @@ Status: implemented
 ## Problem
 
 The k8s operator crate was named `malstrom-operator` — one letter away from the stdlib
-crate `malstrom-operators`. The two are unrelated and easily confused (and were, in the CI
-exclusion saga: `--exclude malstrom-operator` vs `malstrom-operators`).
+crate `malstrom-combinators`. The two are unrelated and easily confused (and were, in the CI
+exclusion saga: `--exclude malstrom-operator` vs `malstrom-combinators`).
 
 ## Decision
 
-Rename **every** `malstrom-operator` mention (that is not `malstrom-operators`) to
+Rename **every** `malstrom-operator` mention (that is not `malstrom-combinators`) to
 **`malstrom-k8s-operator`**, so no source- or deployment-level name can be confused with the
 stdlib crate:
 
@@ -27,7 +27,7 @@ stdlib crate:
 - **Docs**: `docs/overviews/01-project.md`.
 
 The replacement is word-boundary-aware (`malstrom-operator` not followed by `s`), so
-`malstrom-operators` is never touched.
+`malstrom-combinators` is never touched.
 
 ## Alternatives considered
 

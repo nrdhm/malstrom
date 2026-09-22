@@ -1,7 +1,7 @@
 # Malstrom examples
 
 Runnable examples for Malstrom, grouped by **what each one teaches**. The rule is not
-"which crates the example imports" — a runnable dataflow needs `malstrom-operators` no
+"which crates the example imports" — a runnable dataflow needs `malstrom-combinators` no
 matter what — but **the subject of the lesson**: framework-level examples exercise the
 engine (scheduling, multi-threading, rescaling, stateful programs); operator-level examples
 demonstrate individual operators, sinks and sources.
@@ -21,7 +21,7 @@ rescale protocol, and snapshot persistence.
 
 ## Operator-level (the library)
 
-These demonstrate individual capabilities of `malstrom-operators` (and
+These demonstrate individual capabilities of `malstrom-combinators` (and
 `malstrom-distributed` for keyed routing).
 
 | Example | What it demonstrates |

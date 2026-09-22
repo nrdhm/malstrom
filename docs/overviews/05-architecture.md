@@ -39,7 +39,7 @@ graph TD
     facade["malstrom — public facade<br/>re-exports: channels · coordinator · runtime · snapshot · stream · types · worker · operators · keyed"]
     core["malstrom-core — the kernel / execution engine<br/>types · channels · stream · worker · coordinator · runtime · snapshot"]
     dist["malstrom-distributed — keyed routing protocol<br/>routers · distributor · remote_sender/receiver · wire/versioned/targeted messages · partitioners"]
-    ops["malstrom-operators — stdlib<br/>operators · sinks · sources · keyed{key_local, key_distribute, broadcast}"]
+    ops["malstrom-combinators — stdlib<br/>operators · sinks · sources · keyed{key_local, key_distribute, broadcast}"]
     tk["malstrom-testkit — OperatorTester · FakeCommunication · capture persistence"]
     ss["malstrom-snapshot-slatedb — SlateDB/object-store PersistenceBackend"]
     k8s["malstrom-k8s — gRPC runtime flavor + operator + CRD + artifact mgmt"]

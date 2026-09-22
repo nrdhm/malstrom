@@ -12,7 +12,7 @@ for the full inventory:
   sibling-facing surface is also the user-facing surface: a user can name
   `malstrom::channels::spsc::Receiver`, `malstrom::channels::alignment::AlignmentGroup` and
   `malstrom::channels::recv_trait::Receiver`.
-- The **sibling crates** (`malstrom-distributed`, `malstrom-operators`, `malstrom-testkit`)
+- The **sibling crates** (`malstrom-distributed`, `malstrom-combinators`, `malstrom-testkit`)
   reach into those same deep paths for edge plumbing.
 
 Rust has only `pub` and `pub(crate)`, so "visible to sibling crates but not to users" cannot be
@@ -65,7 +65,7 @@ Landed in the tree already, but **this note stays `proposed` until the owner dec
   `Output`/`Input::add_another_one` are `pub(crate)`; `Operator`'s `input`/`output` fields are
   `pub(crate)` so `OperatorBuilder` is the construction path.
 - `OperatorBuilder`/`Forward` are back in `malstrom-core` (doc-hidden) after a brief, reverted
-  attempt to move them to `malstrom-operators`.
+  attempt to move them to `malstrom-combinators`.
 
 ## Alternatives considered
 
@@ -76,7 +76,7 @@ Landed in the tree already, but **this note stays `proposed` until the owner dec
   internal { … }`, enabled by siblings. Real enforcement, one crate, no new edge — but features
   unify across the graph, so a user can enable it too, and it adds cfg noise. Rejected in
   favour of the crate.
-- **Move `OperatorBuilder`/`Forward` to `malstrom-operators`** — tried and reverted: it inverts
+- **Move `OperatorBuilder`/`Forward` to `malstrom-combinators`** — tried and reverted: it inverts
   the abstraction's ownership (a kernel mechanism that hides `Operator` internals) and reads
   ownership off the caller rather than the concept.
 - **Curate the facade only, leave core's `pub` tree** — fixes the user view but core's own

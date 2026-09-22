@@ -35,7 +35,7 @@ A Cargo workspace (`Cargo.toml`) with the following members:
 | `malstrom/` | `malstrom` (crates.io) | The public **facade** — re-exports the layer crates under one module tree |
 | `malstrom-core/` | `malstrom-core` | The kernel (execution engine): types, channels, stream, worker, coordinator, runtime, snapshot |
 | `malstrom-distributed/` | `malstrom-distributed` | The keyed routing protocol |
-| `malstrom-operators/` | `malstrom-operators` | Operators, sinks, sources, keyed streams |
+| `malstrom-combinators/` | `malstrom-combinators` | Operators, sinks, sources, keyed streams |
 | `malstrom-testkit/` | `malstrom-testkit` | Operator tester and in-memory comm backends |
 | `malstrom-snapshot-slatedb/` | `malstrom-snapshot-slatedb` | The SlateDB/object-store persistence backend |
 | `malstrom-k8s/runtime/` | `malstrom-k8s` | Kubernetes runtime flavor (gRPC-based distributed execution) |
@@ -64,15 +64,15 @@ provider
 ```
 
 Key modules (kernel; `malstrom-core/src/`; since 2026-08-24 the operators/sinks/sources/keyed
-layers live in the `malstrom-operators` / `malstrom-distributed` crates):
+layers live in the `malstrom-combinators` / `malstrom-distributed` crates):
 
 - **`stream/`** — the stream builder and operator abstraction: `BuildableOperator`,
   `RunnableOperator`, contexts, and standard/chained operator plumbing. Custom operators can
-  be written via `stateful_op`/`stateless_op` (in `malstrom-operators`).
-- **`operators/`** (now `malstrom-operators`) — built-in operators: `map`, `filter`,
+  be written via `stateful_op`/`stateless_op` (in `malstrom-combinators`).
+- **`operators/`** (now `malstrom-combinators`) — built-in operators: `map`, `filter`,
   `filter_map`, `inspect`, `flatten`, `split`, `cloned`, `stateful_map`, `ttl_map`, plus
   event-time operators (`assign_timestamps`, `generate_epochs`, `inspect_frontier`).
-- **`sources/` & `sinks/`** (now `malstrom-operators`) — one unified
+- **`sources/` & `sinks/`** (now `malstrom-combinators`) — one unified
   `SourceImpl`/`SourcePartition` abstraction plus `Source::from_*` constructors for
   iterators/streams/poll closures ("stateless" sources are `SourceImpl` with
   `PartitionState = ()`), stateless/stateful sinks, stdout and in-memory vec sinks.

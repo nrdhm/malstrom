@@ -1,5 +1,5 @@
 //! A very basic program which can run locally or on Kubernetes depending on
-use malstrom::operators::*;
+use malstrom::combinators::*;
 use malstrom::runtime::MultiThreadRuntime;
 use malstrom::snapshot::NoPersistence;
 use malstrom::sources::{SingleIteratorSource, StatelessSource};

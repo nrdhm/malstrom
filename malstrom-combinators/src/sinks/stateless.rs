@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::operators::StreamSink;
+use crate::combinators::StreamSink;
 use malstrom_core::channels::operator_io::{Input, Output};
 use malstrom_core::stream::{Logic, Malstrom as _, Operator, OperatorContext, StreamBuilder};
 use malstrom_core::types::{DataMessage, Kvt, MaybeTime, Message};

@@ -11,12 +11,12 @@ use malstrom_macros::instrument_debug;
 use serde::{Deserialize, Serialize};
 use tracing::{Instrument, debug, debug_span};
 
+use crate::combinators::{CommUtility, StreamSource};
 use crate::keyed::{
     Distribute as _,
     distributed::{Acquire, Collect, Interrogate},
     rendezvous_select,
 };
-use crate::operators::{CommUtility, StreamSource};
 use malstrom_core::channels::operator_io::{Input, Output};
 use malstrom_core::stream::{
     BuildContext, InitialStreamBuilder, Logic, LogicBuilder, Malstrom as _, Operator,

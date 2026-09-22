@@ -1,7 +1,7 @@
 use serde::{Serialize, de::DeserializeOwned};
 use tracing::warn;
 
-use crate::operators::time::assign_timestamps::OnTimeLate;
+use crate::combinators::time::assign_timestamps::OnTimeLate;
 use malstrom_core::msg;
 use malstrom_core::stream::{Logic, LogicBuilder, Malstrom as _, Operator, StreamBuilder};
 use malstrom_core::types::{DataMessage, Kvt, Message, Sealed, Timestamp};
@@ -30,7 +30,7 @@ pub trait GenerateEpochs<Msg: Kvt>: Sealed {
     /// # Example
     ///
     /// ```no_run
-    /// use malstrom_operators::operators::{GenerateEpochs, limit_out_of_orderness};
+    /// use malstrom_combinators::combinators::{GenerateEpochs, limit_out_of_orderness};
     /// use malstrom_core::types::NoKey;
     /// use malstrom_core::stream::StreamBuilder;
     ///

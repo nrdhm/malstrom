@@ -75,7 +75,7 @@ Currently Malstrom comes with two different backends to choose from:
 Let's see how we can make our program state persistent:
 
 First add the backend crate: `cargo add malstrom-snapshot-slatedb` (and
-`malstrom-operators` for the operators used below).
+`malstrom-combinators` for the operators used below).
 
 <<< @../../malstrom-snapshot-slatedb/examples/slatedb_backend.rs
 

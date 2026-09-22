@@ -5,18 +5,18 @@ use malstrom_core::types::{Kvt, Sealed};
 pub trait Source<M: Kvt, S>: Sealed {
     /// Produce new messages into a stream. This method can only be called
     /// on a stream which does not yet have any other source. To use multiple sources
-    /// create multiple streams and merge them by calling (.union())[crate::operators::Union::union].
+    /// create multiple streams and merge them by calling (.union())[crate::combinators::Union::union].
     ///
     /// # Example
     ///
     /// ```
-    /// use malstrom_operators::operators::*;
-    /// use malstrom_operators::operators::Source as _;
+    /// use malstrom_combinators::combinators::*;
+    /// use malstrom_combinators::combinators::Source as _;
     /// use malstrom_core::runtime::SingleThreadRuntime;
     /// use malstrom_core::snapshot::NoPersistence;
-    /// use malstrom_operators::sources::Source;
+    /// use malstrom_combinators::sources::Source;
     /// use malstrom_core::worker::StreamProvider;
-    /// use malstrom_operators::sinks::{VecSink, StatelessSink};
+    /// use malstrom_combinators::sinks::{VecSink, StatelessSink};
     ///
     /// let sink = VecSink::new();
     /// let sink_clone = sink.clone();

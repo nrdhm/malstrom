@@ -5,9 +5,9 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use {
     malstrom::channels::operator_io::Output,
+    malstrom::combinators::Source as _,
+    malstrom::combinators::*,
     malstrom::keyed::rendezvous_select,
-    malstrom::operators::Source as _,
-    malstrom::operators::*,
     malstrom::runtime::SingleThreadRuntime,
     malstrom::sinks::{StatelessSink, StdOutSink},
     malstrom::snapshot::NoPersistence,

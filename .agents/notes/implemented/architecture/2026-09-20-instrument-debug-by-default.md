@@ -24,7 +24,7 @@ label these spans as informational.
 
 - Call sites use `#[instrument_debug(skip_all)]` (or `skip(...)`, `fields(...)`, …) instead of
   `#[tracing::instrument(...)]` / `#[instrument(...)]`. All 29 real call sites across
-  `malstrom-core`, `malstrom-distributed`, `malstrom-operators` and `malstrom-testkit` were
+  `malstrom-core`, `malstrom-distributed`, `malstrom-combinators` and `malstrom-testkit` were
   converted; the sole commented-out `#[tracing::instrument(..., level = "TRACE", ...)]` in
   `malstrom-core/src/stream/operator.rs` is left as-is.
 - An explicit `level = ...` argument is **honoured**, not overwritten. The macro extracts it
@@ -32,7 +32,7 @@ label these spans as informational.
   any other level. It must be removed before forwarding, because emitting both the wrapper's
   `level` and the call site's would expand to a duplicate argument, which
   `tracing::instrument` rejects.
-- `malstrom-core`, `malstrom-operators` and `malstrom-macros` already depended on
+- `malstrom-core`, `malstrom-combinators` and `malstrom-macros` already depended on
   `malstrom-macros`; `malstrom-distributed` and `malstrom-testkit` gained the dependency.
 - The test harness defaults its filter to `debug`: `init_logs()` and `tempo_init_tracing()` in
   `malstrom-testkit/src/test_support.rs` fall back to `EnvFilter::new("debug")` instead of

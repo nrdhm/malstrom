@@ -17,7 +17,7 @@ pub trait State: Serialize + DeserializeOwned + Default + 'static {}
 impl<X> State for X where X: Default + Serialize + DeserializeOwned + 'static {}
 
 /// Helper trait for implementing arbitrary stateful operators for datastreams.
-/// For simpler stateful operations see [crate::operators::StatefulMap]
+/// For simpler stateful operations see [crate::combinators::StatefulMap]
 pub trait StatefulLogic<In: Kvt, T: Data, S>: 'static {
     /// Process a single datamessage.
     /// This function receives an owned value of the given message and the state for the message's

@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-`cargo test -p malstrom-operators union_unites` hung for minutes (only an external
+`cargo test -p malstrom-combinators union_unites` hung for minutes (only an external
 timeout killed it) after the test module gained a `tracing-opentelemetry` layer pointed
 at a local Tempo instance. Tempo was reachable and answered fast; the logs showed 404s,
 then a `Cannot drop a runtime in a context where blocking is not allowed` panic, then a
@@ -25,7 +25,7 @@ POST to `http://host:4318/` (404) instead of `http://host:4318/v1/traces`.
 ## Decision
 
 - Use `SdkTracerProvider::builder().with_batch_exporter(exporter)` in the
-  malstrom-operators test tracing setup. `BatchSpanProcessor` exports on its own
+  malstrom-combinators test tracing setup. `BatchSpanProcessor` exports on its own
   dedicated thread, which is compatible with the default blocking HTTP client even when
   spans are emitted from Tokio runtime threads.
 - Read the endpoint solely from `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` and pass it verbatim
@@ -56,7 +56,7 @@ POST to `http://host:4318/` (404) instead of `http://host:4318/v1/traces`.
 
 ## Consequences
 
-- `cargo test -p malstrom-operators union_unites` completes in ~5s (the remaining
+- `cargo test -p malstrom-combinators union_unites` completes in ~5s (the remaining
   latency is the coordinator's 5s completion poll, not tracing) and
   `HttpClient.ExportSucceeded` confirms traces reach Tempo.
 - Test traces are batched, so they are not visible in Tempo immediately on span close;

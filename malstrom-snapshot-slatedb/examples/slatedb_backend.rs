@@ -1,14 +1,14 @@
 //! Using SlateDB as a persistence backend
-use malstrom_operators::keyed::rendezvous_select;
-use malstrom_operators::operators::Source as _;
-use malstrom_operators::operators::*;
-use malstrom_operators::sinks::{StatelessSink, StdOutSink};
+use malstrom_combinators::combinators::Source as _;
+use malstrom_combinators::combinators::*;
+use malstrom_combinators::keyed::rendezvous_select;
+use malstrom_combinators::sinks::{StatelessSink, StdOutSink};
 use malstrom_snapshot_slatedb::object_store::{local::LocalFileSystem, path::Path};
 use std::sync::Arc;
 use std::time::Duration;
 use {
-    malstrom_core::runtime::SingleThreadRuntime, malstrom_core::worker::StreamProvider,
-    malstrom_operators::sources::Source, malstrom_snapshot_slatedb::SlateDbBackend,
+    malstrom_combinators::sources::Source, malstrom_core::runtime::SingleThreadRuntime,
+    malstrom_core::worker::StreamProvider, malstrom_snapshot_slatedb::SlateDbBackend,
 };
 
 fn main() {

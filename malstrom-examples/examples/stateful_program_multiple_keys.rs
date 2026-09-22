@@ -1,7 +1,7 @@
 //! Example using stateful_map with multiple keys
+use malstrom::combinators::Source as _;
+use malstrom::combinators::*;
 use malstrom::keyed::rendezvous_select;
-use malstrom::operators::Source as _;
-use malstrom::operators::*;
 use malstrom::runtime::SingleThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;

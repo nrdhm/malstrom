@@ -3,9 +3,9 @@
 # Review: union refactor toward fewer core internals in operator crates
 
 Scope: the union and split operators
-(`malstrom-operators/src/operators/{union.rs, split.rs}`), the core helpers they build on
+(`malstrom-combinators/src/operators/{union.rs, split.rs}`), the core helpers they build on
 (`malstrom-core/src/stream/{operator_builder.rs, forward_logic.rs, operator.rs,
-stream_builder.rs}`), and `malstrom-operators/src/sources/fn_source.rs`. Since the first
+stream_builder.rs}`), and `malstrom-combinators/src/sources/fn_source.rs`. Since the first
 revision of this review the union refactor has landed on the new `OperatorBuilder`; the open
 work has moved to `split()`.
 
@@ -14,7 +14,7 @@ work has moved to `split()`.
 | Area | Change |
 |---|---|
 | `malstrom-core` | Adds `OperatorBuilder` (`operator_builder.rs`) and moves the forwarding logic into core as `Forward` (`forward_logic.rs`, re-exported from `stream`). `StreamBuilder` exposes `with_new_tail`, `swap_tail`, `add_operator`. |
-| `malstrom-operators` | `union()` builds each edge with `OperatorBuilder::new(...).with_direct_logic(Forward::new().into_logic()).build()`, then `self.swap_tail(&mut edge.input)`, `edge.link_to_input(&mut united_input)`, `self.add_operator(edge)`, and finally `self.with_new_tail(united_input)`. `split()` uses the same builder pattern (the former `split_v2` was promoted to the sole `split` and the local duplicate `Forward` was deleted, 2026-09-21). |
+| `malstrom-combinators` | `union()` builds each edge with `OperatorBuilder::new(...).with_direct_logic(Forward::new().into_logic()).build()`, then `self.swap_tail(&mut edge.input)`, `edge.link_to_input(&mut united_input)`, `self.add_operator(edge)`, and finally `self.with_new_tail(united_input)`. `split()` uses the same builder pattern (the former `split_v2` was promoted to the sole `split` and the local duplicate `Forward` was deleted, 2026-09-21). |
 
 `union()` no longer constructs raw `Operator`s, touches `std::mem::swap`, or reaches into
 `Operator.input`/`output` directly — it goes through `OperatorBuilder` and the
@@ -29,10 +29,10 @@ the Termux environment, and the custom cargo build ignores `--workspace --exclud
 proto build, so lint and test crate-scoped:
 
 ```
-cargo fmt -p malstrom-core -p malstrom-operators -- --check                 # pass
-cargo clippy -p malstrom-core -p malstrom-operators --all-targets -- -D clippy::correctness  # pass
-cargo check -p malstrom-core -p malstrom-operators --all-targets           # pass
-cargo test -p malstrom-operators --lib                                     # pass (33 tests)
+cargo fmt -p malstrom-core -p malstrom-combinators -- --check                 # pass
+cargo clippy -p malstrom-core -p malstrom-combinators --all-targets -- -D clippy::correctness  # pass
+cargo check -p malstrom-core -p malstrom-combinators --all-targets           # pass
+cargo test -p malstrom-combinators --lib                                     # pass (33 tests)
 ```
 
 ## Remaining issues
@@ -76,7 +76,7 @@ is the way to continue.
 
 ### `Cloned` is a broadcast wrapper, kept deliberately
 
-`malstrom-operators/src/operators/cloned.rs` is not a distinct operator: `const_cloned` /
+`malstrom-combinators/src/operators/cloned.rs` is not a distinct operator: `const_cloned` /
 `cloned` call `const_split` / `split` with a broadcast partitioner (`[true; N]` / `outs.fill(true)`)
 and no user closure. It offers no runtime capability `Split` lacks. It is kept as the ergonomic,
 intention-revealing spelling of fan-out — `stream.cloned(name, 2)` versus
@@ -95,5 +95,5 @@ rationale lives in the trait doc comment.
 
 The union and split refactors are both complete: `union()` and `split()` are on
 `OperatorBuilder` + core `Forward`, with no raw core-internals access, and the local duplicate
-`Forward` and `Debug` bound are gone. `cargo test -p malstrom-operators --lib` is green (32
+`Forward` and `Debug` bound are gone. `cargo test -p malstrom-combinators --lib` is green (32
 tests) and the affected-crate correctness clippy passes.

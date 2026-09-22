@@ -284,7 +284,7 @@ where
 mod tests {
     use itertools::Itertools;
 
-    use crate::operators::{Sink, Source as _};
+    use crate::combinators::{Sink, Source as _};
     use crate::sinks::{StatelessSink, VecSink};
     use crate::sources::Source;
     use malstrom_core::channels::operator_io::{Input, Output};

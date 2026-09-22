@@ -37,13 +37,13 @@ fixed. What shipped per layer is recorded in `## Testing` below.
 ### Layer 1 — public-API contract tests, split by which crate owns the surface
 
 A contract test lives in the crate that *owns* the surface it exercises — the kernel can
-only pin what the kernel exposes (a kernel dev-dep on `malstrom-operators` would cycle the
+only pin what the kernel exposes (a kernel dev-dep on `malstrom-combinators` would cycle the
 graph, per [split-malstrom-core](../../implemented/architecture/2026-08-24-split-malstrom-core.md)
 Decision 8).
 
 **1a. Kernel extension contract (`malstrom-core/tests/`)** — pins the seam the layer crates
 build on, importing only the kernel crate (`malstrom_core::`) and never
-`malstrom_operators`/`malstrom_distributed`:
+`malstrom_combinators`/`malstrom_distributed`:
 
 - `tests/safe_logic_contract.rs` — a custom `Logic`/`SafeLogic` operator: `on_schedule` →
   `on_data`/`on_epoch`/`on_barrier` in the documented order, automatic system-message
@@ -60,10 +60,10 @@ surface (kernel + operators + distributed re-exported under one namespace). This
 "public API predictability" anchor for users. Builds on the facade, which landed in
 [rename-kernel-and-add-malstrom-facade](../../implemented/architecture/2026-08-25-rename-kernel-and-add-malstrom-facade.md):
 
-- `tests/hello_pipeline.rs` — `malstrom::sources` → `malstrom::operators` → `malstrom::sinks`
+- `tests/hello_pipeline.rs` — `malstrom::sources` → `malstrom::combinators` → `malstrom::sinks`
   pipeline run on `SingleThreadRuntime` and `MultiThreadRuntime`, asserting deterministic
   output.
-- `tests/namespace.rs` — every historical top-level path resolves (`malstrom::operators`,
+- `tests/namespace.rs` — every historical top-level path resolves (`malstrom::combinators`,
   `malstrom::sources`, `malstrom::sinks`, `malstrom::keyed`, `malstrom::keyed::distributed`,
   `malstrom::runtime`, …), so a missing facade re-export fails at compile time.
 

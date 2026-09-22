@@ -1,5 +1,5 @@
 //! A basic example of reading from and writing to Kafka
-use malstrom::operators::{Inspect, Sink};
+use malstrom::combinators::{Inspect, Sink};
 use malstrom::sinks::StatelessSink;
 use malstrom::snapshot::NoPersistence;
 use malstrom::sources::StatefulSource;

@@ -36,12 +36,12 @@ use malstrom::types::{
 use malstrom::worker::{StreamProvider, Worker, WorkerBuilder};
 
 // operator-layer modules re-exported by the facade
-use malstrom::keyed::distributed::rendezvous_select;
-use malstrom::keyed::{KeyDistribute, KeyLocal, WorkerBroadcast, WorkerPartitioner};
-use malstrom::operators::{
+use malstrom::combinators::{
     Cloned, Filter, FilterMap, Flatten, Inspect, Map, Sink, Source as _, Split, StatefulMap,
     TtlMap, Union,
 };
+use malstrom::keyed::distributed::rendezvous_select;
+use malstrom::keyed::{KeyDistribute, KeyLocal, WorkerBroadcast, WorkerPartitioner};
 use malstrom::sinks::{StatefulSink, StatelessSink, StdOutSink, VecSink};
 use malstrom::sources::{FromIteratorSource, Source, SourceImpl, SourcePartition};
 

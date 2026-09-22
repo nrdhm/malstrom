@@ -56,7 +56,7 @@ fn tempo_provider(endpoint: &str) -> &'static SdkTracerProvider {
             .with_batch_exporter(exporter)
             .with_resource(
                 Resource::builder()
-                    .with_service_name("malstrom-operators-tests")
+                    .with_service_name("malstrom-combinators-tests")
                     .build(),
             )
             .build()
@@ -64,7 +64,7 @@ fn tempo_provider(endpoint: &str) -> &'static SdkTracerProvider {
 }
 
 fn tempo_tracer(endpoint: &str) -> opentelemetry_sdk::trace::Tracer {
-    tempo_provider(endpoint).tracer("malstrom-operators-tests")
+    tempo_provider(endpoint).tracer("malstrom-combinators-tests")
 }
 
 /// Flush queued spans on the test thread (outside the tokio runtime) so

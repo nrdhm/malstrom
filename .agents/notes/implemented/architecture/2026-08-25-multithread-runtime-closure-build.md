@@ -98,6 +98,6 @@ Free functions still coerce to `Fn`, so the multi-thread examples (`multithreadi
 - **Rescale still works** — the scale-up loop re-invokes the same closure with a fresh clone.
 - **Verification** — `cargo check --workspace` clean (0 warnings); tests green: `malstrom`
   19 unit (incl. the rewritten test asserting 4 workers × 5 records grouped per worker),
-  `malstrom-operators` 31 unit + 9 doc, `malstrom-testkit` 1, `malstrom-snapshot-slatedb` 5;
+  `malstrom-combinators` 31 unit + 9 doc, `malstrom-testkit` 1, `malstrom-snapshot-slatedb` 5;
   the multi-thread examples build and `rescaling` (which exercises the rescale re-invocation)
   and `multithreading` smoke-run correctly.

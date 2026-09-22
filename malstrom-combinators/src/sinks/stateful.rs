@@ -6,12 +6,12 @@ use std::{cell::RefCell, hash::Hash, marker::PhantomData, rc::Rc};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
+use crate::combinators::StreamSink;
 use crate::keyed::{
     KeyDistribute,
     distributed::{Acquire, Collect, Interrogate},
     rendezvous_select,
 };
-use crate::operators::StreamSink;
 use malstrom_core::channels::operator_io::{Input, Output};
 use malstrom_core::stream::{Logic, Malstrom, Operator, OperatorContext, SafeLogic, StreamBuilder};
 use malstrom_core::types::{Barrier, DataMessage, Key, Kvt, Message, distributable::Distributable};

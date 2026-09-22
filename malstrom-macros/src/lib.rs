@@ -162,7 +162,7 @@ pub fn ttl_state_derive(input: TokenStream) -> TokenStream {
             }
         }
 
-        impl malstrom_operators::operators::TTLState for #structname {
+        impl malstrom_combinators::combinators::TTLState for #structname {
             type Timestamp = #timestamp_type;
 
             fn expire(&mut self, epoch: &Self::Timestamp) {

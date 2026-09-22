@@ -93,7 +93,7 @@ rejected sub-proposal (`#[derive(StatelessSource)]`).
    `PartitionState` (on the partition trait) → `State`; `PartLister`/`PartitionsFinished`
    gone. The `sources::Source` **struct** collides with the `operators::Source` **trait**:
    consumer code imports the struct explicitly and the trait anonymously —
-   `use malstrom::operators::Source as _;` — everywhere both are needed.
+   `use malstrom::combinators::Source as _;` — everywhere both are needed.
 7. **Dead files deleted** — `keyed_old/`, `sources/stateful_old.rs`,
    `coordinator/state_old.rs`, `channels/operator_io copy.rs`, and
    `testing/iterator_source.rs` (an undeclared dead module referencing the removed

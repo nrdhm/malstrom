@@ -1,8 +1,8 @@
 //! Usage example for the ttl_map operator
 use expiremap::ExpireMap;
+use malstrom::combinators::Source as _;
+use malstrom::combinators::*;
 use malstrom::keyed::KeyLocal;
-use malstrom::operators::Source as _;
-use malstrom::operators::*;
 use malstrom::runtime::SingleThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;

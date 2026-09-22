@@ -34,7 +34,7 @@ Split `malstrom-core` along the kernel / stdlib / protocol boundary, with the ke
 |---|---|---|
 | `malstrom-core` (kernel, `malstrom-core/`) | `types` (incl. `types::distributed` protocol messages), `channels`, `stream`, `worker`, `coordinator`, `runtime`, `snapshot` | — |
 | `malstrom-distributed` | `keyed/distributed` routing (routers, distributor, `remote_receiver`/`remote_sender`, `wire_message`/`versioned_message`/`targeted_message`) plus `worker_partitioners` | `malstrom` |
-| `malstrom-operators` | `operators`, `sinks` (incl. `VecSink`), `sources` (incl. `fn_source` and the source engine), local keyed ops (`key_local`, `key_distribute`, `broadcast`) | `malstrom`, `malstrom-distributed` |
+| `malstrom-combinators` | `operators`, `sinks` (incl. `VecSink`), `sources` (incl. `fn_source` and the source engine), local keyed ops (`key_local`, `key_distribute`, `broadcast`) | `malstrom`, `malstrom-distributed` |
 | `malstrom-testkit` | `testing` (operator tester, in-memory comm backends, capture persistence) | `malstrom` |
 | `malstrom-snapshot-slatedb` | the SlateDB/object-store `PersistenceBackend` | `malstrom` |
 
@@ -49,41 +49,41 @@ Split `malstrom-core` along the kernel / stdlib / protocol boundary, with the ke
    kernel runtime vocabulary. The `WireAcquire` conversion moves with the distributed crate.
 3. **`worker_partitioners` moved with the distributor** (deviation from the proposal's
    "local keyed ops" list): `WorkerPartitioner` is the `DistributorBuilder`'s partitioner
-   protocol and must be visible to both crates; `malstrom-operators`' `keyed` module
+   protocol and must be visible to both crates; `malstrom-combinators`' `keyed` module
    re-exports it.
-4. **`malstrom-operators` keeps a `keyed::distributed` shim** re-exporting
+4. **`malstrom-combinators` keeps a `keyed::distributed` shim** re-exporting
    `malstrom-distributed`, so the historical `crate::keyed::distributed::…` paths in the
    operator layer keep resolving without churn.
-5. **The `malstrom::operators` public surface moved to `malstrom_operators`.** A kernel
-   re-export would create a cycle (`malstrom → malstrom-operators → malstrom-distributed →
+5. **The `malstrom::combinators` public surface moved to `malstrom_combinators`.** A kernel
+   re-export would create a cycle (`malstrom → malstrom-combinators → malstrom-distributed →
    malstrom`); cargo forbids crate cycles. Examples, README, the website guide, and the
-   overviews were migrated (`malstrom::operators` → `malstrom_operators::operators`,
-   `malstrom::sources` → `malstrom_operators::sources`, etc.); kernel paths
+   overviews were migrated (`malstrom::combinators` → `malstrom_combinators::combinators`,
+   `malstrom::sources` → `malstrom_combinators::sources`, etc.); kernel paths
    (`malstrom::runtime`, `malstrom::snapshot`, …) are unchanged. The facade
    ([rename-kernel-and-add-malstrom-facade](2026-08-25-rename-kernel-and-add-malstrom-facade.md))
    later restored the single `malstrom::…` surface without a cycle.
-6. **The source engine lives in `malstrom-operators`** (deviation from the proposal's kernel
+6. **The source engine lives in `malstrom-combinators`** (deviation from the proposal's kernel
    row): `SourceImpl`/`SourcePartition`, the `Source` struct, the coordinator→distribute→reader
    graph, and `fn_source` move together as one unit (see
    [collapse-source-traits](2026-08-22-collapse-source-traits.md) for the trait unification
    this builds on), so the engine's use of `malstrom_distributed` (`rendezvous_select`,
    `Acquire`/`Collect`/`Interrogate`) is an operator→distributed edge, not a kernel seam —
    the proposal's "seam 1" never had to be cut.
-7. **`VecSink` stayed with `malstrom-operators`' sinks** (deviation from the proposal's
+7. **`VecSink` stayed with `malstrom-combinators`' sinks** (deviation from the proposal's
    testkit row): a testkit → operators dependency would create a dev-dependency cycle with
    the operators' own tests.
 8. **Phased order changed** (deviation): the proposal put `malstrom-testkit` first, but a
    kernel dev-dependency on testkit (which depends on the kernel) makes cargo build a
    **second kernel instance**, breaking type identity (`malstrom_testkit::VecSink` is a
    different type from the kernel's `VecSink`). Testkit can only be consumed by non-kernel
-   crates, so the extraction moved `malstrom-distributed` + `malstrom-operators` first, then
+   crates, so the extraction moved `malstrom-distributed` + `malstrom-combinators` first, then
    testkit, then the slatedb connector.
 9. **The kernel manifest is lean.** `rand`, `expiremap`, `eyre` (dead), and the
    `slatedb`/`object_store`/`tokio-stream` stack left the kernel; `console-subscriber` became
    a dev-dependency (multithreading example); the `slatedb` feature and its `[[example]]`
    feature gates were removed.
 10. **Example placement** — the operator-flavored examples live in
-    `malstrom-operators/examples/` (basic/custom operators, sinks, sources, event-time, TTL,
+    `malstrom-combinators/examples/` (basic/custom operators, sinks, sources, event-time, TTL,
     keyed, split/union, hello-world); the kernel keeps only framework-level examples
     (`basic_noop`, `multithreading`, `rescaling`, `stateful_programs`,
     `stateful_program_multiple_keys`); the slatedb examples live in
@@ -101,20 +101,20 @@ Split `malstrom-core` along the kernel / stdlib / protocol boundary, with the ke
   function to stabilize the operator API. Rejected.
 - **Extract without stabilizing the API** (`#[path]` hacks or a `__private` grab-bag) —
   rework bait; the API is the deliverable, the crate boundary just hosts it. Rejected.
-- **Extract `malstrom-distributed` before `malstrom-operators`** — the proposal's
+- **Extract `malstrom-distributed` before `malstrom-combinators`** — the proposal's
   reservation held in reverse: the two extractions had to land together because the kernel
   hosted operator code that imported `keyed::distributed`; splitting either alone broke the
   kernel. The proposal's original "cheap extraction first" (testkit) was impossible for the
   dev-dep-cycle reason in Decision 8.
 - **One `malstrom-stdlib` crate (operators + distributed together)** — fewer crates but
   keeps library and protocol coupled, defeating WIP isolation. Rejected.
-- **`malstrom::operators` re-export for compatibility** — impossible: it would cycle the
+- **`malstrom::combinators` re-export for compatibility** — impossible: it would cycle the
   crate graph (Decision 5). The public surface moves; examples/docs migrate.
 - **Feature-gated modules instead of crates** — a lighter-weight middle ground, but no real
   dependency isolation. Not taken.
 - **Keeping the whole source module in the kernel with an inverted seam** — the proposal's
   "seam 1" (engine takes the distributor as a parameter) was unnecessary once the engine
-  moved to `malstrom-operators` wholesale (Decision 6).
+  moved to `malstrom-combinators` wholesale (Decision 6).
 
 ## Consequences
 
@@ -127,11 +127,11 @@ Split `malstrom-core` along the kernel / stdlib / protocol boundary, with the ke
 - **WIP isolation** — the distributed protocol (the least-stable layer) is its own crate;
   the kernel builds/tests without the router machinery.
 - **API churn** — every example, the README, `website/guide/TtlMapOperator.md`, and the
-  overviews migrated from `malstrom::operators` to `malstrom_operators::…`; kernel-path
+  overviews migrated from `malstrom::combinators` to `malstrom_combinators::…`; kernel-path
   imports are unchanged. `malstrom-kafka`/`malstrom-k8s` pin the published `malstrom 0.1.0`
   and are unaffected. (The facade note later renamed the kernel to `malstrom-core` and
   restored the `malstrom::…` surface via the facade crate.)
-- **Verification** — tests green: `malstrom` 18 unit + 1 doc, `malstrom-operators`
+- **Verification** — tests green: `malstrom` 18 unit + 1 doc, `malstrom-combinators`
   31 unit + 9 doc (the operator/source tests and doctests moved with the code), 
   `malstrom-testkit` 1, `malstrom-snapshot-slatedb` 5; examples `look_ma_im_streaming`,
   `basic_stdout`, `ttl_map`, `rescaling` smoke-run identically to before the split. The

@@ -87,7 +87,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::operators::{GenerateEpochs, Sink, Source as _};
+    use crate::combinators::{GenerateEpochs, Sink, Source as _};
     use crate::sinks::StatelessSink;
     use crate::sinks::VecSink;
     use crate::sources::Source;

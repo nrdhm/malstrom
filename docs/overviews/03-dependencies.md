@@ -8,7 +8,7 @@
 
 > **Post-split (2026-08-24):** the crate split moved dependency-heavy code out of
 > `malstrom-core`. `rand`, `expiremap`, `seahash`, `malstrom-macros` now live in
-> `malstrom-operators`; `seahash` additionally in `malstrom-distributed`;
+> `malstrom-combinators`; `seahash` additionally in `malstrom-distributed`;
 > `slatedb`, `object_store`, `tokio-stream` in `malstrom-snapshot-slatedb`; `eyre` was removed
 > as dead; `console-subscriber` is a dev-dependency of the kernel (multithreading example).
 > The usage lists below were not re-audited after the split — treat them as approximate.
@@ -64,13 +64,13 @@
 - kernel: `stream/operator`; `malstrom-distributed/remote_receiver` (own dep)
 
 **rand** — `rand::random::<u32>()` (timestamp jitter)
-- **moved** with `malstrom-operators` (2026-08-24)
+- **moved** with `malstrom-combinators` (2026-08-24)
 
 **expiremap** (serde) — `ExpireMap` as TTL-map state
-- **moved** with `malstrom-operators` (2026-08-24)
+- **moved** with `malstrom-combinators` (2026-08-24)
 
 **malstrom-macros** (path dep) — `TTLState` derive (fields wrapped as `Option<(T, ts)>` + expire/is_empty)
-- **moved** with `malstrom-operators` (2026-08-24)
+- **moved** with `malstrom-combinators` (2026-08-24)
 
 ## Errors & logging
 

@@ -1,4 +1,4 @@
-use crate::operators::{map::Map, split::Split};
+use crate::combinators::{map::Map, split::Split};
 use malstrom_core::channels::operator_io::Output;
 use malstrom_core::stream::StreamBuilder;
 use malstrom_core::types::{DataMessage, Kvt, MaybeData, Message};

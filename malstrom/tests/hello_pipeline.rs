@@ -3,8 +3,8 @@
 //! re-exports and the end-user dataflow API from the outside — a missing facade
 //! re-export or a broken operator wiring fails here at compile or run time.
 
-use malstrom::operators::Source as _;
-use malstrom::operators::*;
+use malstrom::combinators::Source as _;
+use malstrom::combinators::*;
 use malstrom::runtime::{MultiThreadRuntime, SingleThreadRuntime};
 use malstrom::sinks::{StatelessSink, VecSink};
 use malstrom::snapshot::NoPersistence;

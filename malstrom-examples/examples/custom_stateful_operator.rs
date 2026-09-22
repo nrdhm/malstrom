@@ -1,8 +1,8 @@
 //! A basic example which runs a no-op dataflow
 use indexmap::IndexMap;
 use malstrom::channels::operator_io::Output;
-use malstrom::operators::Source as _;
-use malstrom::operators::*;
+use malstrom::combinators::Source as _;
+use malstrom::combinators::*;
 use malstrom::runtime::SingleThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;

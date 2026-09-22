@@ -6,7 +6,7 @@ members = [
     "malstrom-core-internal",
     "malstrom-examples",
     "malstrom-distributed",
-    "malstrom-operators",
+    "malstrom-combinators",
     "malstrom-testkit",
     "malstrom-snapshot-slatedb",
     "malstrom-k8s/artifact-downloader",

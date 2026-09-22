@@ -7,15 +7,15 @@
 //!
 //! - `malstrom_core` (kernel): `channels`, `coordinator`, `runtime`, `snapshot`,
 //!   `stream`, `types`, `worker`
-//! - `malstrom_operators`: `operators`, `sinks`, `sources`, `keyed` (which
+//! - `malstrom_combinators`: `combinators`, `sinks`, `sources`, `keyed` (which
 //!   re-exports `malstrom_distributed` at `keyed::distributed`)
 //! - `malstrom_snapshot_slatedb` (feature `slatedb`): the SlateDB backend at
 //!   `malstrom::slatedb`
 
 pub use malstrom_core::{channels, coordinator, runtime, snapshot, stream, types, worker};
 
-#[cfg(feature = "operators")]
-pub use malstrom_operators::{keyed, operators, sinks, sources};
+#[cfg(feature = "combinators")]
+pub use malstrom_combinators::{combinators, keyed, sinks, sources};
 
 /// The SlateDB/object-store snapshot backend (feature `slatedb`).
 ///

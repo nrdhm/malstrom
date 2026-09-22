@@ -10,31 +10,31 @@ Decision 8 was written to prevent:
 
 | kernel dev-dep | used by kernel `src`? | actually served |
 |---|---|---|
-| `malstrom-operators` | ❌ | the 5 framework examples |
+| `malstrom-combinators` | ❌ | the 5 framework examples |
 | `malstrom-distributed` | ❌ | same |
 | `console-subscriber` | ❌ | `multithreading.rs` |
 | `tracing-subscriber` | ❌ | example logging (`rescaling.rs`) |
-| `proptest` | ❌ | **dead** (the property tests moved to `malstrom-operators`' `fn_source`) |
+| `proptest` | ❌ | **dead** (the property tests moved to `malstrom-combinators`' `fn_source`) |
 
 The kernel's 18 unit tests needed **no** dev-dependencies, so the whole section existed only
-for examples. `malstrom` →dev→ `malstrom-operators` → `malstrom` is a dev-dependency cycle —
+for examples. `malstrom` →dev→ `malstrom-combinators` → `malstrom` is a dev-dependency cycle —
 it resolved to a single `malstrom` instance (verified: one rlib in both example and test
 builds), but it is the same shape that duplicated the kernel crate for `malstrom-testkit` in
 Decision 8; a future re-resolution could reintroduce the type-identity hazard. The examples
-were also scattered across three crates: the kernel (5 framework-level), `malstrom-operators`
+were also scattered across three crates: the kernel (5 framework-level), `malstrom-combinators`
 (16 operator-level), and `malstrom-snapshot-slatedb` (2).
 
 ## Decision
 
 Create a **`malstrom-examples`** leaf crate (workspace member, `publish = false`, no `lib`
 target) that hosts the runnable examples, and free the kernel (and shrink
-`malstrom-operators`) of example-only dev-dependencies:
+`malstrom-combinators`) of example-only dev-dependencies:
 
 1. **`malstrom-examples`** — depends on the `malstrom` **facade** (since
    [rename-kernel-and-add-malstrom-facade](2026-08-25-rename-kernel-and-add-malstrom-facade.md))
    plus `indexmap`/`serde`/`tokio` as `[dependencies]`, and on the demo tooling
    (`console-subscriber`, `tracing-subscriber`, `chrono`, `expiremap` — the `ttl_map` example
-   imports `expiremap::ExpireMap` directly) plus `malstrom-operators` (only for the
+   imports `expiremap::ExpireMap` directly) plus `malstrom-combinators` (only for the
    `TTLState` derive expansion in `ttl_map.rs`) as `[dev-dependencies]`. Being a leaf, it
    depends on everything without a cycle — acyclicity is structural, not conventional.
 2. **All 21 non-SlateDB examples moved there** — the 5 framework-level (`basic_noop`,
@@ -49,10 +49,10 @@ target) that hosts the runnable examples, and free the kernel (and shrink
    stay in the connector crate (it owns its persistence examples).
 4. **Kernel `[dev-dependencies]` deleted entirely** — `malstrom-core` is dev-dependency-free.
    The kernel's one doctest (`runtime/threaded/multi.rs`) previously imported
-   `malstrom_operators`; it was rewritten kernel-only — a plain `Logic` source plus a
+   `malstrom_combinators`; it was rewritten kernel-only — a plain `Logic` source plus a
    pass-through operator built via `Operator::built_by` — which doubles as a live demo of the
    kernel's public extension API.
-5. **`malstrom-operators` dev-dependencies are `malstrom-testkit` only** — `chrono` and
+5. **`malstrom-combinators` dev-dependencies are `malstrom-testkit` only** — `chrono` and
    `expiremap` (dev) left with the examples.
 6. **`malstrom-examples/README.md` groups the examples** into *Framework-level* (exercises
    the engine — scheduling, multi-threading, rescaling, stateful programs) and
@@ -69,7 +69,7 @@ target) that hosts the runnable examples, and free the kernel (and shrink
   dev-dependency cycle with its own layers and pulls example tooling into its dev graph.
   Rejected.
 - **Move only the 5 framework examples** — frees the kernel and kills the cycle, but
-  `malstrom-operators` keeps its `chrono`/`expiremap` example dev-deps and examples stay
+  `malstrom-combinators` keeps its `chrono`/`expiremap` example dev-deps and examples stay
   split across two crates. Rejected as a partial cleanup.
 - **Directory grouping (`examples/framework/…`, `examples/operators/…`)** — visually groups,
   but Cargo only auto-discovers nested `examples/*/main.rs`, so it fights the tooling; the
@@ -90,12 +90,12 @@ target) that hosts the runnable examples, and free the kernel (and shrink
 - **One examples home** — all framework/operator examples live in `malstrom-examples`; the
   SlateDB examples live in the connector; `malstrom-kafka` ships its own. Each crate's
   example set tells its own story.
-- **`malstrom-testkit` stays in `malstrom-operators`** (test-only, used by its 31 unit
+- **`malstrom-testkit` stays in `malstrom-combinators`** (test-only, used by its 31 unit
   tests), per split-note Decision 7.
 - **Docs churn completed** — website guides and overviews reference the new paths; no
-  `malstrom-core/examples` or `malstrom-operators/examples` references remain.
+  `malstrom-core/examples` or `malstrom-combinators/examples` references remain.
 - **Verification** — `cargo check --workspace` clean (0 warnings); tests green: `malstrom`
-  18 unit + 1 doc (the rewritten extension-API doctest), `malstrom-operators` 31 unit + 9
+  18 unit + 1 doc (the rewritten extension-API doctest), `malstrom-combinators` 31 unit + 9
   doc, `malstrom-testkit` 1, `malstrom-snapshot-slatedb` 5; all 21 examples build and
   `look_ma_im_streaming`, `stateful_programs`, `multithreading`, `rescaling`, `ttl_map`,
   `event_time` smoke-run correctly.

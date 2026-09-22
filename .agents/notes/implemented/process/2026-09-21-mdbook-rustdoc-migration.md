@@ -51,7 +51,7 @@ Rust-native. Content and the `overviews/` conventions are unchanged; only the to
   `alignment.rs`, `operator_io.rs`, `coordinator/api.rs`, `runtime/threaded/mod.rs`,
   `stream/operator.rs`, `stream/operator_logic.rs`, `types/mod.rs`, `spsc.rs`;
   `invalid-html-tags` in `vec_sink.rs`; private-link and bare-URL cases in
-  `malstrom-operators`/`malstrom-testkit`/`malstrom-macros`). `RUSTDOCFLAGS="-D warnings"
+  `malstrom-combinators`/`malstrom-testkit`/`malstrom-macros`). `RUSTDOCFLAGS="-D warnings"
   cargo doc --workspace --no-deps` now passes and is a CI gate.
 - **Toolchain removed.** `pyproject.toml`, `uv.lock`, `mkdocs.yml`,
   `docs/assets/palette-toggle-reload.js`, and the `properdocs`/MaterialX/mermaid2 pins are

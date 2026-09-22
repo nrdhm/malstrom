@@ -22,12 +22,12 @@ workspace = true
 
 [dependencies]
 malstrom-core = { path = "../malstrom-core" }
-malstrom-operators = { path = "../malstrom-operators", optional = true }
+malstrom-combinators = { path = "../malstrom-combinators", optional = true }
 malstrom-distributed = { path = "../malstrom-distributed", optional = true }
 malstrom-snapshot-slatedb = { path = "../malstrom-snapshot-slatedb", optional = true }
 
 [features]
-default = ["operators", "distributed"]
-operators = ["dep:malstrom-operators"]
-distributed = ["dep:malstrom-distributed", "operators"]
+default = ["combinators", "distributed"]
+combinators = ["dep:malstrom-combinators"]
+distributed = ["dep:malstrom-distributed", "combinators"]
 slatedb = ["dep:malstrom-snapshot-slatedb"]

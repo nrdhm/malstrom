@@ -60,8 +60,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::operators::Source as _;
-    use crate::operators::*;
+    use crate::combinators::Source as _;
+    use crate::combinators::*;
     use crate::sinks::StatelessSink;
     use crate::sinks::VecSink;
     use crate::sources::Source;

@@ -12,9 +12,9 @@ naming/ergonomic issues remained:
    misleading.
 2. **There was no single public entry point — a "crate zoo".** To write a program a user had to
    know which crate owns which module: `malstrom::runtime`/`malstrom::snapshot`/`malstrom::stream`
-   (kernel) but `malstrom_operators::operators`/`malstrom_operators::sources` and
+   (kernel) but `malstrom_combinators::combinators`/`malstrom_combinators::sources` and
    `malstrom_distributed::…`. The split's Decision 5 explicitly did not add a kernel re-export
-   of `malstrom::operators` (it would cycle the graph), so the pre-split one-crate surface was
+   of `malstrom::combinators` (it would cycle the graph), so the pre-split one-crate surface was
    gone and users faced the internal crate boundaries.
 
 ## Decision
@@ -34,8 +34,8 @@ Two steps, both preserving the acyclic `malstrom`-is-the-base graph:
 ```rust
 // malstrom/src/lib.rs — the public facade, no logic of its own
 pub use malstrom_core::{channels, coordinator, runtime, snapshot, stream, types, worker};
-#[cfg(feature = "operators")]
-pub use malstrom_operators::{keyed, operators, sinks, sources};
+#[cfg(feature = "combinators")]
+pub use malstrom_combinators::{keyed, operators, sinks, sources};
 #[cfg(feature = "slatedb")]
 pub mod slatedb {
     pub use malstrom_snapshot_slatedb::*;
@@ -46,19 +46,19 @@ pub mod slatedb {
 # malstrom/Cargo.toml
 [features]
 default = ["operators", "distributed"]
-operators = ["dep:malstrom-operators"]
+operators = ["dep:malstrom-combinators"]
 distributed = ["dep:malstrom-distributed", "operators"]
 slatedb = ["dep:malstrom-snapshot-slatedb"]
 ```
 
-`malstrom::keyed::distributed` keeps working because `malstrom-operators` already carries the
+`malstrom::keyed::distributed` keeps working because `malstrom-combinators` already carries the
 one-line `pub use malstrom_distributed::*` shim.
 
 ### Resulting shape
 
 ```
-malstrom (facade, leaf) ──▶ malstrom-core, malstrom-operators, malstrom-distributed, (slatedb)
-malstrom-operators ──▶ malstrom-core, malstrom-distributed
+malstrom (facade, leaf) ──▶ malstrom-core, malstrom-combinators, malstrom-distributed, (slatedb)
+malstrom-combinators ──▶ malstrom-core, malstrom-distributed
 malstrom-distributed ──▶ malstrom-core
 malstrom-testkit ──▶ malstrom-core
 malstrom-snapshot-slatedb ──▶ malstrom-core
@@ -72,12 +72,12 @@ model).
 ### Consumers migrated back to `malstrom::…`
 
 - `malstrom-examples` depends on the `malstrom` facade and its examples import
-  `malstrom::operators::…`/`malstrom::sources::…`/`malstrom::sinks::…`/`malstrom::keyed::…`
-  again (the pre-split surface). `malstrom-operators` remains a dev-dependency only because
-  the `TTLState` derive macro expands to `malstrom_operators::operators::TTLState` by name.
+  `malstrom::combinators::…`/`malstrom::sources::…`/`malstrom::sinks::…`/`malstrom::keyed::…`
+  again (the pre-split surface). `malstrom-combinators` remains a dev-dependency only because
+  the `TTLState` derive macro expands to `malstrom_combinators::combinators::TTLState` by name.
 - README and the website guides' code blocks import `malstrom::…` again.
 - The `malstrom-snapshot-slatedb` examples use the layer paths (`malstrom_core::runtime`,
-  `malstrom_operators::sources`) — the connector cannot depend on the facade without a cycle.
+  `malstrom_combinators::sources`) — the connector cannot depend on the facade without a cycle.
 
 ## Alternatives considered
 
@@ -85,8 +85,8 @@ model).
   its scope and users had to learn the crate zoo. Rejected.
 - **Rename only (kernel → `malstrom-core`, no facade)** — fixed the naming but left the
   multi-import ergonomics; rejected as a half-measure once the facade is cheap.
-- **Re-export the operators through the kernel** (pre-split `malstrom::operators` path) — the
-  split note's Decision 5 already rejected this: `malstrom → malstrom-operators →
+- **Re-export the operators through the kernel** (pre-split `malstrom::combinators` path) — the
+  split note's Decision 5 already rejected this: `malstrom → malstrom-combinators →
   malstrom-distributed → malstrom` is a cycle cargo forbids. The facade exists precisely to
   hold that re-export without a cycle.
 - **One big feature-gated `malstrom` crate instead of the split** — already rejected in the
@@ -114,7 +114,7 @@ model).
 - **Feature matrix is minimal** — `default` = operators + distributed; `slatedb` gates the
   connector; no per-layer granularity until a real consumer needs it.
 - **Verification** — `cargo check --workspace` clean (0 warnings); tests green: `malstrom-core`
-  19 unit, `malstrom-operators` 31 unit + 9 doc, `malstrom-testkit` 1, `malstrom-snapshot-slatedb`
+  19 unit, `malstrom-combinators` 31 unit + 9 doc, `malstrom-testkit` 1, `malstrom-snapshot-slatedb`
   5; all 21 examples build and smoke-run via the facade (`look_ma_im_streaming`,
   `stateful_programs`, `multithreading`, `rescaling`, `ttl_map`); `malstrom::keyed::distributed`
   resolves through the facade.

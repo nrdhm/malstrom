@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-Stream-building combinators in `malstrom-operators` (union, split) historically needed direct
+Stream-building combinators in `malstrom-combinators` (union, split) historically needed direct
 access to core internals to wire streams:
 
 - `StreamBuilder::tail` and `Operator::input`/`output` are `pub`, so combinator code read,
@@ -53,7 +53,7 @@ the duplicate in `split.rs` are both deleted.
   Output::new_unlinked(partitioner))` is what carries split's custom partitioner.
 
 `Cloned` remains a thin wrapper over `Split` (a broadcast partitioner with no user closure); see
-the rationale in `malstrom-operators/src/operators/cloned.rs`.
+the rationale in `malstrom-combinators/src/operators/cloned.rs`.
 
 ## Alternatives considered
 
@@ -67,7 +67,7 @@ the rationale in `malstrom-operators/src/operators/cloned.rs`.
   `StreamBuilder` method would have to grow to carry the partitioner and a heterogeneous target
   list. The four steps are now spelled out at each call site (two call sites), which is
   acceptable duplication for the clearer ownership boundary.
-- **Shared helper code inside `malstrom-operators`** — keep `Forward`/wiring in the operator
+- **Shared helper code inside `malstrom-combinators`** — keep `Forward`/wiring in the operator
   crate. Rejected: leaves the operator crates coupled to core internals, which is the coupling
   this refactor removes.
 - **Defer to the IO edge unification first** — the
@@ -91,7 +91,7 @@ the rationale in `malstrom-operators/src/operators/cloned.rs`.
   was realized once: the union rewrite dropped the `add_operator(edge)` registration and the
   edge was silently discarded — see
   [fail-loud-on-dangling-operator-edges](../../proposed/architecture/2026-09-19-fail-loud-on-dangling-operator-edges.md).
-- `cargo test -p malstrom-operators --lib` and the union/split test semantics are unchanged.
+- `cargo test -p malstrom-combinators --lib` and the union/split test semantics are unchanged.
 
 ## Related
 

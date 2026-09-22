@@ -1,7 +1,7 @@
 //! A scaling program
+use malstrom::combinators::Source as _;
+use malstrom::combinators::*;
 use malstrom::keyed::rendezvous_select;
-use malstrom::operators::Source as _;
-use malstrom::operators::*;
 use malstrom::runtime::MultiThreadRuntime;
 use malstrom::snapshot::NoPersistence;
 use malstrom::sources::Source;

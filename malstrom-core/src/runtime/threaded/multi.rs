@@ -26,7 +26,7 @@ use super::communication::{
 /// See the `multi_thread_runtime_runs_dataflow_on_all_workers` test for a runnable
 /// example that uses only the kernel's public extension API — plain
 /// [`Logic`](crate::stream::Logic) operators wired via
-/// [`Operator::built_by`](crate::stream::Operator), no `malstrom-operators` needed.
+/// [`Operator::built_by`](crate::stream::Operator), no `malstrom-combinators` needed.
 #[derive(Builder)]
 pub struct MultiThreadRuntime<P, F> {
     #[builder(finish_fn)]
@@ -313,7 +313,7 @@ mod tests {
     /// grouping the reported `(worker, value)` pairs by worker shows exactly `0..5`
     /// per worker. The reporting channel is captured directly in the build closure —
     /// `MultiThreadRuntime::build` accepts closures, like `SingleThreadRuntime`'s.
-    /// Exercises the kernel's public extension API end-to-end (no `malstrom-operators`).
+    /// Exercises the kernel's public extension API end-to-end (no `malstrom-combinators`).
     #[test]
     fn multi_thread_runtime_runs_dataflow_on_all_workers() {
         let (tx, rx) = flume::unbounded();

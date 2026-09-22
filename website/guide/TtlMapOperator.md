@@ -20,7 +20,7 @@ The operator applies a transforming function to every message, giving the functi
 Here's a simple example that demonstrates how to use the TTL Map Operator:
 
 ```rust
-use malstrom::operators::TtlMap;
+use malstrom::combinators::TtlMap;
 use expiremap::ExpireMap;
 
 stream

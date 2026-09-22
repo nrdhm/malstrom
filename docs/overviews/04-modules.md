@@ -10,7 +10,7 @@
 
 **`malstrom` (facade, `malstrom/`)** — the public entry point: re-exports
 `malstrom-core`'s kernel modules (`types`, `channels`, `stream`, `worker`, `coordinator`,
-`runtime`, `snapshot`) and `malstrom-operators`' `operators`/`sinks`/`sources`/`keyed`, plus
+`runtime`, `snapshot`) and `malstrom-combinators`' `operators`/`sinks`/`sources`/`keyed`, plus
 the SlateDB backend under feature `slatedb`. No logic of its own; depends on the layers.
 
 **`malstrom-core` (kernel, `malstrom-core/`)** — the execution engine. Modules: `types`,
@@ -25,7 +25,7 @@ the `Message`/`Kvt` vocabulary) and the protocol message types
 `remote_receiver`/`remote_sender`, wire/versioned/targeted messages, `worker_partitioners`.
 Depends only on `malstrom-core`.
 
-**`malstrom-operators`** — the stdlib: `operators`, `sinks` (incl. `VecSink`), `sources`
+**`malstrom-combinators`** — the stdlib: `operators`, `sinks` (incl. `VecSink`), `sources`
 (incl. the `fn_source` constructors and the source engine), and the local keyed ops
 (`key_local`, `key_distribute`, `broadcast`), plus a `keyed::distributed` shim re-exporting
 `malstrom-distributed` at the historical path. Depends on `malstrom-core` + `malstrom-distributed`.
@@ -69,7 +69,7 @@ and `coordinator`; worker↔coordinator exchange messages over runtime comm.
 graph TD
     malstrom["malstrom (kernel)<br/>types · channels · stream · worker · coordinator · runtime · snapshot"]
     dist["malstrom-distributed<br/>routers · distributor · remote send/receive · wire messages · partitioners"]
-    ops["malstrom-operators<br/>operators · sinks · sources · local keyed ops"]
+    ops["malstrom-combinators<br/>operators · sinks · sources · local keyed ops"]
     tk["malstrom-testkit<br/>operator tester · fake comm · capture persistence"]
     ss["malstrom-snapshot-slatedb<br/>SlateDB/object-store backend"]
 
@@ -81,8 +81,8 @@ graph TD
 ```
 
 > **Caption:** the facade depends on the layers, nothing depends on the facade — the graph
-> is acyclic by construction. `malstrom-operators` keeps a `keyed::distributed` shim so the
-> historical import path still resolves through the facade. `malstrom-operators` keeps a `keyed::distributed` shim module so
+> is acyclic by construction. `malstrom-combinators` keeps a `keyed::distributed` shim so the
+> historical import path still resolves through the facade. `malstrom-combinators` keeps a `keyed::distributed` shim module so
 > the historical import path still resolves.
 
 ## How the pieces connect at runtime
@@ -106,7 +106,7 @@ flowchart LR
 ```
 
 One job = one coordinator + N identical workers (parallelism). The worker builds the dataflow
-(`stream` + `malstrom-operators` operators) and executes operator tasks; operators exchange
+(`stream` + `malstrom-combinators` operators) and executes operator tasks; operators exchange
 `Message`s through `channels`; `malstrom-distributed` routes messages to the right local
 operator or, via `runtime` communication, to a remote worker; the coordinator drives
 build/snapshot/rescale by sending messages that travel the same comm paths; snapshot barriers
@@ -122,7 +122,7 @@ flow in-band inside `Message` and state is flushed through `snapshot::Persistenc
   vocabulary stays in the kernel.
 - **Barrier lives in `snapshot` but flows through `types` and `channels`**: snapshot
   coordination is woven into the message stream (this is what enables exactly-once barriers).
-- **`malstrom-operators`' `keyed::distributed` shim** exists so `crate::keyed::distributed`
+- **`malstrom-combinators`' `keyed::distributed` shim** exists so `crate::keyed::distributed`
   paths in the operator layer keep resolving; it is a thin re-export of `malstrom-distributed`.
 - **Kernel manifest is lean**: `expiremap`, `rand`, `eyre`, `console-subscriber` and the
   slatedb/object-store/tokio-stream stack left the kernel with the extracted crates.

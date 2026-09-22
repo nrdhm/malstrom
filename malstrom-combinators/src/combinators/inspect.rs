@@ -12,16 +12,16 @@ pub trait Inspect<Msg: Kvt, Inspector>: Sealed {
     /// Inspect takes a closure of function which is called on every data
     /// message.
     ///
-    /// To inspect the current event time see [`crate::operators::time::InspectFrontier`].
+    /// To inspect the current event time see [`crate::combinators::time::InspectFrontier`].
     ///
     /// ```rust
-    /// use malstrom_operators::operators::*;
-    /// use malstrom_operators::operators::Source as _;
+    /// use malstrom_combinators::combinators::*;
+    /// use malstrom_combinators::combinators::Source as _;
     /// use malstrom_core::runtime::SingleThreadRuntime;
     /// use malstrom_core::snapshot::NoPersistence;
-    /// use malstrom_operators::sources::Source;
+    /// use malstrom_combinators::sources::Source;
     /// use malstrom_core::worker::StreamProvider;
-    /// use malstrom_operators::sinks::{VecSink, StatelessSink};
+    /// use malstrom_combinators::sinks::{VecSink, StatelessSink};
     ///
     /// let sink = VecSink::new();
     /// let sink_insepct = sink.clone();
@@ -101,8 +101,8 @@ where
 mod tests {
     use itertools::Itertools;
 
-    use crate::operators::Source as _;
-    use crate::operators::*;
+    use crate::combinators::Source as _;
+    use crate::combinators::*;
     use crate::sinks::StatelessSink;
     use crate::sinks::VecSink;
     use crate::sources::Source;

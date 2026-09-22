@@ -1,6 +1,6 @@
 //! Stream processing can be easy!
-use malstrom::operators::Source as _;
-use malstrom::operators::*;
+use malstrom::combinators::Source as _;
+use malstrom::combinators::*;
 use malstrom::runtime::MultiThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;

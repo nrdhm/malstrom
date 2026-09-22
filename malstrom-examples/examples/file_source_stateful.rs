@@ -6,7 +6,7 @@ use std::{
     iter::{Peekable, Skip},
 };
 use {
-    malstrom::operators::Source as _,
+    malstrom::combinators::Source as _,
     malstrom::runtime::SingleThreadRuntime,
     malstrom::snapshot::NoPersistence,
     malstrom::sources::{Source, SourceImpl, SourcePartition},

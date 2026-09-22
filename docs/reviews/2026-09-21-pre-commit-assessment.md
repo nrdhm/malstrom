@@ -10,12 +10,12 @@ several of its "must fix" items are still open and are re-listed below.
 
 ## State
 
-- `cargo check` is green for `malstrom-core`, `malstrom-operators`, `malstrom-macros`,
+- `cargo check` is green for `malstrom-core`, `malstrom-combinators`, `malstrom-macros`,
   `malstrom-testkit` and `malstrom-examples` (`--all-targets`).
 - `scripts/verify-agent-notes.py` passes.
 - `git diff --check` (staged and unstaged) is clean; `cargo fmt --all -- --check` passes.
 - Tests pass: `cargo test -p malstrom-core` (unit + 4 integration binaries + 8 doc),
-  `cargo test -p malstrom-operators --lib` (32), `cargo test -p malstrom-macros --test
+  `cargo test -p malstrom-combinators --lib` (32), `cargo test -p malstrom-macros --test
   instrument_debug` (4), `cargo test -p malstrom-testkit`.
 - The branch has **diverged 22** from `fork/new-scheduler-tests`.
 
@@ -101,12 +101,12 @@ several of its "must fix" items are still open and are re-listed below.
     open** — verify it is intentional rather than incidental.
 
 15. ~~**`cloned_streams` example no longer compiles.**~~ **Fixed 2026-09-21 — decision: keep
-    `Cloned`.** The branch deleted `malstrom-operators/src/operators/cloned.rs` and its
+    `Cloned`.** The branch deleted `malstrom-combinators/src/operators/cloned.rs` and its
     `mod.rs` re-export, breaking `cloned_streams.rs`, the `namespace.rs` facade test, the
     website joining/splitting guide, and doc-links in `split.rs`/`sink.rs`. Restored `Cloned`
     as the thin broadcast wrapper over `Split` it always was, now taking `impl Into<String>` to
     match `Split`. See the rationale in
-    [`cloned.rs`](https://github.com/MalstromDevelopers/malstrom/blob/main/malstrom-operators/src/operators/cloned.rs): it is kept for the
+    [`cloned.rs`](https://github.com/MalstromDevelopers/malstrom/blob/main/malstrom-combinators/src/operators/cloned.rs): it is kept for the
     ergonomic, intention-revealing `cloned(name, N)` spelling of fan-out, not for any runtime
     capability `Split` lacks.
 

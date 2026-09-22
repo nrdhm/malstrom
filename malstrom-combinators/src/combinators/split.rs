@@ -12,7 +12,7 @@ pub trait Split<Msg: Kvt>: Sealed {
     /// `[true, false]` the left output will receive the message.
     ///
     /// If you always want all outputs to receive every message
-    /// see [crate::operators::Cloned::const_cloned].
+    /// see [crate::combinators::Cloned::const_cloned].
     fn const_split<const N: usize>(
         self,
         name: impl Into<String>,
@@ -27,7 +27,7 @@ pub trait Split<Msg: Kvt>: Sealed {
     /// `[true, false]` the left output will receive the message.
     ///
     /// If you always want all outputs to receive every message
-    /// see [crate::operators::Cloned::cloned].
+    /// see [crate::combinators::Cloned::cloned].
     fn split(
         self,
         name: impl Into<String>,
@@ -91,8 +91,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::operators::Source as _;
-    use crate::operators::*;
+    use crate::combinators::Source as _;
+    use crate::combinators::*;
     use crate::sinks::StatelessSink;
     use crate::sinks::VecSink;
     use crate::sources::Source;

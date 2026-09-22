@@ -6,10 +6,10 @@ Status: proposed
 
 `malstrom-core/Cargo.toml` still declares `malstrom-macros = { path = "../malstrom-macros" }`,
 but nothing in `malstrom-core/src` references it: the `TTLState` derive it provides moved to
-`malstrom-operators` during
+`malstrom-combinators` during
 [split-malstrom-core](../../implemented/architecture/2026-08-24-split-malstrom-core.md)
-(`malstrom-operators/src/operators/ttl_map.rs` uses it, `operators/mod.rs` re-exports it, and
-`malstrom-operators` declares the dependency itself). The kernel-manifest cleanup recorded as
+(`malstrom-combinators/src/operators/ttl_map.rs` uses it, `operators/mod.rs` re-exports it, and
+`malstrom-combinators` declares the dependency itself). The kernel-manifest cleanup recorded as
 Decision 9 of the split note dropped `rand`, `expiremap`, `eyre`, and the SlateDB stack but
 missed this entry.
 

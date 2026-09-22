@@ -162,7 +162,7 @@ need it).
 
 The local Termux environment cannot build `malstrom-kafka` (rdkafka) or `malstrom-k8s/proto`
 (`protoc`), so steps are verified with
-`cargo clippy -p malstrom-core -p malstrom-macros -p malstrom-distributed -p malstrom-operators -p malstrom-testkit -p malstrom-snapshot-slatedb --all-targets -- -D warnings`.
+`cargo clippy -p malstrom-core -p malstrom-macros -p malstrom-distributed -p malstrom-combinators -p malstrom-testkit -p malstrom-snapshot-slatedb --all-targets -- -D warnings`.
 The full `--workspace` gate (including the k8s/kafka crates) runs in CI.
 
 ## Alternatives considered

@@ -10,7 +10,7 @@ The kernel's test-only helpers live in **two** places, and the shared mock modul
 - `malstrom-core/src/test_support.rs` — `init_logs()`, gated behind the `test-support`
   feature (`malstrom-core/Cargo.toml`), which exists only to expose it to integration tests.
   It is part of the lib, so it is compiled once (and duplicated a second time in
-  `malstrom-operators`, see below).
+  `malstrom-combinators`, see below).
 - `malstrom-core/tests/common/mod.rs` — 192 lines of in-process mocks (`MemoryComm`,
   `MemoryFlavor`, and the four `MemoryStream*`/`MemoryReqRes*` sender/receiver pairs),
   declared with `mod common;` by four integration-test binaries and therefore compiled once
@@ -46,13 +46,13 @@ four sender/receiver structs, `MemoryResponder`, and the `ReqRes` type alias).
 
 ### 2. `init_logs()` is duplicated across crates
 
-`malstrom-core/src/test_support.rs` and `malstrom-operators/src/operators/union.rs` each
+`malstrom-core/src/test_support.rs` and `malstrom-combinators/src/operators/union.rs` each
 define an `init_logs()`. The operators copy is richer — it also wires OTLP export when
 `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is set (see
 [otlp-tracing-in-operator-tests](../../implemented/testing/2026-09-13-otlp-tracing-in-operator-tests.md))
 — but the `tracing_subscriber` registry/`EnvFilter`/`with_test_writer()` core is the same.
 Test-only logging setup is exactly what `malstrom-testkit` already exists to host, and
-`malstrom-operators` already dev-depends on it.
+`malstrom-combinators` already dev-depends on it.
 
 Both `test_support` and `tests/common/` are kernel-local only because of a belief recorded in
 two live Agent Notes, examined below.
@@ -76,7 +76,7 @@ Concretely:
 3. **Point the kernel's tests at `malstrom_testkit::`** and delete `malstrom-core/tests/common/`.
    `runtime_flavor_contract.rs` drops its unused-`mod common` siblings' declarations; all four
    binaries drop `mod common;`.
-4. **Dedup `malstrom-operators`' `init_logs()`** onto the testkit one, keeping the OTLP
+4. **Dedup `malstrom-combinators`' `init_logs()`** onto the testkit one, keeping the OTLP
    branch as a wrapper or an additional testkit helper.
 5. **Correct the two Agent Notes** whose rationale this falsifies (below), in the same change.
 
@@ -101,7 +101,7 @@ $ ls /tmp/tgt-cycle2/debug/deps/ | grep -cE '^libmalstrom_core-[0-9a-f]+\.rlib$'
 
 Also verified workspace-wide with the dev-dep added (`CARGO_TARGET_DIR=… cargo test
 --workspace --no-run`): exactly one `libmalstrom_core-*.rlib` was produced before the run
-failed in `malstrom-operators` on its pre-existing errors (see Risks), so unification holds
+failed in `malstrom-combinators` on its pre-existing errors (see Risks), so unification holds
 across the whole dependency graph, not just the kernel package. A synthetic mirror exercising
 the seam confirms coherence — a testkit type passed back as a kernel type, and a testkit
 `impl` of a kernel trait, both compile and run from a kernel **integration** test.
@@ -134,7 +134,7 @@ Keeping the mocks in the kernel behind the existing `test-support` feature (i.e.
 `tests/common/mod.rs` to `src/test_support/` instead of to testkit) also achieves a single
 compilation, needs no new dependency, and keeps kernel tests importing only
 `malstrom_core::`. It is the smaller change. It was **not** chosen because it cannot dedup
-`init_logs` across crates — `malstrom-operators` would keep its own copy — and because it
+`init_logs` across crates — `malstrom-combinators` would keep its own copy — and because it
 leaves the `test-support` feature and self-dev-dep machinery in place purely to publish test
 fixtures from a production lib. Testkit is the crate that exists for this purpose.
 
@@ -197,12 +197,12 @@ fixtures from a production lib. Testkit is the crate that exists for this purpos
   accepted deliberately for cross-crate dedup.
 - **`init_logs` is not a pure duplicate.** The operators variant also configures OTLP
   export; consolidating must preserve that behavior, so the OTLP path stays in
-  `malstrom-operators` (as a wrapper over the testkit helper) rather than moving.
+  `malstrom-combinators` (as a wrapper over the testkit helper) rather than moving.
 - **Timing benefit is modest.** Touching `tests/common/mod.rs` costs ~14–16 s versus ~11 s for
   a single non-shared test file — the wall-clock saving is roughly 3 s, because relinking the
   ~54 MB test binaries dominates. The justification is correctness-of-structure and the
   warning/duplication cleanup, not build speed. Do not sell this as a performance win.
-- **`cargo test --workspace` does not currently build.** `malstrom-operators` fails with 175
+- **`cargo test --workspace` does not currently build.** `malstrom-combinators` fails with 175
   errors on the untouched tree (verified independently of any probe). Workspace-wide
   verification of this change must therefore wait on, or exclude, that crate; the kernel and
   testkit packages are the meaningful gates.

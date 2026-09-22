@@ -1,8 +1,8 @@
 //! Example of a stateless sink writing to files on the local filesystem
 use std::{fs::OpenOptions, io::Write};
 use {
+    malstrom::combinators::{Map, Sink, Source as _},
     malstrom::keyed::{KeyDistribute, rendezvous_select},
-    malstrom::operators::{Map, Sink, Source as _},
     malstrom::runtime::SingleThreadRuntime,
     malstrom::sinks::{StatelessSink, StatelessSinkImpl},
     malstrom::snapshot::NoPersistence,

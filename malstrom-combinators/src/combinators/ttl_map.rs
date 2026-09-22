@@ -4,7 +4,7 @@ pub use expiremap;
 use expiremap::ExpireMap;
 use serde::{Serialize, de::DeserializeOwned};
 
-use crate::operators::State;
+use crate::combinators::State;
 use malstrom_core::channels::operator_io::Output;
 use malstrom_core::stream::StreamBuilder;
 use malstrom_core::types::{Data, DataMessage, Key, Kvt, Message, Sealed, Timestamp};
@@ -135,8 +135,8 @@ mod test {
     use expiremap::ExpireMap;
     use itertools::Itertools;
 
-    use crate::operators::source::Source as _;
-    use crate::operators::{AssignTimestamps, Filter, GenerateEpochs, KeyLocal, Sink};
+    use crate::combinators::source::Source as _;
+    use crate::combinators::{AssignTimestamps, Filter, GenerateEpochs, KeyLocal, Sink};
 
     use crate::sinks::StatelessSink;
     use crate::sinks::VecSink;
@@ -145,7 +145,7 @@ mod test {
 
     use super::{TTLState, TtlMap};
 
-    use crate as malstrom_operators;
+    use crate as malstrom_combinators;
 
     /// Simple test to check we are keeping state
     #[test]

@@ -1,6 +1,6 @@
 use serde::{Serialize, de::DeserializeOwned};
 
-use crate::operators::State;
+use crate::combinators::State;
 use malstrom_core::channels::operator_io::Output;
 use malstrom_core::stream::StreamBuilder;
 use malstrom_core::types::{Data, DataMessage, Key, Kvt, Message, Sealed};
@@ -28,13 +28,13 @@ pub trait StatefulMap<In: Kvt, T: Data, Mapper, S>: Sealed {
     /// This dataflow creates batches of 3 messages each
     ///
     /// ```rust
-    /// use malstrom_operators::operators::*;
-    /// use malstrom_operators::operators::Source as _;
+    /// use malstrom_combinators::combinators::*;
+    /// use malstrom_combinators::combinators::Source as _;
     /// use malstrom_core::runtime::SingleThreadRuntime;
     /// use malstrom_core::snapshot::NoPersistence;
-    /// use malstrom_operators::sources::Source;
+    /// use malstrom_combinators::sources::Source;
     /// use malstrom_core::worker::StreamProvider;
-    /// use malstrom_operators::sinks::{VecSink, StatelessSink};
+    /// use malstrom_combinators::sinks::{VecSink, StatelessSink};
     ///
     /// let sink = VecSink::new();
     /// let sink_clone = sink.clone();
@@ -113,8 +113,8 @@ mod test {
 
     use itertools::Itertools;
 
-    use crate::operators::source::Source as _;
-    use crate::operators::{KeyLocal, Sink};
+    use crate::combinators::source::Source as _;
+    use crate::combinators::{KeyLocal, Sink};
 
     use crate::sinks::StatelessSink;
     use crate::sinks::VecSink;

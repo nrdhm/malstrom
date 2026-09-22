@@ -1,5 +1,5 @@
 use super::stateless_op::StatelessOp;
-use crate::operators::StatelessLogic;
+use crate::combinators::StatelessLogic;
 use malstrom_core::channels::operator_io::Output;
 use malstrom_core::stream::StreamBuilder;
 use malstrom_core::types::{Data, DataMessage, Kvt, Message, Sealed};
@@ -15,13 +15,13 @@ pub trait FilterMap<In: Kvt, T: Data, Mapper>: Sealed {
     ///
     /// Only retain numeric strings
     /// ```rust
-    /// use malstrom_operators::operators::*;
-    /// use malstrom_operators::operators::Source as _;
+    /// use malstrom_combinators::combinators::*;
+    /// use malstrom_combinators::combinators::Source as _;
     /// use malstrom_core::runtime::SingleThreadRuntime;
     /// use malstrom_core::snapshot::NoPersistence;
-    /// use malstrom_operators::sources::Source;
+    /// use malstrom_combinators::sources::Source;
     /// use malstrom_core::worker::StreamProvider;
-    /// use malstrom_operators::sinks::{VecSink, StatelessSink};
+    /// use malstrom_combinators::sinks::{VecSink, StatelessSink};
     ///
     /// let sink = VecSink::new();
     /// let sink_clone = sink.clone();
@@ -83,7 +83,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::operators::{sink::Sink, source::Source as _};
+    use crate::combinators::{sink::Sink, source::Source as _};
     use crate::sinks::StatelessSink;
     use crate::sinks::VecSink;
     use crate::sources::Source;

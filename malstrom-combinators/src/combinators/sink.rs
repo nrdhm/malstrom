@@ -5,18 +5,18 @@ use malstrom_core::types::{Kvt, Sealed};
 pub trait Sink<M, S>: Sealed {
     /// Sink all messages in this stream to the given output.
     /// This will consume the messages. If you whish to write to multiple outputs,
-    /// consider calling [.cloned()](crate::operators::Cloned::cloned) on the stream.
+    /// consider calling [.cloned()](crate::combinators::Cloned::cloned) on the stream.
     ///
     /// # Example
     ///
     /// ```
-    /// use malstrom_operators::operators::*;
-    /// use malstrom_operators::operators::Source as _;
+    /// use malstrom_combinators::combinators::*;
+    /// use malstrom_combinators::combinators::Source as _;
     /// use malstrom_core::runtime::SingleThreadRuntime;
     /// use malstrom_core::snapshot::NoPersistence;
-    /// use malstrom_operators::sources::Source;
+    /// use malstrom_combinators::sources::Source;
     /// use malstrom_core::worker::StreamProvider;
-    /// use malstrom_operators::sinks::{VecSink, StatelessSink};
+    /// use malstrom_combinators::sinks::{VecSink, StatelessSink};
     ///
     /// let sink = VecSink::new();
     /// let sink_clone = sink.clone();

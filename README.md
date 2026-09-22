@@ -25,7 +25,7 @@ Data only needs to be serialisable when explicitly send to other processes.
 
 ```rust
 //! Stream processing can be easy!
-use malstrom::operators::*;
+use malstrom::combinators::*;
 use malstrom::runtime::MultiThreadRuntime;
 use malstrom::sinks::{StatelessSink, StdOutSink};
 use malstrom::snapshot::NoPersistence;

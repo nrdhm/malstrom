@@ -110,5 +110,5 @@ mdbook-mermaid install . >/dev/null 2>&1 || true
 if [ "$MODE" = "build" ]; then
     mdbook build
 else
-    mdbook serve --port 3001 --open 2>/dev/null || mdbook serve --port 3001
+    mdbook serve --port 3001
 fi

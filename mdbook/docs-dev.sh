@@ -10,4 +10,4 @@ cd "$ROOT/mdbook"
 # Generate the Mermaid assets on first run (they are git-ignored).
 [ -f mermaid.min.js ] || mdbook-mermaid install .
 
-mdbook serve --open 2>/dev/null || mdbook serve
+mdbook serve

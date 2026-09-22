@@ -11,9 +11,11 @@ src = "src"
 build-dir = "book"
 
 [output.html]
-# `mermaid-init.js` is the shared, committed copy in `../mdbook/` (both books are
-# byte-identical otherwise). `mermaid.min.js` is the git-ignored vendored asset.
-additional-js = ["mermaid.min.js", "../mdbook/mermaid-init.js"]
+# `mermaid-init.js` is a symlink to the shared, committed copy in `../mdbook/`
+# (both books used byte-identical files). `mermaid.min.js` is the git-ignored
+# vendored asset. `mdbook-mermaid install` skips existing files, so the symlink
+# survives a fresh install.
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
 
 [preprocessor.mermaid]
 command = "mdbook-mermaid"

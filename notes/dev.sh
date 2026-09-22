@@ -104,12 +104,9 @@ PY
 
 cd "$ROOT/notes"
 # The vendored `mermaid.min.js` is git-ignored; install it once on a fresh checkout.
-# `mdbook-mermaid install` also writes its default `mermaid-init.js` into the project
-# dir — drop it, this book reuses the committed one from `../mdbook/` (see book.toml).
-if [ ! -f mermaid.min.js ]; then
-    mdbook-mermaid install . >/dev/null 2>&1 || true
-    rm -f mermaid-init.js
-fi
+# The installer skips the existing (symlinked) `mermaid-init.js`, so the shared copy
+# in `../mdbook/` is never clobbered.
+[ -f mermaid.min.js ] || mdbook-mermaid install . >/dev/null 2>&1 || true
 
 if [ "$MODE" = "build" ]; then
     mdbook build

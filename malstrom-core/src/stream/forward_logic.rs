@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use malstrom_core::{
+use crate::{
     channels::operator_io::Output,
     stream::{OperatorContext, SafeLogic},
     types::{DataMessage, Kvt, Message},
@@ -8,8 +8,11 @@ use malstrom_core::{
 
 /// No-op forwarding logic used to wire stream edges (union/split combinators).
 ///
-/// Crate-internal: these combinators live in `malstrom-operators`, not the public API.
-pub(crate) struct Forward<Msg>(PhantomData<Msg>);
+/// Implementation detail: not part of the user-facing extension API. Kept `pub` for
+/// `malstrom-operators`, hidden from docs. See the public-API surface audit
+/// (`docs/overviews/08-public-api-surface.md`).
+#[doc(hidden)]
+pub struct Forward<Msg>(PhantomData<Msg>);
 impl<Msg> Forward<Msg>
 where
     Msg: Kvt,

@@ -121,13 +121,15 @@ Six concrete smells, each with the offending exposure:
    ride inside the public `Message` enum (so they must be *nameable*, at least via `Message`),
    but the structs themselves are sibling-only.
 
-4. ~~**`Forward` is public.**~~ **Resolved 2026-09-21** — moved out of the kernel into
-   `malstrom-operators` (crate-internal). It was a no-op forwarding `SafeLogic` used by
-   `union()`/`split()` to wire edges; only the operator crate uses it, so that is its home.
+4. **`Forward` is `pub` (doc-hidden).** `stream/forward_logic.rs` is a no-op forwarding
+   `SafeLogic` used by `union()`/`split()` to wire edges. It is a kernel helper (owned by
+   `malstrom-core`): it must be expressible against `SafeLogic`/`Output`, and it exists to keep
+   combinators off `Operator`'s fields. Now `#[doc(hidden)]`.
 
-5. ~~**`OperatorBuilder` is public.**~~ **Resolved 2026-09-21** — same: moved to
-   `malstrom-operators`. It is the *right* abstraction for constructing operators without
-   touching fields, and it is operator-layer plumbing, so it lives with the combinators.
+5. **`OperatorBuilder` is `pub` (doc-hidden).** The way combinators build `Operator`s without
+   touching fields. It is **kernel-owned by design** — its whole purpose is to hide `Operator`
+   internals — so it stays in `malstrom-core` even though only the operator crates use it. Now
+   `#[doc(hidden)]`.
 
 6. **The facade over-exports.** `malstrom` re-exports all seven core modules wholesale, so
    `malstrom::channels::spsc::Receiver`, `malstrom::stream::Forward`,
@@ -181,12 +183,13 @@ see below); items 5–6 are partly done / open. See the extraction note
    (with `StreamBuilder::runtime` field and the unused `get_runtime` removed); its `pub`
    re-export dropped. No external consumer existed, and it no longer appears in the built
    `malstrom` docs.
-2. ~~**`#[doc(hidden)]` on the implementation types**~~ **Done 2026-09-21, superseded by a
-   move.** `stream::Forward` and `stream::OperatorBuilder` are no longer in the kernel at all —
-   they moved to `malstrom-operators` (crate-internal), their proper layer, since only the
-   union/split combinators use them. `Operator::input`/`output` are `pub(crate)` (union/split
-   route through `OperatorBuilder` + `swap_input`/`link_to_input`/`get_*_mut`), so the
-   operator's internals are no longer part of the public surface.
+2. ~~**`#[doc(hidden)]` on the implementation types**~~ **Done 2026-09-21.**
+   `stream::Forward` and `stream::OperatorBuilder` are `#[doc(hidden)]` (with their `stream`
+   re-exports). They are **kernel-owned by design** — the builder's purpose is to hide
+   `Operator`'s internals from combinator code — so they stay in `malstrom-core` even though
+   only `malstrom-operators` uses them. `Operator::input`/`output` are now `pub(crate)`
+   (union/split route through `OperatorBuilder` + `swap_input`/`link_to_input`/`get_*_mut`),
+   so the operator's internals are no longer part of the public surface.
 3. ~~**`Output`/`Input::add_another_one`**~~ **Done 2026-09-21.** Both are now
    `pub(crate)` (their only caller is `link` in the same module), so no `spsc` type appears
    in a public signature anymore.
@@ -196,13 +199,12 @@ see below); items 5–6 are partly done / open. See the extraction note
    not expose them. `types::distributed` and `runtime::communication` are **reclassified as
    public**: they are the runtime-flavor communication extension point
    (`OperatorOperatorComm`/`WorkerCoordinatorComm`, implemented by `malstrom-k8s/runtime`) and
-   the keyed state-movement vocabulary embedded in the public `Message` enum — not leaked
-   implementation detail. `stream::Forward`/`OperatorBuilder` moved to `malstrom-operators`.
-5. **Curate the `malstrom` facade.** Largely achieved via the moves: the edge internals
-   (`spsc`, `recv_trait`, `alignment`) are in `malstrom-core-internal` and the operator helper
-   types are out of the kernel, so none are reachable via `malstrom::…`. The facade still does
-   wholesale module re-exports (`pub use malstrom_core::{…}`), which is now harmless for the
-   hidden items but still a broad surface; an item-level curation is optional.
+   the keyed state-movement vocabulary embedded in the public `Message` enum.
+5. **Curate the `malstrom` facade.** The moved edge internals (`spsc`, `recv_trait`,
+   `alignment`) are no longer reachable via `malstrom::…`. `stream::Forward`/`OperatorBuilder`
+   remain nameable (they are `#[doc(hidden)]` but `pub` in core, and the facade re-exports the
+   module wholesale); an item-level facade curation would remove that, but is optional since
+   they are undocumented kernel abstractions.
 6. **Add a public-API snapshot test.** **Open** — not added; `malstrom/tests/namespace.rs`
    (updated for the new surface) is the current regression anchor.
 

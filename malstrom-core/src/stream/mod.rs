@@ -1,14 +1,20 @@
 //! Streams are logical orders of operations. A Stream can be seen as a series of nodes and edges
 //! in the computation graph
 mod build_context;
+mod forward_logic;
 mod operator;
+mod operator_builder;
 mod operator_context;
 mod operator_logic;
 mod stream_builder;
 
 pub use build_context::BuildContext;
 pub(crate) use build_context::WorkerBuildContext;
+#[doc(hidden)]
+pub use forward_logic::Forward;
 pub use operator::Operator;
+#[doc(hidden)]
+pub use operator_builder::OperatorBuilder;
 pub use operator_context::OperatorContext;
 pub use operator_logic::{DirectLogic, Logic, LogicBuilder, SafeLogic, SafeLogicWrapper};
 pub use stream_builder::{InitialStreamBuilder, Malstrom, StreamBuilder};

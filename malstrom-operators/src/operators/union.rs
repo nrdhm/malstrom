@@ -1,7 +1,5 @@
-use crate::forward_logic::Forward;
-use crate::operator_builder::OperatorBuilder;
 use malstrom_core::channels::operator_io::Input;
-use malstrom_core::stream::{SafeLogic, StreamBuilder};
+use malstrom_core::stream::{Forward, OperatorBuilder, SafeLogic, StreamBuilder};
 use malstrom_core::types::{Kvt, MaybeData, MaybeKey, MaybeTime, Sealed};
 
 /// Trait with union() method.

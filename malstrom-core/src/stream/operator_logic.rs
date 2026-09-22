@@ -29,8 +29,7 @@ pub struct DirectLogic<L> {
 }
 
 impl<L> DirectLogic<L> {
-    /// Construct a builder that returns `logic` unchanged.
-    pub fn new(logic: L) -> Self {
+    pub(crate) fn new(logic: L) -> Self {
         Self { logic }
     }
 }

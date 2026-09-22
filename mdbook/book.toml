@@ -14,7 +14,6 @@ build-dir = "book"
 [output.html]
 # `mdbook-mermaid install` places these here (next to this `book.toml`).
 additional-js = ["mermaid.min.js", "mermaid-init.js"]
-additional-css = ["custom.css"]
 git-repository-url = "https://github.com/MalstromDevelopers/malstrom"
 edit-url-template = "https://github.com/MalstromDevelopers/malstrom/edit/main/{path}"
 

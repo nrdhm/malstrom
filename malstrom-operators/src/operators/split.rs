@@ -1,5 +1,6 @@
+use crate::operator_builder::OperatorBuilder;
 use malstrom_core::channels::operator_io::{Input, Output};
-use malstrom_core::stream::{OperatorBuilder, SafeLogic, StreamBuilder};
+use malstrom_core::stream::{SafeLogic, StreamBuilder};
 use malstrom_core::types::{DataMessage, Kvt, MaybeData, MaybeKey, MaybeTime, Sealed};
 
 /// Split one datastream into multiple streams
@@ -72,7 +73,7 @@ where
         // first edge from the source
         let mut edge = OperatorBuilder::new(name)
             // just a dummy operator to connect tail (input) with the united input
-            .with_direct_logic(malstrom_core::stream::Forward::new().into_logic())
+            .with_direct_logic(crate::forward_logic::Forward::new().into_logic())
             .with_output(Output::new_unlinked(partitioner))
             .build();
         edge.swap_input(&mut self.tail);

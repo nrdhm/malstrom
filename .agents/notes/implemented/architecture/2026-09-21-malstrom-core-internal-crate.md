@@ -46,22 +46,26 @@ malstrom-core + malstrom-{distributed,operators,testkit}
 - `malstrom-core` depends on it and re-exports the three modules `pub(crate)` for its own
   `operator_io`/`operator_operator`; `malstrom-distributed` and `malstrom-operators` import
   them from `malstrom_core_internal` directly.
-- The published `malstrom` facade no longer exposes them: `malstrom::channels::{spsc,
-  recv_trait, alignment}` are gone, and the facade namespace test
-  (`malstrom/tests/namespace.rs`) was updated to assert the curated surface instead.
+- `stream::Forward` and `stream::OperatorBuilder` **moved out of the kernel entirely**, into
+  `malstrom-operators` (crate-internal). They are operator-layer edge-construction helpers —
+  only the union/split combinators use them (core's sole use was the builder's own
+  low-level test) — so the operator crate is their proper home, not a lower kernel layer.
+  `DirectLogic::new` was made public for the builder to construct it from another crate.
+  Their old doc-hidden (`#[doc(hidden)]`) form and the associated low-level test are gone.
 - Earlier safe-subset items from the audit are also in place: `worker::InnerRuntimeBuilder`
-  and `Output`/`Input::add_another_one` are `pub(crate)`, and `stream::{Forward,
-  OperatorBuilder}` are `#[doc(hidden)]`.
+  and `Output`/`Input::add_another_one` are `pub(crate)`.
+- The published `malstrom` facade accordingly exposes none of this: `malstrom::channels::{spsc,
+  recv_trait, alignment}` and `malstrom::stream::{Forward, OperatorBuilder}` are gone, and the
+  facade namespace test (`malstrom/tests/namespace.rs`) asserts the curated surface.
 
-**Deferred (coupled to the public extension API):** `stream::Forward`, `stream::OperatorBuilder`,
-`runtime::communication` and `types::distributed` stay in `malstrom-core` (doc-hidden where
-they are implementation detail). They reference types that must remain user-facing —
-`Forward`/`OperatorBuilder` are `SafeLogic`/`Output`-shaped, `communication` implements traits
-over `Message`/`Kvt`, and `Message` (public) embeds `Acquire`/`Collect`/`Interrogate`. Moving
-them needs either `internal → core` (a cycle) or first decoupling the edge layer, which is what
-[unify-operator-io-edge-abstractions](../../proposed/architecture/2026-09-13-unify-operator-io-edge-abstractions.md)
-and [replace-operator-io-spsc-with-tokio-mpsc](../../proposed/architecture/2026-09-13-replace-operator-io-spsc-with-tokio-mpsc.md)
-do.
+**Reclassified as public, not hidden:** `runtime::communication` and `types::distributed`
+stay public in `malstrom-core`. They are not implementation detail that leaked: the
+`OperatorOperatorComm`/`WorkerCoordinatorComm` traits are the runtime-flavor extension point
+(`malstrom-k8s/runtime` implements them), and `types::distributed` is the keyed state-movement
+vocabulary that rides inside the public `Message` enum (a custom operator can match
+`Message::Interrogate`). Forcing them into a lower crate would invert the dependency (they
+reference `Kvt`/`Message`/`BuildContext`), so the boundary correctly keeps them public — the
+audit's original classification was too aggressive for these two.
 
 ## Ordering / prerequisites
 
@@ -107,10 +111,11 @@ rather than force a cycle.
   that pointed at `channels::spsc` were updated.
 - `cargo check`, `cargo test`, `cargo clippy --all-targets -- -D warnings` and
   `RUSTDOCFLAGS="-D warnings" cargo doc` are green for every locally-buildable crate.
-- **Not a complete hiding of the audit's list:** `Forward`, `OperatorBuilder`,
-  `runtime::communication` and `types::distributed` remain nameable from core (doc-hidden),
-  because moving them requires the edge-unification work. The `cargo-public-api` gate the audit
-  suggested was not added; the `malstrom` namespace test is the current regression anchor.
+- **The audit's hide list is fully resolved for what should be hidden and what should not:**
+  the genuinely-internal edge primitives are in `malstrom-core-internal`; the operator-layer
+  helpers are out of the kernel; `runtime::communication`/`types::distributed` are documented
+  as public extension points. The `cargo-public-api` gate the audit suggested was not added —
+  `malstrom/tests/namespace.rs` is the current regression anchor.
 
 ## Related
 

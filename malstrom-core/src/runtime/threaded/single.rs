@@ -2,12 +2,21 @@ use std::time::Duration;
 
 use crate::{
     coordinator::{Coordinator, CoordinatorExecutionError},
-    runtime::RuntimeFlavor,
+    runtime::{
+        OperatorOperatorComm, RuntimeFlavor,
+        communication::{
+            ReqResReceiver, ReqResSender, StreamReceiver, StreamSender, WorkerCoordinatorComm,
+        },
+        threaded::communication::{
+            CoordinatorChannels, CoordinatorCommunication, OperatorChannels, OperatorCommunication,
+        },
+    },
     snapshot::PersistenceBackend,
+    types::{OperatorId, WorkerId},
     worker::{StreamProvider, WorkerBuilder, WorkerExecutionError},
 };
 
-use super::{communication::InterThreadCommunication, Shared};
+use async_trait::async_trait;
 use bon::Builder;
 use thiserror::Error;
 
@@ -42,8 +51,6 @@ where
             coordinator.execute(1, self.snapshots, self.persistence, communication)
         });
         worker.execute()?;
-        // TODO: Coordinator thread does not terminate, which messes with the tests
-        //coord_thread.join().map_err(ExecutionError::CoordinatorJoin)??;
         Ok(())
     }
 }
@@ -63,7 +70,8 @@ pub enum ExecutionError {
 /// Useful for unit-tests.
 #[derive(Debug, Default, Clone)]
 pub struct SingleThreadRuntimeFlavor {
-    comm_shared: Shared,
+    operator_channels: OperatorChannels,
+    coordinator_channels: CoordinatorChannels,
 }
 
 impl RuntimeFlavor for SingleThreadRuntimeFlavor {
@@ -71,11 +79,57 @@ impl RuntimeFlavor for SingleThreadRuntimeFlavor {
 
     fn communication(
         &mut self,
-    ) -> Result<Self::Communication, crate::runtime::runtime_flavor::CommunicationError> {
-        Ok(InterThreadCommunication::new(self.comm_shared.clone(), 0))
+    ) -> Result<Self::Communication, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(InterThreadCommunication {
+            operator: OperatorCommunication::new(self.operator_channels.clone(), 0),
+            coordinator: CoordinatorCommunication::new(self.coordinator_channels.clone(), 0),
+        })
     }
 
     fn this_worker_id(&self) -> u64 {
         0
+    }
+}
+
+/// In-process communication for the single-thread runtime.
+/// Delegates to the shared inter-thread channel infrastructure
+/// ([crate::runtime::threaded::communication]).
+pub struct InterThreadCommunication {
+    operator: OperatorCommunication,
+    coordinator: CoordinatorCommunication,
+}
+
+#[async_trait]
+impl OperatorOperatorComm for InterThreadCommunication {
+    async fn new_sender(
+        &self,
+        to_worker: WorkerId,
+        channel_id: OperatorId,
+    ) -> Result<Box<dyn StreamSender>, Box<dyn std::error::Error>> {
+        self.operator.new_sender(to_worker, channel_id).await
+    }
+
+    async fn new_receiver(
+        &self,
+        from_worker: WorkerId,
+        channel_id: OperatorId,
+    ) -> Result<Box<dyn StreamReceiver>, Box<dyn std::error::Error>> {
+        self.operator.new_receiver(from_worker, channel_id).await
+    }
+}
+
+#[async_trait]
+impl WorkerCoordinatorComm for InterThreadCommunication {
+    async fn worker_to_coordinator(
+        &self,
+    ) -> Result<Box<dyn ReqResReceiver>, Box<dyn std::error::Error + Send + Sync>> {
+        self.coordinator.worker_to_coordinator().await
+    }
+
+    async fn coordinator_to_worker(
+        &self,
+        to_worker: WorkerId,
+    ) -> Result<Box<dyn ReqResSender>, Box<dyn std::error::Error + Send + Sync>> {
+        self.coordinator.coordinator_to_worker(to_worker).await
     }
 }

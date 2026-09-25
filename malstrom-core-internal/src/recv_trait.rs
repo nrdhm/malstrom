@@ -1,0 +1,27 @@
+//! The low-level receiver abstraction shared by the SPSC edge channel and the
+//! barrier alignment combinator.
+
+/// TODO: do we still need this trait?
+pub trait Receiver {
+    /// what type it emits
+    type Output;
+    /// the logic to emit values
+    async fn recv(&mut self) -> Self::Output;
+}
+
+// impl<K, V> Receiver for IndexMap<K, V> where K: Clone, V: Receiver {
+//     type Output = (K, V::Output);
+
+//     /// Receiver impl for a map of receivers, never returns for an empty map
+//     async fn recv(&mut self) -> Self::Output {
+//         let mut recv_futures: FuturesUnordered<_> = self.iter_mut()
+//         .map(|(k, v)| async {(k.clone(), v.recv().await)})
+//         .collect();
+
+//         if recv_futures.is_empty() {
+//             std::future::pending().await
+//         } else {
+//             recv_futures.next().await.unwrap()
+//         }
+//     }
+// }

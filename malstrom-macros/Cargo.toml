@@ -1,0 +1,33 @@
+[package]
+name = "malstrom-macros"
+version = "0.1.0"
+edition = "2024"
+description = "Procedural macros for Malstrom: the `instrument_debug` attribute and the `TTLState` derive."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/MalstromDevelopers/malstrom"
+readme = "../README.md"
+categories = [
+    "concurrency",
+]
+keywords = [
+    "stream",
+    "data",
+    "framework",
+    "streaming",
+    "distributed",
+]
+
+[lints]
+workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "2.0", features = ["full"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+[dev-dependencies]
+tracing = "0.1.40"
+tracing-subscriber = "0.3"

@@ -1,0 +1,157 @@
+use crate::{
+    runtime::{
+        OperatorOperatorComm,
+        communication::{self as com, StreamReceiver, StreamSender},
+        threaded::communication::{
+            ConnectionKey, OperatorReceiver, OperatorSender, ReqResReceiver, ReqResSender,
+        },
+    },
+    types::{OperatorId, WorkerId},
+};
+use async_trait::async_trait;
+use flume::{Receiver, Sender};
+use std::sync::{Arc, Mutex};
+use thiserror::Error;
+use tokio::sync::oneshot;
+
+use indexmap::IndexMap;
+
+type SenderMap<T> = IndexMap<ConnectionKey, Sender<T>>;
+type ReceiverMap<T> = IndexMap<ConnectionKey, Receiver<T>>;
+/// AddressMap shared across multiple threads
+pub(crate) type InterThreadChannels<T> = Arc<Mutex<(SenderMap<T>, ReceiverMap<T>)>>;
+
+pub(crate) type OperatorChannels = InterThreadChannels<Vec<u8>>;
+pub(crate) type OperatorCommunication = InterThreadCommunication<Vec<u8>>;
+
+pub(crate) type CoordinatorChannels = InterThreadChannels<(Vec<u8>, oneshot::Sender<Vec<u8>>)>;
+pub(crate) type CoordinatorCommunication =
+    InterThreadCommunication<(Vec<u8>, oneshot::Sender<Vec<u8>>)>;
+
+/// Provides simple inter-thread communication via channels
+pub struct InterThreadCommunication<T> {
+    channels: InterThreadChannels<T>,
+    this_worker: WorkerId,
+}
+impl<T> InterThreadCommunication<T> {
+    pub(crate) fn new(channels: InterThreadChannels<T>, this_worker: WorkerId) -> Self {
+        Self {
+            channels,
+            this_worker,
+        }
+    }
+
+    fn get_or_create_sender(&self, key: ConnectionKey) -> Sender<T> {
+        let mut channels = self.channels.lock().unwrap();
+        match channels.0.get(&key) {
+            Some(tx) => tx.clone(),
+            None => {
+                let (tx, rx) = flume::bounded(1024);
+                channels.0.insert(key, tx.clone());
+                channels.1.insert(key, rx);
+                tx
+            }
+        }
+    }
+
+    fn get_or_create_receiver(&self, key: ConnectionKey) -> Receiver<T> {
+        let mut channels = self.channels.lock().unwrap();
+        match channels.1.get(&key) {
+            Some(rx) => rx.clone(),
+            None => {
+                let (tx, rx) = flume::bounded(1024);
+                channels.0.insert(key, tx);
+                channels.1.insert(key, rx.clone());
+                rx
+            }
+        }
+    }
+}
+
+#[derive(Debug, Error)]
+enum InterThreadCommunicationError {}
+
+#[async_trait]
+impl OperatorOperatorComm for InterThreadCommunication<Vec<u8>> {
+    async fn new_sender(
+        &self,
+        to_worker: WorkerId,
+        to_operator: OperatorId,
+    ) -> Result<Box<dyn StreamSender>, Box<dyn std::error::Error>> {
+        let key = ConnectionKey::new(self.this_worker, to_worker, to_operator);
+        let sender = self.get_or_create_sender(key);
+        Ok(Box::new(OperatorSender::new(sender)))
+    }
+
+    async fn new_receiver(
+        &self,
+        from_worker: WorkerId,
+        from_operator: OperatorId,
+    ) -> Result<Box<dyn StreamReceiver>, Box<dyn std::error::Error>> {
+        let key = ConnectionKey::new(from_worker, self.this_worker, from_operator);
+        let receiver = self.get_or_create_receiver(key);
+        Ok(Box::new(OperatorReceiver::new(receiver)))
+    }
+}
+
+#[async_trait]
+impl com::WorkerCoordinatorComm for InterThreadCommunication<(Vec<u8>, oneshot::Sender<Vec<u8>>)> {
+    async fn worker_to_coordinator(
+        &self,
+    ) -> Result<Box<dyn com::ReqResReceiver>, Box<dyn std::error::Error + Send + Sync>> {
+        let key = ConnectionKey::new(self.this_worker, WorkerId::MAX, 0);
+        let rx = self.get_or_create_receiver(key);
+        Ok(Box::new(ReqResReceiver::new(rx)))
+    }
+
+    async fn coordinator_to_worker(
+        &self,
+        to_worker: WorkerId,
+    ) -> Result<Box<dyn com::ReqResSender>, Box<dyn std::error::Error + Send + Sync>> {
+        // same key orientation as the worker's `worker_to_coordinator` so both sides
+        // of the connection land on the same channel
+        let key = ConnectionKey::new(to_worker, WorkerId::MAX, 0);
+        let tx = self.get_or_create_sender(key);
+        Ok(Box::new(ReqResSender::new(tx)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::runtime::communication::{OperatorOperatorComm, WorkerCoordinatorComm};
+
+    /// Regression: operator→operator channels created from different comm handles must
+    /// land on the same underlying channel (the `ConnectionKey` direction used to be
+    /// inconsistent between the sender and receiver sides).
+    #[tokio::test]
+    async fn operator_channels_connect_on_same_connection_key() {
+        let channels = OperatorChannels::default();
+        let worker_a = OperatorCommunication::new(Arc::clone(&channels), 0);
+        let worker_b = OperatorCommunication::new(Arc::clone(&channels), 1);
+
+        // worker 0's operator 42 sends to worker 1; worker 1 receives from worker 0
+        let sender = worker_a.new_sender(1, 42).await.unwrap();
+        let receiver = worker_b.new_receiver(0, 42).await.unwrap();
+        sender.send(vec![1, 2, 3]).await.unwrap();
+        assert_eq!(receiver.recv().await.unwrap(), vec![1, 2, 3]);
+    }
+
+    /// Regression: coordinator↔worker req/res must connect on the same key from both
+    /// sides (`coordinator_to_worker(w)` and `worker_to_coordinator()` on worker w).
+    #[tokio::test]
+    async fn coordinator_worker_connect_on_same_connection_key() {
+        let channels = CoordinatorChannels::default();
+        let coordinator = CoordinatorCommunication::new(Arc::clone(&channels), WorkerId::MAX);
+        let worker = CoordinatorCommunication::new(Arc::clone(&channels), 3);
+
+        let sender = coordinator.coordinator_to_worker(3).await.unwrap();
+        let receiver = worker.worker_to_coordinator().await.unwrap();
+
+        let send_task = tokio::spawn(async move { sender.send(b"ping".to_vec()).await.unwrap() });
+        let (msg, mut responder) = receiver.recv().await.unwrap();
+        assert_eq!(msg, b"ping");
+        responder.respond(b"pong".to_vec()).await.unwrap();
+        assert_eq!(send_task.await.unwrap(), b"pong");
+    }
+}

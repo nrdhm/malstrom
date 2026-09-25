@@ -1,0 +1,29 @@
+//! Example using stateful_map with multiple keys
+use malstrom::combinators::Source as _;
+use malstrom::combinators::*;
+use malstrom::keyed::rendezvous_select;
+use malstrom::runtime::SingleThreadRuntime;
+use malstrom::sinks::{StatelessSink, StdOutSink};
+use malstrom::snapshot::NoPersistence;
+use malstrom::sources::Source;
+use malstrom::worker::StreamProvider;
+
+fn main() {
+    SingleThreadRuntime::builder()
+        .persistence(NoPersistence)
+        .build(build_dataflow)
+        .execute()
+        .unwrap();
+}
+
+fn build_dataflow(provider: &mut dyn StreamProvider) {
+    provider
+        .new_stream()
+        .source("iter-source", Source::from_iterator(0..=100))
+        .key_distribute("key-by-value", |x| x.value & 1 == 1, rendezvous_select)
+        .stateful_map("sum", async |_key, value, state| {
+            let state: i32 = state + value;
+            (state, Some(state))
+        })
+        .sink("stdout", StatelessSink::new(StdOutSink));
+}

@@ -17,7 +17,7 @@ pub async fn add(
         }
     });
 
-    let params = PatchParams::apply("malstrom-operator");
+    let params = PatchParams::apply("malstrom-k8s-operator");
 
     let patch: Patch<&Value> = Patch::Merge(&finalizer);
     Ok(api.patch(name, &params, &patch).await?)
@@ -42,7 +42,7 @@ pub async fn delete(
         }
     });
 
-    let params = PatchParams::apply("malstrom-operator");
+    let params = PatchParams::apply("malstrom-k8s-operator");
 
     let patch: Patch<&Value> = Patch::Merge(&finalizer);
     Ok(api.patch(name, &params, &patch).await?)

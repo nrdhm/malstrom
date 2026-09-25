@@ -20,7 +20,7 @@ The operator applies a transforming function to every message, giving the functi
 Here's a simple example that demonstrates how to use the TTL Map Operator:
 
 ```rust
-use malstrom::operators::TtlMap;
+use malstrom::combinators::TtlMap;
 use expiremap::ExpireMap;
 
 stream
@@ -45,13 +45,13 @@ stream
 
 This example shows how to calculate a running total that resets when the TTL expires:
 
-<<< @../../malstrom-core/examples/ttl_map_example.rs#build_running_total_dataflow
+<<< @../../malstrom-examples/examples/ttl_map.rs#build_running_total_dataflow
 
 ## Example: Sliding Window Concatenation
 
 This example demonstrates how to maintain a sliding window of recent values:
 
-<<< @../../malstrom-core/examples/ttl_map_example.rs#build_sliding_window_dataflow
+<<< @../../malstrom-examples/examples/ttl_map.rs#build_sliding_window_dataflow
 
 ## State Expiration
 

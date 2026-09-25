@@ -2,29 +2,29 @@
 //! resuming computation after failures. Snapshots can also be utilized to enable statful job
 //! upgrades
 
-#[cfg(feature = "slatedb")]
-pub mod slatedb;
 use crate::types::{OperatorId, WorkerId};
-use serde::{de::DeserializeOwned, Serialize};
-#[cfg(feature = "slatedb")]
-pub use slatedb::{object_store, SlateDbBackend, SlateDbClient};
-use std::{fmt::Debug, rc::Rc, sync::Mutex};
+use futures::FutureExt;
+use serde::{Serialize, de::DeserializeOwned};
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
+use tokio::sync::mpsc;
 
 /// Version of a snapshot
 pub type SnapshotVersion = u64;
 
-pub(crate) fn serialize_state<S: Serialize>(state: &S) -> Vec<u8> {
+/// Serialize state with the framework's snapshot encoding (MessagePack).
+pub fn serialize_state<S: Serialize>(state: &S) -> Vec<u8> {
     rmp_serde::to_vec(state).expect("Error serializing state")
 }
 
-pub(crate) fn deserialize_state<S: DeserializeOwned>(state: Vec<u8>) -> S {
+/// Deserialize state with the framework's snapshot encoding (MessagePack).
+pub fn deserialize_state<S: DeserializeOwned>(state: Vec<u8>) -> S {
     rmp_serde::from_slice(&state).expect("Error deserializing state")
 }
 
 /// A persistence backend provides persistent storage for storing snapshots across job restarts.
 /// This may be on a local disk, remote storage, a database or anything really which can reliably
 /// store data
-pub trait PersistenceBackend: 'static {
+pub trait PersistenceBackend: Send + Sync + 'static {
     /// Client for this backend. The client is used to store and load state from the backend.
     type Client: PersistenceClient;
     /// Return the version of the last committed snapshot or `None` if no version has not been
@@ -37,7 +37,7 @@ pub trait PersistenceBackend: 'static {
 }
 
 /// A client for saving snapshot data to and loading that data from a persistent storage
-pub trait PersistenceClient: 'static {
+pub trait PersistenceClient: Send + 'static {
     /// Load the state for the given operator, returning `None` if no state exists for this
     /// operator in persistent storage
     fn load(&self, operator_id: &OperatorId) -> Option<Vec<u8>>;
@@ -47,26 +47,32 @@ pub trait PersistenceClient: 'static {
 
 /// A snapshotting barrier for use with the
 /// [ABS snapshotting algorithm](https://arxiv.org/abs/1506.08603)
-pub struct Barrier {
-    backend: Rc<Mutex<Box<dyn PersistenceClient>>>,
+pub struct SnapshotBarrier {
+    backend: Rc<RefCell<Box<dyn PersistenceClient>>>,
+    /// sends when the last barrier is dropped
+    callback: Rc<RefCell<mpsc::Sender<()>>>,
 }
-impl Clone for Barrier {
+impl Clone for SnapshotBarrier {
     fn clone(&self) -> Self {
         Self {
             backend: Rc::clone(&self.backend),
+            callback: Rc::clone(&self.callback),
         }
     }
 }
-impl Debug for Barrier {
+impl Debug for SnapshotBarrier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Barrier").finish()
     }
 }
 
-impl Barrier {
-    pub(super) fn new(backend: Box<dyn PersistenceClient>) -> Self {
+impl SnapshotBarrier {
+    /// Create a snapshot barrier over the given persistence client. The callback
+    /// is signalled when the last clone of the barrier is dropped.
+    pub fn new(backend: Box<dyn PersistenceClient>, callback: mpsc::Sender<()>) -> Self {
         Self {
-            backend: Rc::new(Mutex::new(backend)),
+            backend: Rc::new(RefCell::new(backend)),
+            callback: Rc::new(RefCell::new(callback)),
         }
     }
 
@@ -77,12 +83,16 @@ impl Barrier {
         operator_id: &OperatorId,
     ) {
         let encoded = serialize_state(state);
-        #[allow(clippy::unwrap_used)]
-        self.backend.lock().unwrap().persist(&encoded, operator_id)
+        self.backend.borrow_mut().persist(&encoded, operator_id)
     }
+}
 
-    pub(super) fn strong_count(&self) -> usize {
-        Rc::strong_count(&self.backend)
+impl Drop for SnapshotBarrier {
+    fn drop(&mut self) {
+        // kinda ugly, but works
+        if Rc::strong_count(&self.callback) == 1 {
+            let _ = self.callback.borrow_mut().send(()).now_or_never().unwrap();
+        }
     }
 }
 
@@ -129,5 +139,24 @@ mod test {
         struct _Foo {
             _bar: Box<dyn PersistenceClient>,
         }
+    }
+}
+
+#[cfg(test)]
+mod serialization_tests {
+    use super::{deserialize_state, serialize_state};
+
+    /// The coordinator's cluster-state serialization must round-trip.
+    #[test]
+    fn serialize_state_round_trips() {
+        let state = vec![(1u64, "one".to_string()), (2, "two".to_string())];
+        let bytes = serialize_state(&state);
+        assert_eq!(deserialize_state::<Vec<(u64, String)>>(bytes), state);
+    }
+
+    #[test]
+    fn serialize_state_round_trips_primitives() {
+        let bytes = serialize_state(&7u64);
+        assert_eq!(deserialize_state::<u64>(bytes), 7);
     }
 }
